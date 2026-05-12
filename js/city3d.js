@@ -1,11 +1,10 @@
-// ==================== 3D CITY (IMPROVED WITH LABELS) ====================
+// ==================== 3D CITY (ORIGINAL SIMPLE VERSION) ====================
 
 const City3D = {
     scene: null,
     camera: null,
     renderer: null,
     buildings: [],
-    labels: [],
     animationId: null,
     initialized: false,
     
@@ -57,21 +56,16 @@ const City3D = {
         // Create scene
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x87ceeb); // Sky blue
-        this.scene.fog = new THREE.Fog(0x87ceeb, 50, 100);
         
-        // Create camera - STATIC POSITION
+        // Create camera
         this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-        this.camera.position.set(0, 20, 35); // Fixed position
+        this.camera.position.set(0, 15, 25);
         this.camera.lookAt(0, 0, 0);
         
         // Create renderer
-        this.renderer = new THREE.WebGLRenderer({ 
-            antialias: true,
-            alpha: false
-        });
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
         this.renderer.setSize(width, height, false);
         this.renderer.setPixelRatio(window.devicePixelRatio || 1);
-        this.renderer.shadowMap.enabled = true;
         
         container.innerHTML = '';
         container.appendChild(this.renderer.domElement);
@@ -79,41 +73,27 @@ const City3D = {
         console.log('✅ Renderer created');
         
         // Add lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
         this.scene.add(ambientLight);
         
-        const sun = new THREE.DirectionalLight(0xffffff, 0.9);
-        sun.position.set(20, 30, 20);
-        sun.castShadow = true;
-        this.scene.add(sun);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 20, 10);
+        this.scene.add(directionalLight);
         
-        // Add ground with grid
-        const groundGeometry = new THREE.PlaneGeometry(150, 150);
-        const groundMaterial = new THREE.MeshLambertMaterial({ 
-            color: 0x2d5016,
-            side: THREE.DoubleSide
-        });
+        // Add ground
+        const groundGeometry = new THREE.PlaneGeometry(100, 100);
+        const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x228b22 });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
         ground.position.y = -0.5;
-        ground.receiveShadow = true;
         this.scene.add(ground);
-        
-        // Add grid helper (roads)
-        const gridHelper = new THREE.GridHelper(150, 30, 0x555555, 0x888888);
-        gridHelper.position.y = -0.4;
-        this.scene.add(gridHelper);
         
         // Create buildings
         this.createBuildings();
         
-        // Create labels
-        this.createLabels(container);
-        
         // Setup events
         window.addEventListener('resize', () => this.handleResize());
         this.renderer.domElement.addEventListener('click', (e) => this.handleClick(e));
-        this.renderer.domElement.addEventListener('mousemove', (e) => this.handleHover(e));
         this.renderer.domElement.style.cursor = 'pointer';
         
         // Start animation
@@ -125,159 +105,32 @@ const City3D = {
     
     createBuildings() {
         const buildingData = [
-            { name: 'Home', x: 0, z: -10, color: 0xff8c42, icon: '🏠', height: 5 },
-            { name: 'School', x: -8, z: -10, color: 0x4a90e2, icon: '🏫', height: 7 },
-            { name: 'Store', x: 8, z: -10, color: 0x50c878, icon: '🏪', height: 5 },
-            { name: 'Bank', x: -8, z: 0, color: 0xffd700, icon: '🏦', height: 8 },
-            { name: 'Job Center', x: 8, z: 0, color: 0x9b59b6, icon: '💼', height: 6 },
-            { name: 'Post Office', x: -8, z: 10, color: 0xe74c3c, icon: '📮', height: 5 },
-            { name: 'Apartments', x: 8, z: 10, color: 0xa0522d, icon: '🏢', height: 9 },
-            { name: 'College', x: 0, z: 10, color: 0x1e3a8a, icon: '🎓', height: 8 },
-            { name: 'Entertainment', x: -12, z: 0, color: 0xff1493, icon: '🎮', height: 6 },
-            { name: 'Phone Store', x: 12, z: 0, color: 0x00ced1, icon: '📱', height: 5 }
+            { name: 'Home', x: 0, z: -10, color: 0xffa500 },
+            { name: 'School', x: -8, z: -10, color: 0x4169e1 },
+            { name: 'Store', x: 8, z: -10, color: 0x32cd32 },
+            { name: 'Bank', x: -8, z: 0, color: 0xffd700 },
+            { name: 'Job Center', x: 8, z: 0, color: 0x9370db },
+            { name: 'Post Office', x: -8, z: 10, color: 0xff6347 },
+            { name: 'Apartments', x: 8, z: 10, color: 0x8b4513 },
+            { name: 'College', x: 0, z: 10, color: 0x000080 },
+            { name: 'Entertainment', x: -12, z: 0, color: 0xff1493 },
+            { name: 'Phone Store', x: 12, z: 0, color: 0x00ced1 }
         ];
         
         buildingData.forEach((data) => {
-            // Create building with windows
-            const buildingGroup = new THREE.Group();
-            
-            // Main building
-            const geometry = new THREE.BoxGeometry(4, data.height, 4);
+            const geometry = new THREE.BoxGeometry(4, 6, 4);
             const material = new THREE.MeshLambertMaterial({ color: data.color });
             const building = new THREE.Mesh(geometry, material);
-            building.castShadow = true;
-            building.receiveShadow = true;
-            buildingGroup.add(building);
             
-            // Add windows (darker squares)
-            const windowMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
-            for (let i = 0; i < 3; i++) {
-                for (let j = 0; j < 2; j++) {
-                    const windowGeometry = new THREE.BoxGeometry(0.6, 0.8, 0.1);
-                    const window1 = new THREE.Mesh(windowGeometry, windowMaterial);
-                    window1.position.set(-1 + j * 2, -data.height/2 + 1 + i * 1.5, 2.05);
-                    buildingGroup.add(window1);
-                }
-            }
+            building.position.set(data.x, 3, data.z);
+            building.userData = { name: data.name };
+            building.originalY = 3;
             
-            // Add roof
-            const roofGeometry = new THREE.ConeGeometry(3, 1.5, 4);
-            const roofMaterial = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
-            const roof = new THREE.Mesh(roofGeometry, roofMaterial);
-            roof.position.y = data.height / 2 + 0.75;
-            roof.rotation.y = Math.PI / 4;
-            buildingGroup.add(roof);
-            
-            buildingGroup.position.set(data.x, data.height / 2, data.z);
-            buildingGroup.userData = { 
-                name: data.name, 
-                icon: data.icon,
-                originalColor: data.color
-            };
-            
-            this.scene.add(buildingGroup);
-            this.buildings.push(buildingGroup);
+            this.scene.add(building);
+            this.buildings.push(building);
         });
         
         console.log(`🏢 Created ${this.buildings.length} buildings`);
-    },
-    
-    createLabels(container) {
-        // Create label container
-        const labelContainer = document.createElement('div');
-        labelContainer.id = 'buildingLabels';
-        labelContainer.style.position = 'absolute';
-        labelContainer.style.top = '0';
-        labelContainer.style.left = '0';
-        labelContainer.style.width = '100%';
-        labelContainer.style.height = '100%';
-        labelContainer.style.pointerEvents = 'none';
-        labelContainer.style.zIndex = '1';
-        container.appendChild(labelContainer);
-        
-        this.buildings.forEach((building) => {
-            const label = document.createElement('div');
-            label.className = 'building-label';
-            label.innerHTML = `
-                <div class="label-icon">${building.userData.icon}</div>
-                <div class="label-text">${building.userData.name}</div>
-            `;
-            label.style.position = 'absolute';
-            label.style.background = 'rgba(0, 0, 0, 0.8)';
-            label.style.color = 'white';
-            label.style.padding = '8px 12px';
-            label.style.borderRadius = '8px';
-            label.style.fontSize = '14px';
-            label.style.fontWeight = 'bold';
-            label.style.textAlign = 'center';
-            label.style.transform = 'translate(-50%, -50%)';
-            label.style.whiteSpace = 'nowrap';
-            label.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
-            label.style.border = '2px solid rgba(255,255,255,0.3)';
-            label.style.transition = 'all 0.3s ease';
-            
-            labelContainer.appendChild(label);
-            this.labels.push({ element: label, building: building });
-        });
-    },
-    
-    updateLabels() {
-        if (!this.initialized) return;
-        
-        this.labels.forEach(({ element, building }) => {
-            const vector = new THREE.Vector3();
-            
-            // Get position above building
-            const pos = building.position.clone();
-            pos.y += 8; // Above the building
-            vector.copy(pos);
-            
-            // Project to screen coordinates
-            vector.project(this.camera);
-            
-            // Convert to screen position
-            const x = (vector.x * 0.5 + 0.5) * this.renderer.domElement.clientWidth;
-            const y = (vector.y * -0.5 + 0.5) * this.renderer.domElement.clientHeight;
-            
-            element.style.left = x + 'px';
-            element.style.top = y + 'px';
-            
-            // Hide if behind camera
-            element.style.opacity = vector.z < 1 ? '1' : '0';
-        });
-    },
-    
-    handleHover(event) {
-        if (!this.initialized) return;
-        
-        const rect = this.renderer.domElement.getBoundingClientRect();
-        const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-        
-        const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera({ x, y }, this.camera);
-        
-        const intersects = raycaster.intersectObjects(this.buildings, true);
-        
-        // Reset all buildings
-        this.buildings.forEach(building => {
-            building.children[0].material.color.setHex(building.userData.originalColor);
-            building.children[0].material.emissive.setHex(0x000000);
-        });
-        
-        // Highlight hovered building
-        if (intersects.length > 0) {
-            let building = intersects[0].object;
-            while (building.parent && !building.userData.name) {
-                building = building.parent;
-            }
-            if (building.userData.name) {
-                building.children[0].material.emissive.setHex(0x444444);
-                this.renderer.domElement.style.cursor = 'pointer';
-            }
-        } else {
-            this.renderer.domElement.style.cursor = 'default';
-        }
     },
     
     handleClick(event) {
@@ -295,17 +148,12 @@ const City3D = {
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera({ x, y }, this.camera);
         
-        const intersects = raycaster.intersectObjects(this.buildings, true);
+        const intersects = raycaster.intersectObjects(this.buildings);
         
         if (intersects.length > 0) {
-            let building = intersects[0].object;
-            while (building.parent && !building.userData.name) {
-                building = building.parent;
-            }
-            if (building.userData.name) {
-                console.log(`🎯 Clicked: ${building.userData.name}`);
-                this.enterLocation(building.userData.name);
-            }
+            const name = intersects[0].object.userData.name;
+            console.log(`🎯 Clicked: ${name}`);
+            this.enterLocation(name);
         }
     },
     
@@ -339,13 +187,18 @@ const City3D = {
         
         this.animationId = requestAnimationFrame(() => this.animate());
         
-        // NO CAMERA ROTATION - Camera stays still!
-        // Buildings stay still too - no bobbing
+        const time = Date.now() * 0.0001;
         
-        // Update label positions
-        this.updateLabels();
+        // Rotate camera
+        this.camera.position.x = Math.sin(time) * 30;
+        this.camera.position.z = Math.cos(time) * 30;
+        this.camera.lookAt(0, 0, 0);
         
-        // Render scene
+        // Bob buildings
+        this.buildings.forEach((building, i) => {
+            building.position.y = building.originalY + Math.sin(time + i) * 0.2;
+        });
+        
         this.renderer.render(this.scene, this.camera);
     },
     
