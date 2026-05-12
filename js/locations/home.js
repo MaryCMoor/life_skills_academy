@@ -1,236 +1,132 @@
-// ==================== HOME LOCATION ====================
-
-function loadHome() {
-    document.getElementById('locationTitle').textContent = '🏠 Home';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life Skills Academy</title>
     
-    const content = `
-        <div class="tabs">
-            <div class="tab active" onclick="showHomeTab('chores')">Chores</div>
-            <div class="tab" onclick="showHomeTab('cooking')">Cooking</div>
-            <div class="tab" onclick="showHomeTab('laundry')">Laundry</div>
-            <div class="tab" onclick="showHomeTab('sleep')">Sleep</div>
-        </div>
-        
-        <div id="home-chores" class="tab-content active">
-            ${renderChores()}
-        </div>
-        
-        <div id="home-cooking" class="tab-content">
-            ${renderCooking()}
-        </div>
-        
-        <div id="home-laundry" class="tab-content">
-            ${renderLaundry()}
-        </div>
-        
-        <div id="home-sleep" class="tab-content">
-            ${renderSleep()}
-        </div>
-    `;
+    <!-- Three.js for 3D City -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     
-    document.getElementById('locationContent').innerHTML = content;
-}
-
-function showHomeTab(tab) {
-    document.querySelectorAll('#locationContent .tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('#locationContent .tab-content').forEach(t => t.classList.remove('active'));
-    
-    event.target.classList.add('active');
-    document.getElementById(`home-${tab}`).classList.add('active');
-}
-
-function renderChores() {
-    const chores = GameState.daily.chores;
-    
-    if (chores.length === 0) {
-        return '<div class="alert alert-success">✅ All chores completed for today!</div>';
-    }
-    
-    let html = '<h3>Today\'s Chores</h3>';
-    html += '<div class="checklist">';
-    
-    chores.forEach(chore => {
-        const completed = GameState.daily.completedToday.includes(chore.id);
-        html += `
-            <div class="checklist-item ${completed ? 'completed' : ''}">
-                <div class="checklist-icon">${completed ? '✅' : '⬜'}</div>
-                <div class="checklist-text">
-                    <strong>${chore.name}</strong>
-                    <div class="desc">Takes ${chore.time} minutes</div>
-                    <div class="reward">Reward: $${chore.reward} + ${chore.skill} skill</div>
-                </div>
-                ${!completed ? `<button class="btn btn-primary" onclick="doChore('${chore.id}')">Start</button>` : ''}
-            </div>
-        `;
-    });
-    
-    html += '</div>';
-    return html;
-}
-
-function doChore(choreId) {
-    const chore = GameState.daily.chores.find(c => c.id === choreId);
-    if (!chore) return;
-    
-    // Start minigame based on chore type
-    if (window.ChoreMinigames && ChoreMinigames[choreId]) {
-        ChoreMinigames.start(choreId);
-    } else {
-        // Simple completion
-        completeChoreSimple(chore);
-    }
-}
-
-function completeChoreSimple(chore) {
-    if (GameState.completeChore(chore.id)) {
-        GameState.addMoney(chore.reward, 'chore');
-        GameState.addSkill(chore.skill, 5);
-        
-        UI.showNotification(`✅ ${chore.name} completed! +$${chore.reward}`, 'success');
-        
-        // Check for achievement
-        if (GameState.stats.choresCompleted === 10) {
-            GameState.addAchievement('Chore Warrior', 'Complete 10 chores', '🧹');
-        }
-        
-        // Reload home
-        loadHome();
-        UI.updateStats();
-    }
-}
-
-function renderCooking() {
-    const recipes = [
-        { id: 'sandwich', name: '🥪 Sandwich', time: 10, skill: 1 },
-        { id: 'pasta', name: '🍝 Pasta', time: 30, skill: 3 },
-        { id: 'eggs', name: '🍳 Scrambled Eggs', time: 15, skill: 2 },
-        { id: 'salad', name: '🥗 Salad', time: 15, skill: 2 },
-        { id: 'soup', name: '🍲 Soup', time: 45, skill: 4 }
-    ];
-    
-    let html = '<h3>🍳 Cooking</h3>';
-    html += '<p>Cook meals to improve your cooking skill and restore energy!</p>';
-    html += '<div class="content-grid">';
-    
-    recipes.forEach(recipe => {
-        html += `
-            <div class="card">
-                <div class="card-title">${recipe.name}</div>
-                <div class="card-content">
-                    <p>⏱️ Time: ${recipe.time} minutes</p>
-                    <p>📈 Skill gained: +${recipe.skill}</p>
-                    <button class="btn btn-success mt-20" onclick="startCooking('${recipe.id}')">Cook</button>
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/city3d.css">
+    <link rel="stylesheet" href="css/locations.css">
+    <link rel="stylesheet" href="css/minigames.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Top Status Bar -->
+        <div id="topBar">
+            <div class="time-section">
+                <div class="time-display" id="timeDisplay">Monday, Sep 1 - 7:00 AM</div>
+                <div class="time-controls">
+                    <button class="time-btn pause" id="pauseBtn" onclick="togglePause()">⏸</button>
+                    <button class="time-btn active" id="speed1" onclick="setSpeed(1)">1x</button>
+                    <button class="time-btn" id="speed3" onclick="setSpeed(3)">3x</button>
+                    <button class="time-btn" id="speed10" onclick="setSpeed(10)">10x</button>
                 </div>
             </div>
-        `;
-    });
-    
-    html += '</div>';
-    return html;
-}
-
-function startCooking(recipeId) {
-    if (window.CookingMinigame) {
-        CookingMinigame.start(recipeId);
-    } else {
-        UI.showNotification('🍳 Cooking minigame coming soon!', 'info');
-    }
-}
-
-function renderLaundry() {
-    return `
-        <h3>🧺 Laundry</h3>
-        <div class="alert alert-info">
-            Learn to sort, wash, dry, and fold clothes properly!
-        </div>
-        
-        <div class="card">
-            <div class="card-title">Do Laundry</div>
-            <div class="card-content">
-                <p>Complete the full laundry cycle:</p>
-                <ol>
-                    <li>Sort clothes by color</li>
-                    <li>Wash with proper settings</li>
-                    <li>Dry clothes</li>
-                    <li>Fold and put away</li>
-                </ol>
-                <p><strong>Time:</strong> 90 minutes</p>
-                <p><strong>Reward:</strong> $12 + Laundry skill</p>
-                <button class="btn btn-primary mt-20" onclick="startLaundry()">Start Laundry</button>
+            <div class="stats-section">
+                <div class="stat">👤 <span id="playerName">Alex</span></div>
+                <div class="stat">🎂 <span id="playerAge">14</span> yrs</div>
+                <div class="stat">💵 $<span id="cash">50</span></div>
+                <div class="stat">🏦 $<span id="bank">0</span></div>
+                <div class="stat">📚 GPA: <span id="gpa">0.0</span></div>
             </div>
         </div>
-    `;
-}
-
-function startLaundry() {
-    if (window.LaundryMinigame) {
-        LaundryMinigame.start();
-    } else {
-        UI.showNotification('🧺 Laundry minigame coming soon!', 'info');
-    }
-}
-
-function renderSleep() {
-    const hour = GameState.time.hour;
-    const canSleep = hour >= 20 || hour < 6;
-    
-    return `
-        <h3>😴 Sleep</h3>
-        <div class="alert ${canSleep ? 'alert-info' : 'alert-warning'}">
-            ${canSleep ? 
-                '✅ Good time to sleep! (8:00 PM - 6:00 AM)' : 
-                '⚠️ It\'s not bedtime yet. Try sleeping after 8:00 PM.'}
+        
+        <!-- 3D City View -->
+        <div id="cityContainer">
+            <canvas id="cityCanvas"></canvas>
+            
+            <!-- City Controls -->
+            <div id="cityControls">
+                <button class="control-btn" id="rotateLeft">↻ Rotate</button>
+                <button class="control-btn" id="rotateRight">Rotate ↺</button>
+                <button class="control-btn" id="zoomIn">🔍+</button>
+                <button class="control-btn" id="zoomOut">🔍−</button>
+            </div>
+            
+            <!-- Building Tooltip -->
+            <div id="buildingTooltip" class="tooltip hidden">
+                <div class="tooltip-title"></div>
+                <div class="tooltip-desc"></div>
+                <div class="tooltip-hint">Click to enter</div>
+            </div>
         </div>
         
-        <div class="card">
-            <div class="card-title">Go to Bed</div>
-            <div class="card-content">
-                <p>Sleeping will:</p>
-                <ul>
-                    <li>Advance to the next day</li>
-                    <li>Restore your energy</li>
-                    <li>Reset daily tasks</li>
-                    <li>Generate new chores and homework</li>
-                </ul>
+        <!-- Location Screen -->
+        <div id="locationScreen" class="hidden">
+            <div class="location-header">
+                <h2 id="locationTitle">Location</h2>
+                <button class="btn-back" id="backBtn" onclick="backToCity()">← Back to City</button>
+            </div>
+            <div class="location-content" id="locationContent"></div>
+        </div>
+        
+        <!-- Onboarding -->
+        <div id="onboarding" class="modal-overlay active">
+            <div class="modal-content">
+                <h1>🎓 Life Skills Academy</h1>
+                <p class="subtitle">Learn Real Life Skills Through Simulation</p>
                 
-                ${GameState.player.age < 18 ? 
-                    '<p class="alert alert-warning"><strong>Note:</strong> Your parents expect you home by 10 PM on school nights!</p>' : 
-                    ''}
+                <div class="info-box">
+                    <h3>Your Journey:</h3>
+                    <ul>
+                        <li><strong>Ages 14-17:</strong> Live as a teen - chores, school, jobs</li>
+                        <li><strong>Age 18+:</strong> Real world - rent, bills, credit cards</li>
+                        <li><strong>Learn:</strong> Cooking, banking, budgeting, and more!</li>
+                    </ul>
+                </div>
                 
-                <button class="btn ${canSleep ? 'btn-primary' : 'btn-danger'}" 
-                        onclick="goToSleep()" 
-                        ${!canSleep ? 'disabled' : ''}>
-                    ${canSleep ? '😴 Go to Sleep' : '⏰ Too Early to Sleep'}
+                <div class="form-group">
+                    <label>Your Name:</label>
+                    <input type="text" id="nameInput" value="Alex" maxlength="15">
+                </div>
+                
+                <div class="form-group">
+                    <label>Gender:</label>
+                    <select id="genderInput">
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <button class="btn-primary btn-large" onclick="startGame()">
+                    Begin Your Life Journey →
                 </button>
             </div>
         </div>
-    `;
-}
-
-function goToSleep() {
-    const hour = GameState.time.hour;
+    </div>
     
-    if (hour < 20 && hour >= 6) {
-        UI.showNotification('⏰ It\'s too early to sleep!', 'warning');
-        return;
-    }
+    <!-- Core Scripts - MUST LOAD IN THIS ORDER -->
+    <script src="js/state.js"></script>
+    <script src="js/utils/saveload.js"></script>
+    <script src="js/utils/time.js"></script>
+    <script src="js/utils/ui.js"></script>
     
-    // Advance time to next day
-    GameState.time.hour = 7;
-    GameState.time.minute = 0;
-    GameState.advanceDay();
-    TimeManager.generateDailyTasks();
+    <!-- 3D City -->
+    <script src="js/city3d.js"></script>
     
-    UI.showNotification('☀️ Good morning! A new day begins.', 'success');
+    <!-- Location Scripts -->
+    <script src="js/locations/home.js"></script>
+    <script src="js/locations/school.js"></script>
+    <script src="js/locations/store.js"></script>
+    <script src="js/locations/bank.js"></script>
+    <script src="js/locations/jobcenter.js"></script>
+    <script src="js/locations/postoffice.js"></script>
+    <script src="js/locations/apartments.js"></script>
+    <script src="js/locations/college.js"></script>
     
-    // Check if it's a school day
-    if (GameState.isWeekday() && GameState.player.age < 18) {
-        setTimeout(() => {
-            UI.showNotification('📚 Don\'t forget to go to school!', 'info');
-        }, 2000);
-    }
+    <!-- Minigame Scripts -->
+    <script src="js/minigames/chores.js"></script>
+    <script src="js/minigames/cooking.js"></script>
+    <script src="js/minigames/laundry.js"></script>
+    <script src="js/minigames/checkwriting.js"></script>
     
-    // Reload home screen
-    loadHome();
-    UI.updateStats();
-}
+    <!-- Main Game Logic - MUST LOAD LAST -->
+    <script src="js/game.js"></script>
+</body>
+</html>
