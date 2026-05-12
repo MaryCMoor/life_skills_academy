@@ -1,181 +1,147 @@
 // ==================== HOME LOCATION ====================
 
 function loadHome() {
-    console.log('🏠 Loading home...');
+    document.getElementById('locationTitle').textContent = '🏠 Home';
     
-    if (GameState.isBusy()) {
-        const content = `
-            <div class="location-container">
-                <h2>🏠 Home</h2>
-                <div class="info-box">
-                    <p>⏰ You're currently busy with: <strong>${GameState.currentActivity}</strong></p>
-                    <p>You'll be free at ${GameState.time.busyUntil.hour}:${GameState.time.busyUntil.minute.toString().padStart(2, '0')}</p>
-                </div>
-            </div>
-        `;
-        document.getElementById('locationContent').innerHTML = content;
-        return;
-    }
-    
-    const isUnderage = GameState.player.age < 18;
-    
-    let content = `
-        <div class="location-container">
-            <h2>🏠 Home - ${isUnderage ? "Parent's House" : "Your Apartment"}</h2>
-            <p class="location-description">
-                ${isUnderage ? 
-                    "You're living with your parents. Help out with chores and responsibilities!" : 
-                    "Your own place. You're responsible for everything now."}
-            </p>
-    `;
-    
-    // CHORES SECTION
-    if (isUnderage) {
-        const availableChores = GameState.daily.chores.filter(c => !c.completed);
-        const completedChores = GameState.daily.chores.filter(c => c.completed);
+    const content = `
+        <div class="tabs">
+            <div class="tab active" onclick="showHomeTab('chores')">Chores</div>
+            <div class="tab" onclick="showHomeTab('cooking')">Cooking</div>
+            <div class="tab" onclick="showHomeTab('laundry')">Laundry</div>
+            <div class="tab" onclick="showHomeTab('sleep')">Sleep</div>
+        </div>
         
-        content += `
-            <div class="section">
-                <h3>🧹 Daily Chores (${completedChores.length}/${GameState.daily.chores.length} done)</h3>
-                <div class="button-grid">
-        `;
+        <div id="home-chores" class="tab-content active">
+            ${renderChores()}
+        </div>
         
-        if (availableChores.length > 0) {
-            availableChores.forEach(chore => {
-                content += `
-                    <button class="btn btn-primary" onclick="doChore('${chore.id}')">
-                        ${chore.name}
-                        <div class="btn-subtitle">⏱️ ${chore.time}min • 💰 $${chore.reward}</div>
-                    </button>
-                `;
-            });
-        } else {
-            content += `<p style="color: #27ae60; font-weight: bold;">✅ All chores complete for today!</p>`;
-        }
+        <div id="home-cooking" class="tab-content">
+            ${renderCooking()}
+        </div>
         
-        content += `
-                </div>
-            </div>
-        `;
-    }
-    
-    // COOKING SECTION
-    content += `
-        <div class="section">
-            <h3>🍳 Cooking</h3>
-            <p>Practice cooking to improve your skills!</p>
-            <div class="button-grid">
-                <button class="btn btn-primary" onclick="cookRecipe('sandwich')">
-                    🥪 Make Sandwich
-                    <div class="btn-subtitle">⏱️ 10min • Skill +3</div>
-                </button>
-                <button class="btn btn-primary" onclick="cookRecipe('eggs')">
-                    🍳 Scrambled Eggs
-                    <div class="btn-subtitle">⏱️ 15min • Skill +5</div>
-                </button>
-                <button class="btn btn-primary" onclick="cookRecipe('pasta')">
-                    🍝 Simple Pasta
-                    <div class="btn-subtitle">⏱️ 30min • Skill +8</div>
-                </button>
-                <button class="btn btn-primary" onclick="cookRecipe('salad')">
-                    🥗 Fresh Salad
-                    <div class="btn-subtitle">⏱️ 15min • Skill +3</div>
-                </button>
-                <button class="btn btn-primary" onclick="cookRecipe('soup')">
-                    🍲 Easy Soup
-                    <div class="btn-subtitle">⏱️ 20min • Skill +4</div>
-                </button>
-            </div>
+        <div id="home-laundry" class="tab-content">
+            ${renderLaundry()}
+        </div>
+        
+        <div id="home-sleep" class="tab-content">
+            ${renderSleep()}
         </div>
     `;
     
-    // LAUNDRY SECTION
-    content += `
-        <div class="section">
-            <h3>🧺 Laundry</h3>
-            <button class="btn btn-primary btn-large" onclick="doLaundry()">
-                Do Laundry
-                <div class="btn-subtitle">⏱️ 90min • 💰 $12 • Skill +10</div>
-            </button>
-        </div>
-    `;
-    
-    // SLEEP SECTION
-    content += `
-        <div class="section">
-            <h3>😴 Sleep</h3>
-            <button class="btn btn-primary btn-large" onclick="goToSleep()">
-                Go to Sleep (Advance to Next Day)
-            </button>
-        </div>
-    `;
-    
-    // ADULT-ONLY FEATURES
-    if (!isUnderage) {
-        content += `
-            <div class="section">
-                <h3>🏠 Apartment Management</h3>
-                <div class="info-box">
-                    <p><strong>Rent:</strong> $${GameState.adult.rent}/month (Due: Day 1)</p>
-                    <p><strong>Utilities:</strong> $${GameState.adult.utilities}/month</p>
-                </div>
-                <div class="button-grid">
-                    <button class="btn btn-secondary" onclick="payRent()">
-                        💰 Pay Rent ($${GameState.adult.rent})
-                    </button>
-                    <button class="btn btn-secondary" onclick="payUtilities()">
-                        💡 Pay Utilities ($${GameState.adult.utilities})
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-    
-    content += `</div>`;
     document.getElementById('locationContent').innerHTML = content;
 }
 
-// ==================== CHORE FUNCTIONS ====================
+function showHomeTab(tab) {
+    document.querySelectorAll('#locationContent .tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('#locationContent .tab-content').forEach(t => t.classList.remove('active'));
+    
+    event.target.classList.add('active');
+    document.getElementById(`home-${tab}`).classList.add('active');
+}
+
+function renderChores() {
+    const chores = GameState.daily.chores;
+    
+    if (chores.length === 0) {
+        return '<div class="alert alert-success">✅ All chores completed for today!</div>';
+    }
+    
+    let html = '<h3>Today\'s Chores</h3>';
+    html += '<div class="checklist">';
+    
+    chores.forEach(chore => {
+        const completed = GameState.daily.completedToday.includes(chore.id);
+        html += `
+            <div class="checklist-item ${completed ? 'completed' : ''}">
+                <div class="checklist-icon">${completed ? '✅' : '⬜'}</div>
+                <div class="checklist-text">
+                    <strong>${chore.name}</strong>
+                    <div class="desc">Takes ${chore.time} minutes</div>
+                    <div class="reward">Reward: $${chore.reward} + ${chore.skill} skill</div>
+                </div>
+                ${!completed ? `<button class="btn btn-primary" onclick="doChore('${chore.id}')">Start</button>` : ''}
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    return html;
+}
 
 function doChore(choreId) {
-    console.log('🧹 Starting chore:', choreId);
-    
     const chore = GameState.daily.chores.find(c => c.id === choreId);
-    if (!chore) {
-        UI.showNotification('❌ Chore not found!', 'error');
-        return;
-    }
-    
-    if (chore.completed) {
-        UI.showNotification('❌ Already completed this chore today!', 'error');
-        return;
-    }
+    if (!chore) return;
     
     if (GameState.isBusy()) {
-        UI.showNotification('❌ You\'re already busy!', 'error');
+        UI.showNotification('❌ You are already busy!', 'error');
         return;
     }
     
-    // Set busy and launch minigame
+    // Set player as busy
     GameState.setBusy(chore.time / 60, chore.name);
     
-    // Launch the appropriate minigame
+    // Start minigame
     if (window.ChoreMinigames) {
-        console.log('✅ Launching ChoreMinigames for:', choreId);
+        console.log('✅ Launching minigame for:', choreId);
         ChoreMinigames.start(choreId);
     } else {
         console.error('❌ ChoreMinigames not loaded!');
-        UI.showNotification('❌ Minigame system not loaded!', 'error');
+        completeChoreSimple(chore);
     }
 }
 
-// ==================== COOKING FUNCTIONS ====================
+function completeChoreSimple(chore) {
+    if (GameState.completeChore(chore.id)) {
+        GameState.addMoney(chore.reward, 'chore');
+        GameState.addSkill(chore.skill, 5);
+        GameState.clearBusy();
+        
+        UI.showNotification(`✅ ${chore.name} completed! +$${chore.reward}`, 'success');
+        
+        // Check for achievement
+        if (GameState.stats.choresCompleted === 10) {
+            GameState.addAchievement('Chore Warrior', 'Complete 10 chores', '🧹');
+        }
+        
+        // Reload home
+        loadHome();
+        UI.updateStats();
+    }
+}
 
-function cookRecipe(recipeId) {
-    console.log('👨‍🍳 Cooking recipe:', recipeId);
+function renderCooking() {
+    const recipes = [
+        { id: 'sandwich', name: '🥪 Sandwich', time: 10, skill: 1 },
+        { id: 'pasta', name: '🍝 Pasta', time: 30, skill: 3 },
+        { id: 'eggs', name: '🍳 Scrambled Eggs', time: 15, skill: 2 },
+        { id: 'salad', name: '🥗 Salad', time: 15, skill: 2 },
+        { id: 'soup', name: '🍲 Soup', time: 45, skill: 4 }
+    ];
     
+    let html = '<h3>🍳 Cooking</h3>';
+    html += '<p>Cook meals to improve your cooking skill and restore energy!</p>';
+    html += '<div class="content-grid">';
+    
+    recipes.forEach(recipe => {
+        html += `
+            <div class="card">
+                <div class="card-title">${recipe.name}</div>
+                <div class="card-content">
+                    <p>⏱️ Time: ${recipe.time} minutes</p>
+                    <p>📈 Skill gained: +${recipe.skill}</p>
+                    <button class="btn btn-success mt-20" onclick="startCooking('${recipe.id}')">Cook</button>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    return html;
+}
+
+function startCooking(recipeId) {
     if (GameState.isBusy()) {
-        UI.showNotification('❌ You\'re already busy!', 'error');
+        UI.showNotification('❌ You are already busy!', 'error');
         return;
     }
     
@@ -184,101 +150,131 @@ function cookRecipe(recipeId) {
         eggs: { time: 15 },
         pasta: { time: 30 },
         salad: { time: 15 },
-        soup: { time: 20 }
+        soup: { time: 45 }
     };
     
     const recipe = recipes[recipeId];
-    if (!recipe) {
-        UI.showNotification('❌ Recipe not found!', 'error');
-        return;
-    }
+    if (!recipe) return;
     
-    // Set busy and launch cooking minigame
-    GameState.setBusy(recipe.time / 60, `Cooking ${recipeId}`);
+    // Set player as busy
+    GameState.setBusy(recipe.time / 60, 'Cooking ' + recipeId);
     
     if (window.CookingMinigame) {
-        console.log('✅ Launching CookingMinigame for:', recipeId);
+        console.log('✅ Launching cooking minigame for:', recipeId);
         CookingMinigame.start(recipeId);
     } else {
         console.error('❌ CookingMinigame not loaded!');
-        UI.showNotification('❌ Cooking system not loaded!', 'error');
+        UI.showNotification('🍳 Cooking minigame not available!', 'error');
+        GameState.clearBusy();
     }
 }
 
-// ==================== LAUNDRY FUNCTION ====================
+function renderLaundry() {
+    return `
+        <h3>🧺 Laundry</h3>
+        <div class="alert alert-info">
+            Learn to sort, wash, dry, and fold clothes properly!
+        </div>
+        
+        <div class="card">
+            <div class="card-title">Do Laundry</div>
+            <div class="card-content">
+                <p>Complete the full laundry cycle:</p>
+                <ol>
+                    <li>Sort clothes by color</li>
+                    <li>Wash with proper settings</li>
+                    <li>Dry clothes</li>
+                    <li>Fold and put away</li>
+                </ol>
+                <p><strong>Time:</strong> 90 minutes</p>
+                <p><strong>Reward:</strong> $12 + Laundry skill</p>
+                <button class="btn btn-primary mt-20" onclick="startLaundry()">Start Laundry</button>
+            </div>
+        </div>
+    `;
+}
 
-function doLaundry() {
-    console.log('🧺 Starting laundry');
-    
+function startLaundry() {
     if (GameState.isBusy()) {
-        UI.showNotification('❌ You\'re already busy!', 'error');
+        UI.showNotification('❌ You are already busy!', 'error');
         return;
     }
     
-    // Set busy and launch laundry minigame
+    // Set player as busy
     GameState.setBusy(1.5, 'Doing laundry');
     
     if (window.LaundryMinigame) {
-        console.log('✅ Launching LaundryMinigame');
+        console.log('✅ Launching laundry minigame');
         LaundryMinigame.start();
     } else {
         console.error('❌ LaundryMinigame not loaded!');
-        UI.showNotification('❌ Laundry system not loaded!', 'error');
+        UI.showNotification('🧺 Laundry minigame not available!', 'error');
+        GameState.clearBusy();
     }
 }
 
-// ==================== SLEEP FUNCTION ====================
+function renderSleep() {
+    const hour = GameState.time.hour;
+    const canSleep = hour >= 20 || hour < 6;
+    
+    return `
+        <h3>😴 Sleep</h3>
+        <div class="alert ${canSleep ? 'alert-info' : 'alert-warning'}">
+            ${canSleep ? 
+                '✅ Good time to sleep! (8:00 PM - 6:00 AM)' : 
+                '⚠️ It\'s not bedtime yet. Try sleeping after 8:00 PM.'}
+        </div>
+        
+        <div class="card">
+            <div class="card-title">Go to Bed</div>
+            <div class="card-content">
+                <p>Sleeping will:</p>
+                <ul>
+                    <li>Advance to the next day</li>
+                    <li>Restore your energy</li>
+                    <li>Reset daily tasks</li>
+                    <li>Generate new chores and homework</li>
+                </ul>
+                
+                ${GameState.player.age < 18 ? 
+                    '<p class="alert alert-warning"><strong>Note:</strong> Your parents expect you home by 10 PM on school nights!</p>' : 
+                    ''}
+                
+                <button class="btn ${canSleep ? 'btn-primary' : 'btn-danger'}" 
+                        onclick="goToSleep()" 
+                        ${!canSleep ? 'disabled' : ''}>
+                    ${canSleep ? '😴 Go to Sleep' : '⏰ Too Early to Sleep'}
+                </button>
+            </div>
+        </div>
+    `;
+}
 
 function goToSleep() {
-    if (GameState.isBusy()) {
-        UI.showNotification('❌ You\'re too busy to sleep right now!', 'error');
+    const hour = GameState.time.hour;
+    
+    if (hour < 20 && hour >= 6) {
+        UI.showNotification('⏰ It\'s too early to sleep!', 'warning');
         return;
     }
     
-    if (!confirm('Go to sleep and start a new day?')) {
-        return;
-    }
-    
-    // Advance day
+    // Advance time to next day
+    GameState.time.hour = 7;
+    GameState.time.minute = 0;
     GameState.advanceDay();
     
-    UI.showNotification('😴 Good morning! It\'s a new day.', 'success');
+    UI.showNotification('☀️ Good morning! A new day begins.', 'success');
+    
+    // Check if it's a school day
+    if (GameState.isWeekday() && GameState.player.age < 18) {
+        setTimeout(() => {
+            UI.showNotification('📚 Don\'t forget to go to school!', 'info');
+        }, 2000);
+    }
+    
+    // Reload home screen
     loadHome();
     UI.updateStats();
-}
-
-// ==================== ADULT FUNCTIONS ====================
-
-function payRent() {
-    if (GameState.money.cash < GameState.adult.rent) {
-        UI.showNotification('❌ Not enough cash! You need $' + GameState.adult.rent, 'error');
-        return;
-    }
-    
-    if (!confirm(`Pay rent of $${GameState.adult.rent}?`)) {
-        return;
-    }
-    
-    GameState.spendMoney(GameState.adult.rent, 'rent');
-    UI.showNotification(`✅ Rent paid: -$${GameState.adult.rent}`, 'success');
-    UI.updateStats();
-    loadHome();
-}
-
-function payUtilities() {
-    if (GameState.money.cash < GameState.adult.utilities) {
-        UI.showNotification('❌ Not enough cash! You need $' + GameState.adult.utilities, 'error');
-        return;
-    }
-    
-    if (!confirm(`Pay utilities of $${GameState.adult.utilities}?`)) {
-        return;
-    }
-    
-    GameState.spendMoney(GameState.adult.utilities, 'utilities');
-    UI.showNotification(`✅ Utilities paid: -$${GameState.adult.utilities}`, 'success');
-    UI.updateStats();
-    loadHome();
 }
 
 console.log('✅ home.js loaded');
