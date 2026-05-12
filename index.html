@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Life Skills Academy</title>
     
+    <!-- Three.js for 3D City -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
     <!-- CSS Files -->
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/city3d.css">
@@ -12,115 +15,102 @@
     <link rel="stylesheet" href="css/minigames.css">
 </head>
 <body>
-    <!-- Top Bar (Stats) -->
-    <div id="topBar">
-        <div class="stat-group">
-            <span class="stat-label">💰 Cash:</span>
-            <span id="stat-cash">$0</span>
-        </div>
-        <div class="stat-group">
-            <span class="stat-label">🏦 Bank:</span>
-            <span id="stat-bank">$0</span>
-        </div>
-        <div class="stat-group">
-            <span class="stat-label">⏰ Time:</span>
-            <span id="stat-time">7:00 AM</span>
-        </div>
-        <div class="stat-group">
-            <span class="stat-label">📅 Day:</span>
-            <span id="stat-day">Monday</span>
-        </div>
-        <div class="stat-group">
-            <span class="stat-label">📚 GPA:</span>
-            <span id="stat-gpa">0.0</span>
-        </div>
-        <div class="stat-group">
-            <button class="btn btn-small" onclick="toggleMenu()">☰ Menu</button>
-        </div>
-    </div>
-
-    <!-- Main Container -->
-    <div id="mainContainer">
-        <!-- 3D City View -->
-        <div id="city3d-container"></div>
-
-        <!-- Location Content -->
-        <div id="locationPanel">
-            <h2 id="locationTitle">Welcome</h2>
-            <div id="locationContent">
-                <p>Loading game...</p>
+    <div id="app">
+        <!-- Top Status Bar -->
+        <div id="topBar">
+            <div class="time-section">
+                <div class="time-display" id="timeDisplay">Monday, Sep 1 - 7:00 AM</div>
+                <div class="time-controls">
+                    <button class="time-btn pause" id="pauseBtn" onclick="togglePause()">⏸</button>
+                    <button class="time-btn active" id="speed1" onclick="setSpeed(1)">1x</button>
+                    <button class="time-btn" id="speed3" onclick="setSpeed(3)">3x</button>
+                    <button class="time-btn" id="speed10" onclick="setSpeed(10)">10x</button>
+                </div>
+            </div>
+            <div class="stats-section">
+                <div class="stat">👤 <span id="playerName">Alex</span></div>
+                <div class="stat">🎂 <span id="playerAge">14</span> yrs</div>
+                <div class="stat">💵 $<span id="cash">50</span></div>
+                <div class="stat">🏦 $<span id="bank">0</span></div>
+                <div class="stat">📚 GPA: <span id="gpa">0.0</span></div>
             </div>
         </div>
-    </div>
-
-    <!-- Character Creation Modal -->
-    <div id="characterModal" class="modal-overlay">
-        <div class="modal-content">
-            <h2>Create Your Character</h2>
-            <form id="characterForm">
-                <div class="form-group">
-                    <label for="playerName">Name:</label>
-                    <input type="text" id="playerName" required placeholder="Enter your name">
+        
+        <!-- 3D City View -->
+        <div id="cityContainer">
+            <canvas id="cityCanvas"></canvas>
+            
+            <!-- City Controls -->
+            <div id="cityControls">
+                <button class="control-btn" id="rotateLeft">↻ Rotate</button>
+                <button class="control-btn" id="rotateRight">Rotate ↺</button>
+                <button class="control-btn" id="zoomIn">🔍+</button>
+                <button class="control-btn" id="zoomOut">🔍−</button>
+            </div>
+            
+            <!-- Building Tooltip -->
+            <div id="buildingTooltip" class="tooltip hidden">
+                <div class="tooltip-title"></div>
+                <div class="tooltip-desc"></div>
+                <div class="tooltip-hint">Click to enter</div>
+            </div>
+        </div>
+        
+        <!-- Location Screen -->
+        <div id="locationScreen" class="hidden">
+            <div class="location-header">
+                <h2 id="locationTitle">Location</h2>
+                <button class="btn-back" id="backBtn" onclick="backToCity()">← Back to City</button>
+            </div>
+            <div class="location-content" id="locationContent"></div>
+        </div>
+        
+        <!-- Onboarding -->
+        <div id="onboarding" class="modal-overlay active">
+            <div class="modal-content">
+                <h1>🎓 Life Skills Academy</h1>
+                <p class="subtitle">Learn Real Life Skills Through Simulation</p>
+                
+                <div class="info-box">
+                    <h3>Your Journey:</h3>
+                    <ul>
+                        <li><strong>Ages 14-17:</strong> Live as a teen - chores, school, jobs</li>
+                        <li><strong>Age 18+:</strong> Real world - rent, bills, credit cards</li>
+                        <li><strong>Learn:</strong> Cooking, banking, budgeting, and more!</li>
+                    </ul>
                 </div>
                 
                 <div class="form-group">
-                    <label for="playerGender">Gender:</label>
-                    <select id="playerGender" required>
+                    <label>Your Name:</label>
+                    <input type="text" id="nameInput" value="Alex" maxlength="15">
+                </div>
+                
+                <div class="form-group">
+                    <label>Gender:</label>
+                    <select id="genderInput">
                         <option value="male">Male</option>
                         <option value="female">Female</option>
-                        <option value="nonbinary">Non-binary</option>
                         <option value="other">Other</option>
                     </select>
                 </div>
                 
-                <div class="form-group">
-                    <label for="playerAge">Age:</label>
-                    <input type="number" id="playerAge" min="14" max="18" value="14" required>
-                    <small>Start as a teenager (14-18) living with parents</small>
-                </div>
-                
-                <div class="form-group">
-                    <label for="playerBirthday">Birthday:</label>
-                    <input type="date" id="playerBirthday" required>
-                </div>
-                
-                <button type="submit" class="btn btn-success btn-large">Start Game</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Menu Modal -->
-    <div id="menuModal" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <h2>Menu</h2>
-            <div class="button-grid">
-                <button class="btn btn-primary" onclick="closeMenu()">Resume Game</button>
-                <button class="btn btn-secondary" onclick="SaveLoad.saveGame(false)">💾 Save Game</button>
-                <button class="btn btn-secondary" onclick="showStats()">📊 View Stats</button>
-                <button class="btn btn-secondary" onclick="showAchievements()">🏆 Achievements</button>
-                <button class="btn btn-danger" onclick="confirmNewGame()">🔄 New Game</button>
+                <button class="btn-primary btn-large" onclick="startGame()">
+                    Begin Your Life Journey →
+                </button>
             </div>
         </div>
     </div>
-
-    <!-- Notification Container -->
-    <div id="notificationContainer"></div>
-
-    <!-- Scripts -->
     
-    <!-- Three.js (MUST load first) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
-    <!-- Core system files (MUST load in this order) -->
+    <!-- Core Scripts - MUST LOAD IN THIS ORDER -->
     <script src="js/state.js"></script>
     <script src="js/utils/saveload.js"></script>
     <script src="js/utils/time.js"></script>
     <script src="js/utils/ui.js"></script>
-
-    <!-- 3D city -->
+    
+    <!-- 3D City -->
     <script src="js/city3d.js"></script>
-
-    <!-- Location files -->
+    
+    <!-- Location Scripts -->
     <script src="js/locations/home.js"></script>
     <script src="js/locations/school.js"></script>
     <script src="js/locations/store.js"></script>
@@ -129,44 +119,14 @@
     <script src="js/locations/postoffice.js"></script>
     <script src="js/locations/apartments.js"></script>
     <script src="js/locations/college.js"></script>
-    <script src="js/locations/entertainment.js"></script>
-    <script src="js/locations/phone.js"></script>
-
-    <!-- Minigame files (CRITICAL - must load before game.js) -->
+    
+    <!-- Minigame Scripts -->
     <script src="js/minigames/chores.js"></script>
     <script src="js/minigames/cooking.js"></script>
     <script src="js/minigames/laundry.js"></script>
     <script src="js/minigames/checkwriting.js"></script>
-    <script src="js/minigames/entertainment.js"></script>
-
-    <!-- Game controller (MUST load LAST) -->
+    
+    <!-- Main Game Logic - MUST LOAD LAST -->
     <script src="js/game.js"></script>
-
-    <script>
-        // Menu functions
-        function toggleMenu() {
-            const menu = document.getElementById('menuModal');
-            menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
-        }
-
-        function closeMenu() {
-            document.getElementById('menuModal').style.display = 'none';
-        }
-
-        function showStats() {
-            alert('Stats screen coming soon!');
-        }
-
-        function showAchievements() {
-            alert('Achievements screen coming soon!');
-        }
-
-        function confirmNewGame() {
-            if (confirm('Start a new game? This will delete your current progress!')) {
-                SaveLoad.deleteSave();
-                location.reload();
-            }
-        }
-    </script>
 </body>
 </html>
