@@ -1,43 +1,30 @@
 // ==================== SAVE/LOAD SYSTEM ====================
 
-const SaveSystem = {
-    SAVE_KEY: 'lifeSkillsAcademy',
+const SaveLoad = {
+    SAVE_KEY: 'lifeSkillsAcademy_save',
     AUTO_SAVE_INTERVAL: 120000, // 2 minutes
     autoSaveTimer: null,
     
-    init() {
-        // Start auto-save
-        this.startAutoSave();
-        
-        // Save before closing
-        window.addEventListener('beforeunload', () => {
-            this.save();
-        });
-        
-        console.log('✓ Save system initialized');
-    },
-    
+    // Start auto-save
     startAutoSave() {
-        this.autoSaveTimer = setInterval(() => {
-            if (!GameState.time.paused) {
-                this.save(true); // Silent save
-            }
-        }, this.AUTO_SAVE_INTERVAL);
-    },
-    
-    stopAutoSave() {
         if (this.autoSaveTimer) {
             clearInterval(this.autoSaveTimer);
-            this.autoSaveTimer = null;
         }
+        
+        this.autoSaveTimer = setInterval(() => {
+            this.saveGame(true);
+        }, this.AUTO_SAVE_INTERVAL);
+        
+        console.log('💾 Auto-save enabled (every 2 minutes)');
     },
     
-    save(silent = false) {
+    // Save game to localStorage
+    saveGame(isAutoSave = false) {
         try {
             const saveData = {
-                version: '1.0.0',
+                version: GameState.version,
                 timestamp: new Date().toISOString(),
-                state: {
+                data: {
                     player: GameState.player,
                     time: GameState.time,
                     money: GameState.money,
@@ -46,155 +33,181 @@ const SaveSystem = {
                     skills: GameState.skills,
                     daily: GameState.daily,
                     adult: GameState.adult,
-                    tutorials: GameState.tutorials,
-                    inventory: GameState.inventory,
-                    achievements: GameState.achievements,
-                    stats: GameState.stats
+                    phone: GameState.phone,
+                    entertainment: GameState.entertainment,
+                    currentActivity: GameState.currentActivity,
+                    stats: GameState.stats,
+                    achievements: GameState.achievements
                 }
             };
             
             localStorage.setItem(this.SAVE_KEY, JSON.stringify(saveData));
             
-            if (!silent) {
-                console.log('✓ Game saved');
-                UI.showNotification('Game saved!', 'success', 2000);
+            if (!isAutoSave) {
+                console.log('💾 Game saved successfully');
+                if (typeof UI !== 'undefined') {
+                    UI.showNotification('💾 Game saved!', 'success');
+                }
+            } else {
+                console.log('💾 Auto-save complete');
             }
             
             return true;
-        } catch (e) {
-            console.error('Save failed:', e);
-            UI.showNotification('Failed to save game!', 'error');
+        } catch (error) {
+            console.error('❌ Save failed:', error);
+            if (typeof UI !== 'undefined') {
+                UI.showNotification('❌ Save failed!', 'error');
+            }
             return false;
         }
     },
     
-    load() {
+    // Load game from localStorage
+    loadGame() {
         try {
-            const saved = localStorage.getItem(this.SAVE_KEY);
+            const savedData = localStorage.getItem(this.SAVE_KEY);
             
-            if (!saved) {
-                console.log('No save data found');
+            if (!savedData) {
+                console.log('📁 No saved game found');
                 return false;
             }
             
-            const saveData = JSON.parse(saved);
+            const saveData = JSON.parse(savedData);
             
-            // Version check
-            if (saveData.version !== '1.0.0') {
-                console.warn('Save version mismatch');
+            // Check version compatibility
+            if (saveData.version !== GameState.version) {
+                console.warn('⚠️ Save file version mismatch. Attempting to load anyway...');
             }
             
-            // Restore state
-            Object.assign(GameState.player, saveData.state.player);
-            Object.assign(GameState.time, saveData.state.time);
-            Object.assign(GameState.money, saveData.state.money);
-            Object.assign(GameState.school, saveData.state.school);
-            Object.assign(GameState.work, saveData.state.work);
-            Object.assign(GameState.skills, saveData.state.skills);
-            Object.assign(GameState.daily, saveData.state.daily);
-            Object.assign(GameState.adult, saveData.state.adult);
-            Object.assign(GameState.tutorials, saveData.state.tutorials);
-            GameState.inventory = saveData.state.inventory || [];
-            GameState.achievements = saveData.state.achievements || [];
-            Object.assign(GameState.stats, saveData.state.stats);
+            // Restore game state
+            Object.assign(GameState.player, saveData.data.player);
+            Object.assign(GameState.time, saveData.data.time);
+            Object.assign(GameState.money, saveData.data.money);
+            Object.assign(GameState.school, saveData.data.school);
+            Object.assign(GameState.work, saveData.data.work);
+            Object.assign(GameState.skills, saveData.data.skills);
+            Object.assign(GameState.daily, saveData.data.daily);
+            Object.assign(GameState.adult, saveData.data.adult);
+            Object.assign(GameState.phone, saveData.data.phone);
+            Object.assign(GameState.entertainment, saveData.data.entertainment);
+            GameState.currentActivity = saveData.data.currentActivity;
+            Object.assign(GameState.stats, saveData.data.stats);
+            GameState.achievements = saveData.data.achievements || [];
             
-            console.log('✓ Game loaded from:', saveData.timestamp);
-            UI.showNotification('Game loaded!', 'success');
+            console.log(`💾 Game loaded from ${saveData.timestamp}`);
+            
+            if (typeof UI !== 'undefined') {
+                UI.showNotification('📁 Game loaded!', 'success');
+            }
+            
+            // Start auto-save
+            this.startAutoSave();
             
             return true;
-            
-        } catch (e) {
-            console.error('Load failed:', e);
-            UI.showNotification('Failed to load game!', 'error');
+        } catch (error) {
+            console.error('❌ Load failed:', error);
+            if (typeof UI !== 'undefined') {
+                UI.showNotification('❌ Load failed!', 'error');
+            }
             return false;
         }
     },
     
+    // Delete saved game
+    deleteSave() {
+        try {
+            localStorage.removeItem(this.SAVE_KEY);
+            console.log('🗑️ Save deleted');
+            if (typeof UI !== 'undefined') {
+                UI.showNotification('🗑️ Save deleted', 'info');
+            }
+            return true;
+        } catch (error) {
+            console.error('❌ Delete failed:', error);
+            return false;
+        }
+    },
+    
+    // Check if save exists
+    hasSave() {
+        return localStorage.getItem(this.SAVE_KEY) !== null;
+    },
+    
+    // Get save info
     getSaveInfo() {
         try {
-            const saved = localStorage.getItem(this.SAVE_KEY);
-            if (!saved) return null;
+            const savedData = localStorage.getItem(this.SAVE_KEY);
+            if (!savedData) return null;
             
-            const saveData = JSON.parse(saved);
+            const saveData = JSON.parse(savedData);
             return {
-                playerName: saveData.state.player.name,
-                age: saveData.state.player.age,
-                grade: saveData.state.player.grade,
-                money: saveData.state.money.cash + saveData.state.money.bank,
-                timestamp: new Date(saveData.timestamp),
-                daysPlayed: saveData.state.stats.daysPlayed
+                version: saveData.version,
+                timestamp: saveData.timestamp,
+                playerName: saveData.data.player.name,
+                playerAge: saveData.data.player.age,
+                daysPlayed: saveData.data.stats.daysPlayed,
+                money: saveData.data.money.cash
             };
-        } catch (e) {
-            console.error('Failed to get save info:', e);
+        } catch (error) {
+            console.error('❌ Failed to get save info:', error);
             return null;
         }
     },
     
-    hasSaveData() {
-        return localStorage.getItem(this.SAVE_KEY) !== null;
-    },
-    
-    deleteSave() {
-        if (UI.confirm('Are you sure you want to delete your save? This cannot be undone!')) {
-            localStorage.removeItem(this.SAVE_KEY);
-            console.log('✓ Save deleted');
-            UI.showNotification('Save deleted', 'info');
-            return true;
-        }
-        return false;
-    },
-    
+    // Export save as JSON file
     exportSave() {
         try {
-            const saveData = localStorage.getItem(this.SAVE_KEY);
-            if (!saveData) {
-                UI.showNotification('No save data to export!', 'error');
+            const savedData = localStorage.getItem(this.SAVE_KEY);
+            if (!savedData) {
+                alert('No save data to export!');
                 return;
             }
             
-            // Create download
-            const blob = new Blob([saveData], { type: 'application/json' });
+            const blob = new Blob([savedData], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `life-skills-save-${Date.now()}.json`;
-            document.body.appendChild(a);
+            a.download = `life_skills_academy_save_${new Date().toISOString().slice(0,10)}.json`;
             a.click();
-            document.body.removeChild(a);
             URL.revokeObjectURL(url);
             
-            UI.showNotification('Save exported!', 'success');
-        } catch (e) {
-            console.error('Export failed:', e);
-            UI.showNotification('Failed to export save!', 'error');
+            console.log('📤 Save exported');
+            if (typeof UI !== 'undefined') {
+                UI.showNotification('📤 Save exported!', 'success');
+            }
+        } catch (error) {
+            console.error('❌ Export failed:', error);
+            alert('Export failed: ' + error.message);
         }
     },
     
-    importSave(file) {
-        const reader = new FileReader();
+    // Import save from JSON file
+    importSave(fileInput) {
+        const file = fileInput.files[0];
+        if (!file) return;
         
+        const reader = new FileReader();
         reader.onload = (e) => {
             try {
                 const saveData = JSON.parse(e.target.result);
+                localStorage.setItem(this.SAVE_KEY, e.target.result);
                 
-                // Validate save data
-                if (!saveData.version || !saveData.state) {
-                    throw new Error('Invalid save file');
+                console.log('📥 Save imported');
+                if (typeof UI !== 'undefined') {
+                    UI.showNotification('📥 Save imported! Reloading...', 'success');
                 }
                 
-                localStorage.setItem(this.SAVE_KEY, e.target.result);
-                UI.showNotification('Save imported! Reloading...', 'success');
-                
-                setTimeout(() => {
-                    location.reload();
-                }, 1500);
-                
+                setTimeout(() => location.reload(), 1000);
             } catch (error) {
-                console.error('Import failed:', error);
-                UI.showNotification('Invalid save file!', 'error');
+                console.error('❌ Import failed:', error);
+                alert('Import failed: Invalid save file');
             }
         };
-        
         reader.readAsText(file);
     }
 };
+
+// Make SaveLoad available globally
+window.SaveLoad = SaveLoad;
+
+console.log('✅ saveload.js loaded - SaveLoad ready');
