@@ -1,0 +1,98 @@
+{
+  "age14": [
+    {
+      "id": "make_bed",
+      "name": "Make Bed",
+      "description": "Arrange sheets, blankets, and pillows properly",
+      "timeMinutes": 10,
+      "reward": 5,
+      "difficulty": "easy",
+      "tutorial": true,
+      "skillGain": { "cleaning": 5 }
+    },
+    {
+      "id": "dishes",
+      "name": "Wash Dishes",
+      "description": "Clean all dirty dishes properly",
+      "timeMinutes": 20,
+      "reward": 8,
+      "difficulty": "easy",
+      "tutorial": true,
+      "skillGain": { "cleaning": 8 }
+    },
+    {
+      "id": "trash",
+      "name": "Take Out Trash",
+      "description": "Empty all trash bins and take to curb",
+      "timeMinutes": 10,
+      "reward": 5,
+      "difficulty": "easy",
+      "skillGain": { "cleaning": 3 }
+    }
+  ],
+  
+  "age15": [
+    {
+      "id": "vacuum",
+      "name": "Vacuum House",
+      "description": "Vacuum all carpeted areas",
+      "timeMinutes": 30,
+      "reward": 10,
+      "difficulty": "medium",
+      "tutorial": true,
+      "skillGain": { "cleaning": 10 }
+    },
+    {
+      "id": "laundry",
+      "name": "Do Laundry",
+      "description": "Wash, dry, and fold clothes",
+      "timeMinutes": 90,
+      "reward": 12,
+      "difficulty": "medium",
+      "tutorial": true,
+      "skillGain": { "laundry": 15 }
+    }
+  ],
+  
+  "age16": [
+    {
+      "id": "cook_dinner",
+      "name": "Cook Dinner",
+      "description": "Prepare a complete meal for the family",
+      "timeMinutes": 45,
+      "reward": 15,
+      "difficulty": "hard",
+      "tutorial": true,
+      "skillGain": { "cooking": 20 }
+    },
+    {
+      "id": "mow_lawn",
+      "name": "Mow Lawn",
+      "description": "Cut grass in front and back yards",
+      "timeMinutes": 60,
+      "reward": 20,
+      "difficulty": "hard",
+      "skillGain": { "timeManagement": 10 }
+    }
+  ],
+  
+  "age18": [
+    {
+      "id": "grocery_shopping",
+      "name": "Grocery Shopping",
+      "description": "Buy groceries for the week (Now required!)",
+      "timeMinutes": 60,
+      "cost": 50,
+      "difficulty": "medium",
+      "skillGain": { "budgeting": 15 }
+    },
+    {
+      "id": "meal_prep",
+      "name": "Meal Prep",
+      "description": "Plan and cook meals for the week",
+      "timeMinutes": 120,
+      "difficulty": "hard",
+      "skillGain": { "cooking": 30, "budgeting": 10 }
+    }
+  ]
+}
