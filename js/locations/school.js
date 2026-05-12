@@ -1,4 +1,4 @@
-// ==================== SCHOOL LOCATION (UPDATED) ====================
+// ==================== SCHOOL LOCATION ====================
 
 function loadSchool() {
     document.getElementById('locationTitle').textContent = '🏫 School';
@@ -43,15 +43,14 @@ function renderClasses() {
     const isSchoolDay = GameState.isWeekday();
     const isSchoolTime = GameState.isSchoolTime();
     const currentPeriod = GameState.getCurrentPeriod();
-    const isBusy = GameState.isBusy();
     
     const schedule = [
-        { time: '8:00 - 8:50', subject: 'Math', teacher: 'Mr. Johnson', duration: 50 },
-        { time: '9:00 - 9:50', subject: 'English', teacher: 'Mrs. Davis', duration: 50 },
-        { time: '10:00 - 10:50', subject: 'Science', teacher: 'Dr. Smith', duration: 50 },
-        { time: '11:00 - 11:30', subject: 'Lunch', teacher: 'Cafeteria', duration: 30 },
-        { time: '11:30 - 12:20', subject: 'History', teacher: 'Mr. Brown', duration: 50 },
-        { time: '12:30 - 1:20', subject: 'PE', teacher: 'Coach Williams', duration: 50 }
+        { time: '8:00 - 8:50', subject: 'Math', teacher: 'Mr. Johnson' },
+        { time: '9:00 - 9:50', subject: 'English', teacher: 'Mrs. Davis' },
+        { time: '10:00 - 10:50', subject: 'Science', teacher: 'Dr. Smith' },
+        { time: '11:00 - 11:30', subject: 'Lunch', teacher: 'Cafeteria' },
+        { time: '11:30 - 12:20', subject: 'History', teacher: 'Mr. Brown' },
+        { time: '12:30 - 1:20', subject: 'PE', teacher: 'Coach Williams' }
     ];
     
     let html = '<h3>📅 Class Schedule (Monday - Friday)</h3>';
@@ -60,46 +59,26 @@ function renderClasses() {
         html += '<div class="alert alert-info">🎉 No school today! Enjoy your weekend!</div>';
     } else if (!isSchoolTime) {
         html += '<div class="alert alert-warning">⏰ School is not in session right now.</div>';
-    } else if (currentPeriod) {
-        const inClass = GameState.school.currentClass === currentPeriod.name;
-        if (inClass) {
-            html += `<div class="alert alert-success">✅ You're in ${currentPeriod.name} class right now!</div>`;
-        } else {
-            html += `<div class="alert alert-warning">⚠️ ${currentPeriod.name} is happening NOW! Sign in!</div>`;
-        }
-    }
-    
-    if (isBusy && GameState.currentActivity.includes('class')) {
-        html += `<div class="alert alert-info">📚 Currently: ${GameState.currentActivity}</div>`;
+    } else {
+        html += '<div class="alert alert-success">✅ School is in session!</div>';
     }
     
     html += '<table class="schedule-table"><thead><tr><th>Time</th><th>Subject</th><th>Teacher</th><th>Status</th></tr></thead><tbody>';
     
     schedule.forEach(period => {
-        const attended = GameState.school.attendance[period.subject];
+        const isPast = isSchoolTime && currentPeriod && schedule.indexOf(period) < schedule.findIndex(p => p.subject === currentPeriod.name);
         const isCurrent = currentPeriod && period.subject === currentPeriod.name;
-        const inThisClass = GameState.school.currentClass === period.subject;
+        const attended = GameState.school.attendance[period.subject];
         
         let rowClass = '';
         let status = '-';
         
         if (isCurrent) {
             rowClass = 'current';
-            if (inThisClass) {
-                status = '✅ In Class';
-            } else {
-                status = `<button class="btn btn-success btn-sm" onclick="attendClass('${period.subject}', ${period.duration})">Sign In</button>`;
-            }
-        } else if (attended) {
+            status = attended ? '✅ Present' : '📍 In Progress';
+        } else if (isPast) {
             rowClass = 'past';
-            status = '✅ Attended';
-        } else if (isSchoolTime) {
-            const currentMinutes = GameState.time.hour * 60 + GameState.time.minute;
-            const periodStart = parseInt(period.time.split(':')[0]) * 60 + parseInt(period.time.split(':')[1]);
-            if (currentMinutes > periodStart + period.duration) {
-                rowClass = 'past';
-                status = '❌ Missed';
-            }
+            status = attended ? '✅ Attended' : '❌ Missed';
         }
         
         html += `
@@ -113,6 +92,17 @@ function renderClasses() {
     });
     
     html += '</tbody></table>';
+    
+    // Attendance button
+    if (isSchoolTime && currentPeriod && !GameState.school.attendance[currentPeriod.name]) {
+        html += `
+            <div class="mt-20 text-center">
+                <button class="btn btn-primary btn-large" onclick="attendClass()">
+                    📝 Attend ${currentPeriod.name} Class
+                </button>
+            </div>
+        `;
+    }
     
     // Attendance record
     html += `
@@ -140,59 +130,33 @@ function renderClasses() {
     return html;
 }
 
-function attendClass(subject, duration) {
-    if (GameState.isBusy()) {
-        UI.showNotification('⏳ You\'re already in another activity!', 'warning');
-        return;
-    }
-    
+function attendClass() {
     const currentPeriod = GameState.getCurrentPeriod();
-    if (!currentPeriod || currentPeriod.name !== subject) {
-        UI.showNotification('⚠️ This class is not in session right now!', 'warning');
+    if (!currentPeriod || currentPeriod.name === 'Lunch') {
+        UI.showNotification('⚠️ No class in session right now!', 'warning');
         return;
     }
     
-    // Mark attendance
-    GameState.school.attendance[subject] = true;
-    GameState.school.currentClass = subject;
-    
-    // Set busy for class duration
-    const hours = Math.ceil(duration / 60);
-    GameState.setBusy(hours, `Attending ${subject} class`);
-    
-    UI.showNotification(`✅ Signed in to ${subject} class!`, 'success');
+    GameState.school.attendance[currentPeriod.name] = true;
+    UI.showNotification(`✅ Attended ${currentPeriod.name} class!`, 'success');
     
     // Small grade boost
-    if (GameState.school.grades[subject]) {
-        GameState.school.grades[subject] = Math.min(100, GameState.school.grades[subject] + 1);
+    if (GameState.school.grades[currentPeriod.name]) {
+        GameState.school.grades[currentPeriod.name] = Math.min(100, GameState.school.grades[currentPeriod.name] + 1);
         GameState.calculateGPA();
     }
     
-    // Auto sign-out after class
-    setTimeout(() => {
-        GameState.school.currentClass = null;
-        GameState.clearBusy();
-        UI.showNotification(`🔔 ${subject} class ended!`, 'info');
-        loadSchool();
-    }, hours * 1000);
-    
     loadSchool();
-    UI.updateStats();
 }
 
 function renderHomework() {
     const homework = GameState.school.homework;
-    const isBusy = GameState.isBusy();
     
     let html = '<h3>📝 Homework Assignments</h3>';
     
     if (homework.length === 0 || homework.every(h => h.done)) {
         html += '<div class="alert alert-success">✅ All homework completed!</div>';
         return html;
-    }
-    
-    if (isBusy) {
-        html += `<div class="alert alert-warning">⏳ Currently: ${GameState.currentActivity}</div>`;
     }
     
     html += '<div class="checklist">';
@@ -203,13 +167,10 @@ function renderHomework() {
                 <div class="checklist-icon">${hw.done ? '✅' : '📄'}</div>
                 <div class="checklist-text">
                     <strong>${hw.subject} - ${hw.description}</strong>
-                    <div class="desc">⏱️ Estimated time: ${hw.time} minutes</div>
+                    <div class="desc">Estimated time: ${hw.time} minutes</div>
                     ${!hw.done ? '<div class="desc">Complete to improve your grade!</div>' : ''}
                 </div>
-                ${!hw.done && !isBusy ? 
-                    `<button class="btn btn-success" onclick="doHomework(${index}, ${hw.time}, '${hw.subject}')">Complete</button>` : 
-                    hw.done ? '<span style="color: #27ae60;">✓ Done</span>' : ''
-                }
+                ${!hw.done ? `<button class="btn btn-success" onclick="doHomework(${index})">Complete</button>` : ''}
             </div>
         `;
     });
@@ -218,38 +179,23 @@ function renderHomework() {
     return html;
 }
 
-function doHomework(index, time, subject) {
+function doHomework(index) {
     const hw = GameState.school.homework[index];
     if (!hw || hw.done) return;
     
-    if (GameState.isBusy()) {
-        UI.showNotification('⏳ Finish your current activity first!', 'warning');
-        return;
+    // Mark as done
+    hw.done = true;
+    GameState.completeHomework(hw.subject);
+    
+    UI.showNotification(`✅ ${hw.subject} homework completed! Grade improved!`, 'success');
+    
+    // Achievement check
+    if (GameState.stats.homeworkCompleted === 20) {
+        GameState.addAchievement('Dedicated Student', 'Complete 20 homework assignments', '📚');
     }
     
-    // Set busy for homework duration
-    const hours = Math.ceil(time / 60);
-    GameState.setBusy(hours, `Doing ${subject} homework`);
-    
-    // Auto-complete after time
-    setTimeout(() => {
-        hw.done = true;
-        GameState.completeHomework(subject);
-        GameState.clearBusy();
-        
-        UI.showNotification(`✅ ${subject} homework completed! Grade improved!`, 'success');
-        
-        // Achievement check
-        if (GameState.stats.homeworkCompleted === 20) {
-            GameState.addAchievement('Dedicated Student', 'Complete 20 homework assignments', '📚');
-        }
-        
-        loadSchool();
-        UI.updateStats();
-    }, hours * 1000);
-    
-    UI.showNotification(`📝 Working on ${subject} homework...`, 'info');
     loadSchool();
+    UI.updateStats();
 }
 
 function renderGrades() {
@@ -293,11 +239,10 @@ function renderGrades() {
         <div class="info-box mt-20">
             <h4>💡 Tips to Improve Grades:</h4>
             <ul>
-                <li>✅ Attend all classes on time</li>
-                <li>📝 Complete homework assignments daily</li>
-                <li>👥 Join study groups (extracurriculars)</li>
-                <li>🙋 Ask teachers for help</li>
-                <li>📚 Stay organized with your phone's school portal</li>
+                <li>Attend all classes on time</li>
+                <li>Complete homework assignments daily</li>
+                <li>Join study groups (extracurriculars)</li>
+                <li>Ask teachers for help</li>
             </ul>
         </div>
     `;
@@ -355,11 +300,6 @@ function joinActivity(activityId) {
         GameState.school.extracurriculars.push(activityId);
         UI.showNotification('✅ Joined activity!', 'success');
         GameState.addSkill('timeManagement', 3);
-        
-        if (GameState.school.extracurriculars.length === 3) {
-            GameState.addAchievement('Well Rounded', 'Join 3 extracurricular activities', '🎯');
-        }
-        
         loadSchool();
     }
 }

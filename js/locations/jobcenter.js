@@ -1,4 +1,4 @@
-// ==================== JOB CENTER (UPDATED) ====================
+// ==================== JOB CENTER LOCATION ====================
 
 function loadJobCenter() {
     document.getElementById('locationTitle').textContent = '💼 Job Center';
@@ -48,10 +48,10 @@ function renderResume() {
                 <div class="card-content">
                     <p>A resume is a document that shows employers:</p>
                     <ul>
-                        <li>📋 Your contact information</li>
-                        <li>🎓 Your education</li>
-                        <li>💼 Your work experience</li>
-                        <li>🎯 Your skills</li>
+                        <li>Your contact information</li>
+                        <li>Your education</li>
+                        <li>Your work experience</li>
+                        <li>Your skills</li>
                     </ul>
                     <button class="btn btn-primary btn-large mt-20" onclick="createResume()">
                         ✍️ Create Resume
@@ -74,7 +74,7 @@ function renderResume() {
                     
                     <h4>Skills:</h4>
                     <ul>
-                        ${Object.keys(GameState.skills).slice(0, 5).map(skill => 
+                        ${Object.keys(GameState.skills).map(skill => 
                             `<li>${skill}: ${GameState.skills[skill]}/100</li>`
                         ).join('')}
                     </ul>
@@ -102,7 +102,6 @@ function createResume() {
     GameState.work.hasResume = true;
     UI.showNotification('✅ Resume created!', 'success');
     GameState.addSkill('timeManagement', 5);
-    GameState.addAchievement('Career Ready', 'Create your first resume', '📄');
     loadJobCenter();
 }
 
@@ -172,9 +171,7 @@ function applyJob(jobId, title, wage) {
     };
     
     UI.showNotification(`🎉 Congratulations! You got the ${title} job!`, 'success');
-    UI.showNotification('💼 Use "Work Shift" to punch in and earn money!', 'info', 5000);
-    
-    GameState.addAchievement('Employed', 'Get your first job', '💼');
+    UI.showNotification('💼 Work shifts start at 3:30 PM. Don\'t be late!', 'info', 5000);
     
     loadJobCenter();
 }
@@ -189,8 +186,6 @@ function renderCurrentJob() {
     }
     
     const job = GameState.work.currentJob;
-    const onShift = GameState.work.onShift;
-    const isBusy = GameState.isBusy();
     
     let html = '<h3>💼 Your Current Job</h3>';
     
@@ -206,16 +201,6 @@ function renderCurrentJob() {
                     <span class="info-label">Warnings:</span>
                     <span class="info-value">${GameState.work.warnings}/3</span>
                 </div>
-                <div class="info-row">
-                    <span class="info-label">Status:</span>
-                    <span class="info-value">${onShift ? '🟢 On Shift' : '🔴 Off Shift'}</span>
-                </div>
-                ${onShift ? `
-                    <div class="info-row">
-                        <span class="info-label">Shift Started:</span>
-                        <span class="info-value">${GameState.work.shiftStartTime || 'Unknown'}</span>
-                    </div>
-                ` : ''}
                 
                 ${GameState.work.warnings > 0 ? 
                     `<div class="alert alert-warning mt-20">
@@ -224,19 +209,8 @@ function renderCurrentJob() {
                 }
                 
                 <div class="mt-20">
-                    ${!onShift && !isBusy ? `
-                        <button class="btn btn-primary btn-large" onclick="punchIn()">
-                            🕐 Punch In (Start 4-hour shift)
-                        </button>
-                    ` : onShift ? `
-                        <button class="btn btn-danger btn-large" onclick="punchOut()">
-                            ⏰ Punch Out (End shift)
-                        </button>
-                    ` : `
-                        <div class="alert alert-warning">⏳ ${GameState.currentActivity}</div>
-                    `}
-                    
-                    <button class="btn btn-danger mt-20" onclick="quitJob()">Quit Job</button>
+                    <button class="btn btn-primary" onclick="workShift()">🕐 Work Shift (4 hours)</button>
+                    <button class="btn btn-danger" onclick="quitJob()">Quit Job</button>
                 </div>
             </div>
         </div>
@@ -246,11 +220,10 @@ function renderCurrentJob() {
         <div class="info-box mt-20">
             <h4>💡 Job Tips:</h4>
             <ul>
-                <li>⏰ Punch in to start earning money</li>
-                <li>💰 You earn $${job.wage} for each hour worked</li>
-                <li>📊 Complete your full shift for best results</li>
-                <li>⚠️ Being late or leaving early = warnings</li>
-                <li>💼 Build good work history for better jobs</li>
+                <li>Show up on time (3:30 PM)</li>
+                <li>Complete your full shift</li>
+                <li>Build good work history for future jobs</li>
+                <li>Save your earnings!</li>
             </ul>
         </div>
     `;
@@ -258,58 +231,23 @@ function renderCurrentJob() {
     return html;
 }
 
-function punchIn() {
-    if (GameState.isBusy()) {
-        UI.showNotification('⏳ Finish your current activity first!', 'warning');
-        return;
-    }
-    
+function workShift() {
     const job = GameState.work.currentJob;
     if (!job) return;
     
-    // Record shift start time
-    GameState.work.onShift = true;
-    GameState.work.shiftStartTime = `${GameState.time.hour}:${GameState.time.minute.toString().padStart(2, '0')}`;
+    const hours = 4;
+    const earnings = job.wage * hours;
     
-    // Set busy for 4 hours
-    GameState.setBusy(4, `Working as ${job.title}`);
-    
-    UI.showNotification(`✅ Punched in! Working for 4 hours...`, 'success');
-    
-    // Auto punch out after 4 hours
-    setTimeout(() => {
-        punchOut();
-    }, 4000); // 4 seconds = 4 game hours
-    
-    loadJobCenter();
-}
-
-function punchOut() {
-    const job = GameState.work.currentJob;
-    if (!job || !GameState.work.onShift) return;
-    
-    const hoursWorked = 4;
-    const earnings = job.wage * hoursWorked;
-    
-    GameState.work.onShift = false;
-    GameState.work.shiftStartTime = null;
     GameState.addMoney(earnings, 'work');
     GameState.addSkill('timeManagement', 3);
-    GameState.stats.hoursWorked += hoursWorked;
-    GameState.clearBusy();
     
     UI.showNotification(`✅ Shift complete! Earned $${earnings}`, 'success');
     
-    // Achievements
+    // Achievement
     if (GameState.stats.totalMoneyEarned >= 500) {
         GameState.addAchievement('Hard Worker', 'Earn $500 from jobs', '💼');
     }
     
-    if (GameState.stats.hoursWorked >= 40) {
-        GameState.addAchievement('Full Time', 'Work 40 hours total', '⏰');
-    }
-    
-    loadJobCenter();
     UI.updateStats();
 }
 
@@ -317,18 +255,13 @@ function quitJob() {
     if (!confirm('Are you sure you want to quit your job?')) return;
     
     const job = GameState.work.currentJob;
-    if (job) {
-        GameState.work.jobHistory.push({
-            title: job.title,
-            duration: 'Short term',
-            wage: job.wage
-        });
-    }
+    GameState.work.jobHistory.push({
+        title: job.title,
+        duration: 'Short term'
+    });
     
     GameState.work.currentJob = null;
     GameState.work.warnings = 0;
-    GameState.work.onShift = false;
-    GameState.work.shiftStartTime = null;
     
     UI.showNotification('You quit your job', 'info');
     loadJobCenter();

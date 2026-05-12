@@ -1,4 +1,4 @@
-// ==================== HOME LOCATION (UPDATED) ====================
+// ==================== HOME LOCATION ====================
 
 function loadHome() {
     document.getElementById('locationTitle').textContent = '🏠 Home';
@@ -41,18 +41,12 @@ function showHomeTab(tab) {
 
 function renderChores() {
     const chores = GameState.daily.chores;
-    const isBusy = GameState.isBusy();
     
     if (chores.length === 0) {
         return '<div class="alert alert-success">✅ All chores completed for today!</div>';
     }
     
     let html = '<h3>Today\'s Chores</h3>';
-    
-    if (isBusy) {
-        html += `<div class="alert alert-warning">⏳ You're currently: ${GameState.currentActivity}</div>`;
-    }
-    
     html += '<div class="checklist">';
     
     chores.forEach(chore => {
@@ -62,13 +56,10 @@ function renderChores() {
                 <div class="checklist-icon">${completed ? '✅' : '⬜'}</div>
                 <div class="checklist-text">
                     <strong>${chore.name}</strong>
-                    <div class="desc">⏱️ Takes ${chore.time} minutes</div>
-                    <div class="reward">💰 Reward: $${chore.reward} | 📈 +${chore.skill} skill</div>
+                    <div class="desc">Takes ${chore.time} minutes</div>
+                    <div class="reward">Reward: $${chore.reward} + ${chore.skill} skill</div>
                 </div>
-                ${!completed && !isBusy ? 
-                    `<button class="btn btn-primary" onclick="doChore('${chore.id}')">Start</button>` : 
-                    completed ? '<span style="color: #27ae60;">✓ Done</span>' : ''
-                }
+                ${!completed ? `<button class="btn btn-primary" onclick="doChore('${chore.id}')">Start</button>` : ''}
             </div>
         `;
     });
@@ -81,23 +72,12 @@ function doChore(choreId) {
     const chore = GameState.daily.chores.find(c => c.id === choreId);
     if (!chore) return;
     
-    if (GameState.isBusy()) {
-        UI.showNotification('⏳ You\'re already busy!', 'warning');
-        return;
-    }
-    
-    // Set busy for the duration
-    const hours = Math.ceil(chore.time / 60);
-    GameState.setBusy(hours, `Doing chore: ${chore.name}`);
-    
-    // Start minigame if available
+    // Start minigame based on chore type
     if (window.ChoreMinigames && ChoreMinigames[choreId]) {
         ChoreMinigames.start(choreId);
     } else {
-        // Simple completion with time delay
-        setTimeout(() => {
-            completeChoreSimple(chore);
-        }, hours * 1000); // Simulate time passing (1 sec = 1 game hour)
+        // Simple completion
+        completeChoreSimple(chore);
     }
 }
 
@@ -105,7 +85,6 @@ function completeChoreSimple(chore) {
     if (GameState.completeChore(chore.id)) {
         GameState.addMoney(chore.reward, 'chore');
         GameState.addSkill(chore.skill, 5);
-        GameState.clearBusy();
         
         UI.showNotification(`✅ ${chore.name} completed! +$${chore.reward}`, 'success');
         
@@ -114,10 +93,7 @@ function completeChoreSimple(chore) {
             GameState.addAchievement('Chore Warrior', 'Complete 10 chores', '🧹');
         }
         
-        if (GameState.stats.choresCompleted === 50) {
-            GameState.addAchievement('Domestic Expert', 'Complete 50 chores', '🏆');
-        }
-        
+        // Reload home
         loadHome();
         UI.updateStats();
     }
@@ -125,39 +101,25 @@ function completeChoreSimple(chore) {
 
 function renderCooking() {
     const recipes = [
-        { id: 'sandwich', name: '🥪 Sandwich', time: 10, skill: 1, cost: 5 },
-        { id: 'pasta', name: '🍝 Pasta', time: 30, skill: 3, cost: 8 },
-        { id: 'eggs', name: '🍳 Scrambled Eggs', time: 15, skill: 2, cost: 6 },
-        { id: 'salad', name: '🥗 Salad', time: 15, skill: 2, cost: 7 },
-        { id: 'soup', name: '🍲 Soup', time: 45, skill: 4, cost: 10 }
+        { id: 'sandwich', name: '🥪 Sandwich', time: 10, skill: 1 },
+        { id: 'pasta', name: '🍝 Pasta', time: 30, skill: 3 },
+        { id: 'eggs', name: '🍳 Scrambled Eggs', time: 15, skill: 2 },
+        { id: 'salad', name: '🥗 Salad', time: 15, skill: 2 },
+        { id: 'soup', name: '🍲 Soup', time: 45, skill: 4 }
     ];
-    
-    const isBusy = GameState.isBusy();
     
     let html = '<h3>🍳 Cooking</h3>';
     html += '<p>Cook meals to improve your cooking skill and restore energy!</p>';
-    
-    if (isBusy) {
-        html += `<div class="alert alert-warning">⏳ You're currently: ${GameState.currentActivity}</div>`;
-    }
-    
     html += '<div class="content-grid">';
     
     recipes.forEach(recipe => {
-        const canAfford = GameState.money.cash >= recipe.cost;
         html += `
             <div class="card">
                 <div class="card-title">${recipe.name}</div>
                 <div class="card-content">
                     <p>⏱️ Time: ${recipe.time} minutes</p>
-                    <p>💰 Ingredients: $${recipe.cost}</p>
                     <p>📈 Skill gained: +${recipe.skill}</p>
-                    ${!canAfford ? '<p class="alert alert-danger">Not enough cash!</p>' : ''}
-                    <button class="btn btn-success mt-20" 
-                            onclick="startCooking('${recipe.id}', ${recipe.time}, ${recipe.cost}, ${recipe.skill})" 
-                            ${!canAfford || isBusy ? 'disabled' : ''}>
-                        Cook
-                    </button>
+                    <button class="btn btn-success mt-20" onclick="startCooking('${recipe.id}')">Cook</button>
                 </div>
             </div>
         `;
@@ -167,44 +129,20 @@ function renderCooking() {
     return html;
 }
 
-function startCooking(recipeId, time, cost, skill) {
-    if (GameState.isBusy()) {
-        UI.showNotification('⏳ You\'re already busy!', 'warning');
-        return;
-    }
-    
-    if (!GameState.spendMoney(cost, 'ingredients')) {
-        UI.showNotification('❌ Not enough cash!', 'error');
-        return;
-    }
-    
-    // Set busy for cooking duration
-    const hours = Math.ceil(time / 60);
-    GameState.setBusy(hours, `Cooking`);
-    
+function startCooking(recipeId) {
     if (window.CookingMinigame) {
         CookingMinigame.start(recipeId);
     } else {
-        // Auto-complete after time
-        setTimeout(() => {
-            GameState.addSkill('cooking', skill * 5);
-            GameState.clearBusy();
-            UI.showNotification(`🍳 Meal ready! +${skill * 5} cooking skill`, 'success');
-            loadHome();
-        }, hours * 1000);
+        UI.showNotification('🍳 Cooking minigame coming soon!', 'info');
     }
 }
 
 function renderLaundry() {
-    const isBusy = GameState.isBusy();
-    
     return `
         <h3>🧺 Laundry</h3>
         <div class="alert alert-info">
             Learn to sort, wash, dry, and fold clothes properly!
         </div>
-        
-        ${isBusy ? `<div class="alert alert-warning">⏳ You're currently: ${GameState.currentActivity}</div>` : ''}
         
         <div class="card">
             <div class="card-title">Do Laundry</div>
@@ -216,50 +154,25 @@ function renderLaundry() {
                     <li>Dry clothes</li>
                     <li>Fold and put away</li>
                 </ol>
-                <p><strong>⏱️ Time:</strong> 90 minutes (1.5 hours)</p>
-                <p><strong>💰 Reward:</strong> $12 + Laundry skill</p>
-                <button class="btn btn-primary mt-20" 
-                        onclick="startLaundry()" 
-                        ${isBusy ? 'disabled' : ''}>
-                    Start Laundry
-                </button>
+                <p><strong>Time:</strong> 90 minutes</p>
+                <p><strong>Reward:</strong> $12 + Laundry skill</p>
+                <button class="btn btn-primary mt-20" onclick="startLaundry()">Start Laundry</button>
             </div>
         </div>
     `;
 }
 
 function startLaundry() {
-    if (GameState.isBusy()) {
-        UI.showNotification('⏳ You\'re already busy!', 'warning');
-        return;
-    }
-    
-    // Set busy for 2 hours
-    GameState.setBusy(2, 'Doing laundry');
-    
     if (window.LaundryMinigame) {
         LaundryMinigame.start();
     } else {
-        // Auto-complete
-        setTimeout(() => {
-            const chore = GameState.daily.chores.find(c => c.id === 'laundry');
-            if (chore) {
-                completeChoreSimple(chore);
-            } else {
-                GameState.addMoney(12, 'laundry');
-                GameState.addSkill('laundry', 10);
-                GameState.clearBusy();
-                UI.showNotification('✅ Laundry complete!', 'success');
-                loadHome();
-            }
-        }, 2000);
+        UI.showNotification('🧺 Laundry minigame coming soon!', 'info');
     }
 }
 
 function renderSleep() {
     const hour = GameState.time.hour;
     const canSleep = hour >= 20 || hour < 6;
-    const isBusy = GameState.isBusy();
     
     return `
         <h3>😴 Sleep</h3>
@@ -269,17 +182,15 @@ function renderSleep() {
                 '⚠️ It\'s not bedtime yet. Try sleeping after 8:00 PM.'}
         </div>
         
-        ${isBusy ? `<div class="alert alert-warning">⏳ Finish your current activity first!</div>` : ''}
-        
         <div class="card">
             <div class="card-title">Go to Bed</div>
             <div class="card-content">
                 <p>Sleeping will:</p>
                 <ul>
-                    <li>⏭️ Advance to the next day</li>
-                    <li>⚡ Restore your energy</li>
-                    <li>🔄 Reset daily tasks</li>
-                    <li>📋 Generate new chores and homework</li>
+                    <li>Advance to the next day</li>
+                    <li>Restore your energy</li>
+                    <li>Reset daily tasks</li>
+                    <li>Generate new chores and homework</li>
                 </ul>
                 
                 ${GameState.player.age < 18 ? 
@@ -288,7 +199,7 @@ function renderSleep() {
                 
                 <button class="btn ${canSleep ? 'btn-primary' : 'btn-danger'}" 
                         onclick="goToSleep()" 
-                        ${!canSleep || isBusy ? 'disabled' : ''}>
+                        ${!canSleep ? 'disabled' : ''}>
                     ${canSleep ? '😴 Go to Sleep' : '⏰ Too Early to Sleep'}
                 </button>
             </div>
@@ -301,11 +212,6 @@ function goToSleep() {
     
     if (hour < 20 && hour >= 6) {
         UI.showNotification('⏰ It\'s too early to sleep!', 'warning');
-        return;
-    }
-    
-    if (GameState.isBusy()) {
-        UI.showNotification('⏳ Finish your current activity first!', 'warning');
         return;
     }
     
@@ -324,6 +230,7 @@ function goToSleep() {
         }, 2000);
     }
     
+    // Reload home screen
     loadHome();
     UI.updateStats();
 }

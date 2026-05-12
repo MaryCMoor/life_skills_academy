@@ -1,336 +1,184 @@
-// ==================== LAUNDRY MINIGAME (UPDATED) ====================
+// ==================== LAUNDRY MINIGAME ====================
 
-window.LaundryMinigame = {
-    currentPhase: 0,
-    sortedCorrectly: false,
-    
-    phases: [
-        {
-            name: 'Sorting',
-            instruction: 'Sort clothes by color to prevent bleeding',
-            action: 'Sort Clothes'
-        },
-        {
-            name: 'Washing',
-            instruction: 'Select correct water temperature and detergent',
-            action: 'Start Wash Cycle'
-        },
-        {
-            name: 'Drying',
-            instruction: 'Choose appropriate dryer settings',
-            action: 'Start Dryer'
-        },
-        {
-            name: 'Folding',
-            instruction: 'Fold clothes neatly to prevent wrinkles',
-            action: 'Fold Clothes'
-        }
-    ],
-    
+const LaundryMinigame = {
     start() {
-        this.currentPhase = 0;
-        this.sortedCorrectly = false;
-        this.showPhase();
+        const steps = [
+            { 
+                instruction: 'Sort clothes by color', 
+                tip: 'Whites, lights, darks - separate them!',
+                safety: 'Check pockets for items before washing'
+            },
+            { 
+                instruction: 'Read care labels on clothing', 
+                tip: 'Check water temperature and special instructions'
+            },
+            { 
+                instruction: 'Load washer - don\'t overpack', 
+                tip: 'Fill 3/4 full for best cleaning'
+            },
+            { 
+                instruction: 'Add detergent', 
+                tip: 'Follow the measuring lines on the cap',
+                safety: 'Use correct amount - more ≠ cleaner!'
+            },
+            { 
+                instruction: 'Select wash cycle and temperature', 
+                tip: 'Cold water for colors, warm for whites'
+            },
+            { 
+                instruction: 'Start washer and wait', 
+                tip: 'Washing takes about 30-45 minutes'
+            },
+            { 
+                instruction: 'Move clothes to dryer promptly', 
+                tip: 'Don\'t leave wet clothes sitting',
+                safety: 'Check lint trap before drying!'
+            },
+            { 
+                instruction: 'Clean lint trap', 
+                tip: 'Remove lint after every load',
+                safety: 'Lint buildup is a fire hazard!'
+            },
+            { 
+                instruction: 'Select dryer settings', 
+                tip: 'Lower heat for delicates'
+            },
+            { 
+                instruction: 'Start dryer', 
+                tip: 'Drying takes 45-60 minutes'
+            },
+            { 
+                instruction: 'Remove clothes promptly when done', 
+                tip: 'Prevents wrinkles!'
+            },
+            { 
+                instruction: 'Fold or hang clothes', 
+                tip: 'Fold immediately for fewer wrinkles'
+            },
+            { 
+                instruction: 'Put clothes away', 
+                tip: 'Return to closet/drawers'
+            }
+        ];
+        
+        this.showTutorial(steps);
     },
     
-    showPhase() {
-        const phase = this.phases[this.currentPhase];
+    showTutorial(steps) {
+        const overlay = document.createElement('div');
+        overlay.className = 'minigame-overlay active';
+        overlay.id = 'laundryMinigame';
         
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay';
-        modal.id = 'laundryModal';
-        
-        let content = '';
-        
-        if (this.currentPhase === 0) {
-            content = this.renderSorting();
-        } else if (this.currentPhase === 1) {
-            content = this.renderWashing();
-        } else if (this.currentPhase === 2) {
-            content = this.renderDrying();
-        } else if (this.currentPhase === 3) {
-            content = this.renderFolding();
-        }
-        
-        modal.innerHTML = `
-            <div class="modal-content laundry-minigame">
+        let html = `
+            <div class="minigame-container">
                 <div class="minigame-header">
-                    <h2>🧺 Laundry Time</h2>
-                    <div class="step-counter">Phase ${this.currentPhase + 1} of ${this.phases.length}</div>
+                    <div class="minigame-title">🧺 Doing Laundry</div>
+                    <div class="minigame-subtitle">Complete laundry cycle from start to finish</div>
                 </div>
                 
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${((this.currentPhase + 1) / this.phases.length) * 100}%"></div>
+                <div class="tutorial-steps" id="laundrySteps">
+                    ${steps.map((step, i) => `
+                        <div class="tutorial-step ${i === 0 ? 'active' : ''}" id="laundry-step-${i}">
+                            <span class="step-number">${i + 1}</span>
+                            <div>
+                                <div class="step-instruction">${step.instruction}</div>
+                                ${step.tip ? `<div class="step-tip">💡 ${step.tip}</div>` : ''}
+                                ${step.safety ? `<div class="step-safety">⚠️ ${step.safety}</div>` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
                 </div>
                 
-                <div class="laundry-content">
-                    <h3>${phase.name}</h3>
-                    <p class="instruction-text">${phase.instruction}</p>
-                    ${content}
+                <div class="minigame-progress">
+                    <div class="progress-text">Step <span id="currentLaundryStep">1</span> of ${steps.length}</div>
+                    ${UI.createProgressBar(1, steps.length)}
+                </div>
+                
+                <div class="minigame-actions">
+                    <button class="btn-complete" onclick="LaundryMinigame.nextStep()">
+                        Next Step
+                    </button>
+                    <button class="btn-skip" onclick="LaundryMinigame.skip()">
+                        Skip Tutorial
+                    </button>
                 </div>
             </div>
         `;
         
-        document.body.appendChild(modal);
-    },
-    
-    renderSorting() {
-        return `
-            <div class="sorting-game">
-                <div class="clothes-pile">
-                    <div class="cloth-item" draggable="true" data-color="white">👕 White Shirt</div>
-                    <div class="cloth-item" draggable="true" data-color="dark">🧥 Dark Jeans</div>
-                    <div class="cloth-item" draggable="true" data-color="white">🩳 White Socks</div>
-                    <div class="cloth-item" draggable="true" data-color="dark">👔 Black Pants</div>
-                    <div class="cloth-item" draggable="true" data-color="color">🎽 Red Shirt</div>
-                </div>
-                
-                <div class="sorting-bins">
-                    <div class="bin" data-bin="white">
-                        <div class="bin-label">Whites</div>
-                        <div class="bin-contents"></div>
-                    </div>
-                    <div class="bin" data-bin="dark">
-                        <div class="bin-label">Darks</div>
-                        <div class="bin-contents"></div>
-                    </div>
-                    <div class="bin" data-bin="color">
-                        <div class="bin-label">Colors</div>
-                        <div class="bin-contents"></div>
-                    </div>
-                </div>
-                
-                <div class="info-box mt-20">
-                    <p><strong>💡 Tip:</strong> Sort whites, darks, and colors separately to prevent color bleeding!</p>
-                </div>
-                
-                <button class="btn btn-primary mt-20" onclick="LaundryMinigame.checkSorting()">
-                    ✅ Check My Sorting
-                </button>
-            </div>
-        `;
-    },
-    
-    checkSorting() {
-        // Simple version - just advance to next phase
-        this.sortedCorrectly = true;
-        UI.showNotification('✅ Clothes sorted correctly!', 'success');
-        this.nextPhase();
-    },
-    
-    renderWashing() {
-        return `
-            <div class="washing-controls">
-                <div class="control-panel">
-                    <div class="control-group">
-                        <label>Water Temperature:</label>
-                        <select id="waterTemp" class="form-control">
-                            <option value="">Select...</option>
-                            <option value="cold">❄️ Cold (Best for colors)</option>
-                            <option value="warm">🌡️ Warm (General use)</option>
-                            <option value="hot">🔥 Hot (Whites/Sanitize)</option>
-                        </select>
-                    </div>
-                    
-                    <div class="control-group mt-20">
-                        <label>Detergent Amount:</label>
-                        <select id="detergent" class="form-control">
-                            <option value="">Select...</option>
-                            <option value="small">Small Load</option>
-                            <option value="medium">Medium Load</option>
-                            <option value="large">Large Load</option>
-                        </select>
-                    </div>
-                    
-                    <div class="control-group mt-20">
-                        <label>Cycle Type:</label>
-                        <select id="cycle" class="form-control">
-                            <option value="">Select...</option>
-                            <option value="normal">Normal</option>
-                            <option value="delicate">Delicate</option>
-                            <option value="heavy">Heavy Duty</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="info-box mt-20">
-                    <p><strong>💡 Tips:</strong></p>
-                    <ul>
-                        <li>Cold water saves energy and protects colors</li>
-                        <li>Don't overload the machine</li>
-                        <li>Use recommended detergent amount</li>
-                    </ul>
-                </div>
-                
-                <button class="btn btn-success btn-large mt-20" onclick="LaundryMinigame.startWash()">
-                    🌀 Start Washing Machine
-                </button>
-            </div>
-        `;
-    },
-    
-    startWash() {
-        const temp = document.getElementById('waterTemp').value;
-        const detergent = document.getElementById('detergent').value;
-        const cycle = document.getElementById('cycle').value;
+        overlay.innerHTML = html;
+        document.body.appendChild(overlay);
         
-        if (!temp || !detergent || !cycle) {
-            UI.showNotification('⚠️ Please select all settings!', 'warning');
-            return;
-        }
-        
-        UI.showNotification('🌀 Washing... This will take a few seconds', 'info');
-        
-        setTimeout(() => {
-            UI.showNotification('✅ Wash cycle complete!', 'success');
-            this.nextPhase();
-        }, 2000);
+        this.currentStep = 0;
+        this.steps = steps;
     },
     
-    renderDrying() {
-        return `
-            <div class="drying-controls">
-                <div class="control-panel">
-                    <div class="control-group">
-                        <label>Drying Method:</label>
-                        <select id="dryMethod" class="form-control">
-                            <option value="">Select...</option>
-                            <option value="machine">🌀 Machine Dry</option>
-                            <option value="air">🌬️ Air Dry (Hang)</option>
-                        </select>
-                    </div>
-                    
-                    <div class="control-group mt-20" id="heatSettings" style="display:none;">
-                        <label>Heat Level:</label>
-                        <select id="heatLevel" class="form-control">
-                            <option value="low">Low Heat</option>
-                            <option value="medium">Medium Heat</option>
-                            <option value="high">High Heat</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="info-box mt-20">
-                    <p><strong>💡 Drying Tips:</strong></p>
-                    <ul>
-                        <li>Check care labels on clothes</li>
-                        <li>Air drying saves energy and is gentler</li>
-                        <li>Remove clothes promptly to prevent wrinkles</li>
-                        <li>Clean lint trap before each use</li>
-                    </ul>
-                </div>
-                
-                <button class="btn btn-success btn-large mt-20" onclick="LaundryMinigame.startDry()">
-                    Start Drying
-                </button>
-            </div>
+    nextStep() {
+        if (this.currentStep < this.steps.length) {
+            // Mark current as completed
+            const currentStepEl = document.getElementById(`laundry-step-${this.currentStep}`);
+            if (currentStepEl) {
+                currentStepEl.classList.remove('active');
+                currentStepEl.classList.add('completed');
+            }
             
-            <script>
-                document.getElementById('dryMethod').addEventListener('change', function() {
-                    document.getElementById('heatSettings').style.display = 
-                        this.value === 'machine' ? 'block' : 'none';
-                });
-            </script>
-        `;
-    },
-    
-    startDry() {
-        const method = document.getElementById('dryMethod').value;
-        
-        if (!method) {
-            UI.showNotification('⚠️ Please select a drying method!', 'warning');
-            return;
-        }
-        
-        if (method === 'machine') {
-            const heat = document.getElementById('heatLevel').value;
-            if (!heat) {
-                UI.showNotification('⚠️ Please select heat level!', 'warning');
-                return;
+            this.currentStep++;
+            
+            // Update progress
+            document.getElementById('currentLaundryStep').textContent = this.currentStep + 1;
+            const progressBar = document.querySelector('.progress-fill');
+            if (progressBar) {
+                const percent = ((this.currentStep + 1) / this.steps.length) * 100;
+                progressBar.style.width = percent + '%';
+                progressBar.textContent = Math.round(percent) + '%';
+            }
+            
+            if (this.currentStep < this.steps.length) {
+                // Show next step
+                const nextStepEl = document.getElementById(`laundry-step-${this.currentStep}`);
+                if (nextStepEl) {
+                    nextStepEl.classList.add('active');
+                }
+            } else {
+                // All done!
+                this.complete();
             }
         }
-        
-        UI.showNotification('Drying clothes...', 'info');
-        
-        setTimeout(() => {
-            UI.showNotification('✅ Clothes are dry!', 'success');
-            this.nextPhase();
-        }, 2000);
-    },
-    
-    renderFolding() {
-        return `
-            <div class="folding-game">
-                <div class="folding-demo">
-                    <h4>How to Fold a Shirt:</h4>
-                    <ol>
-                        <li>Lay shirt flat, face down</li>
-                        <li>Fold one side to the middle</li>
-                        <li>Fold sleeve back</li>
-                        <li>Repeat on other side</li>
-                        <li>Fold bottom up to collar</li>
-                        <li>Fold in half again</li>
-                    </ol>
-                </div>
-                
-                <div class="info-box mt-20">
-                    <p><strong>💡 Folding Tips:</strong></p>
-                    <ul>
-                        <li>Fold while slightly warm for fewer wrinkles</li>
-                        <li>Store folded clothes vertically to see everything</li>
-                        <li>Hang delicate items instead of folding</li>
-                        <li>Match socks and fold them together</li>
-                    </ul>
-                </div>
-                
-                <div class="clothes-to-fold mt-20">
-                    <div class="fold-item">👕 5 Shirts</div>
-                    <div class="fold-item">👖 3 Pants</div>
-                    <div class="fold-item">🧦 6 Socks</div>
-                    <div class="fold-item">🩳 4 Underwear</div>
-                </div>
-                
-                <button class="btn btn-success btn-large mt-20" onclick="LaundryMinigame.finishFolding()">
-                    ✅ Finish Folding
-                </button>
-            </div>
-        `;
-    },
-    
-    finishFolding() {
-        UI.showNotification('✅ All clothes folded and put away!', 'success');
-        this.complete();
-    },
-    
-    nextPhase() {
-        this.currentPhase++;
-        document.getElementById('laundryModal').remove();
-        this.showPhase();
     },
     
     complete() {
-        document.getElementById('laundryModal').remove();
+        GameState.addMoney(12, 'laundry');
+        GameState.addSkill('laundry', 10);
         
-        // Find laundry chore
+        UI.showNotification('✅ Laundry complete! +$12, +10 laundry skill', 'success');
+        
+        // Complete the chore
         const chore = GameState.daily.chores.find(c => c.id === 'laundry');
-        
-        if (chore && !GameState.daily.completedToday.includes('laundry')) {
+        if (chore) {
             GameState.completeChore('laundry');
-            GameState.addMoney(chore.reward, 'chore');
-            GameState.addSkill('laundry', 10);
-            UI.showNotification(`✅ Laundry complete! +$${chore.reward}`, 'success');
-        } else {
-            GameState.addSkill('laundry', 10);
-            UI.showNotification('✅ Laundry practice complete!', 'success');
         }
         
-        GameState.clearBusy();
-        
+        // Achievement check
         if (GameState.skills.laundry >= 50) {
-            GameState.addAchievement('Laundry Master', 'Reach 50 laundry skill', '🧺');
+            GameState.addAchievement('Laundry Pro', 'Master laundry skills', '🧺');
         }
         
+        this.close();
         loadHome();
         UI.updateStats();
+    },
+    
+    skip() {
+        if (confirm('Skip this tutorial? You\'ll still complete the chore.')) {
+            this.complete();
+        }
+    },
+    
+    close() {
+        const overlay = document.getElementById('laundryMinigame');
+        if (overlay) {
+            overlay.remove();
+        }
+        this.currentStep = 0;
+        this.steps = null;
     }
 };
