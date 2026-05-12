@@ -1,150 +1,118 @@
-// ==================== LAUNDRY MINIGAME (FIXED) ====================
+// ==================== INTERACTIVE LAUNDRY SORTING GAME ====================
 
 window.LaundryMinigame = {
-    currentStep: 0,
-    steps: null,
-    
     start() {
-        console.log('🧺 Starting laundry minigame');
-        
-        const steps = [
-            { 
-                instruction: 'Sort clothes by color', 
-                tip: 'Whites, lights, darks - keep them separate!',
-                safety: 'Check all pockets for items before washing'
-            },
-            { 
-                instruction: 'Read care labels on clothing', 
-                tip: 'Check water temperature and special care instructions'
-            },
-            { 
-                instruction: 'Load washer - don\'t overpack', 
-                tip: 'Fill only 3/4 full for best cleaning results'
-            },
-            { 
-                instruction: 'Add detergent to dispenser', 
-                tip: 'Follow the measuring lines on the cap',
-                safety: 'More detergent does NOT mean cleaner clothes!'
-            },
-            { 
-                instruction: 'Select wash cycle and temperature', 
-                tip: 'Cold water for colors, warm for whites'
-            },
-            { 
-                instruction: 'Start washer and set timer', 
-                tip: 'Washing takes about 30-45 minutes'
-            },
-            { 
-                instruction: 'Move wet clothes to dryer promptly', 
-                tip: 'Don\'t leave wet clothes sitting - they\'ll smell!',
-                safety: 'Check and clean lint trap before drying!'
-            },
-            { 
-                instruction: 'Clean the lint trap thoroughly', 
-                tip: 'Remove lint after every single load',
-                safety: 'Lint buildup is a serious fire hazard!'
-            },
-            { 
-                instruction: 'Select appropriate dryer settings', 
-                tip: 'Lower heat for delicates, high for towels'
-            },
-            { 
-                instruction: 'Start dryer and set timer', 
-                tip: 'Drying takes 45-60 minutes'
-            },
-            { 
-                instruction: 'Remove clothes promptly when done', 
-                tip: 'Prevents wrinkles and makes folding easier!'
-            },
-            { 
-                instruction: 'Fold or hang clothes immediately', 
-                tip: 'Fold on flat surface for best results'
-            },
-            { 
-                instruction: 'Put clothes away in closet/drawers', 
-                tip: 'Complete the job - don\'t leave in basket!'
-            }
-        ];
-        
-        this.showTutorial(steps);
+        console.log('🧺 Starting laundry sorting game');
+        this.showSortingGame();
     },
     
-    showTutorial(steps) {
+    showSortingGame() {
         const overlay = document.createElement('div');
         overlay.className = 'modal-overlay';
-        overlay.id = 'laundryMinigame';
+        overlay.id = 'laundryGame';
         overlay.style.display = 'flex';
         overlay.style.zIndex = '2000';
         
+        const clothes = [
+            { name: 'White Shirt', color: 'whites', emoji: '👕', bg: '#ffffff' },
+            { name: 'Blue Jeans', color: 'darks', emoji: '👖', bg: '#1976d2' },
+            { name: 'Red Sweater', color: 'colors', emoji: '🧥', bg: '#e53935' },
+            { name: 'White Socks', color: 'whites', emoji: '🧦', bg: '#f5f5f5' },
+            { name: 'Black Pants', color: 'darks', emoji: '👖', bg: '#212121' },
+            { name: 'Yellow Shirt', color: 'colors', emoji: '👕', bg: '#fdd835' },
+            { name: 'White Towel', color: 'whites', emoji: '🧴', bg: '#fafafa' },
+            { name: 'Purple Dress', color: 'colors', emoji: '👗', bg: '#9c27b0' },
+            { name: 'Black Jacket', color: 'darks', emoji: '🧥', bg: '#000000' },
+            { name: 'Pink Socks', color: 'colors', emoji: '🧦', bg: '#e91e63' },
+            { name: 'Navy Shirt', color: 'darks', emoji: '👕', bg: '#0d47a1' },
+            { name: 'White Sheets', color: 'whites', emoji: '🛏️', bg: '#ffffff' }
+        ];
+        
         let html = `
-            <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-content" style="max-width: 1000px;">
                 <div style="text-align: center; padding-bottom: 20px; border-bottom: 3px solid #3498db;">
-                    <h2 style="margin: 0; font-size: 32px;">🧺 Doing Laundry</h2>
-                    <p style="color: #7f8c8d; margin: 10px 0 0 0;">Complete laundry cycle from start to finish</p>
+                    <h2 style="margin: 0; font-size: 32px;">🧺 Sort the Laundry</h2>
+                    <p style="color: #7f8c8d; margin: 10px 0 0 0;">Drag each item to the correct basket!</p>
                 </div>
                 
-                <div style="margin: 30px 0;">
-                    ${steps.map((step, i) => `
-                        <div class="tutorial-step ${i === 0 ? 'active' : ''}" id="laundry-step-${i}" style="
-                            background: ${i === 0 ? '#e8f5e9' : '#f8f9fa'};
-                            border-radius: 12px;
+                <div style="margin: 30px 0; display: flex; gap: 20px;">
+                    <!-- Unsorted Pile -->
+                    <div style="flex: 1;">
+                        <h3 style="text-align: center; color: #2c3e50; margin-bottom: 15px;">Unsorted Laundry</h3>
+                        <div id="unsortedPile" style="
+                            background: #ecf0f1;
+                            border-radius: 15px;
                             padding: 20px;
-                            margin-bottom: 15px;
-                            border-left: 5px solid ${i === 0 ? '#27ae60' : '#3498db'};
-                            transition: all 0.3s;
+                            min-height: 400px;
+                            display: flex;
+                            flex-direction: column;
+                            gap: 10px;
                         ">
-                            <div style="display: flex; align-items: start;">
-                                <span style="
-                                    display: inline-block;
-                                    background: ${i === 0 ? '#27ae60' : '#3498db'};
-                                    color: white;
-                                    width: 35px;
-                                    height: 35px;
-                                    border-radius: 50%;
-                                    text-align: center;
-                                    line-height: 35px;
+                            ${clothes.map((item, i) => `
+                                <div class="laundry-item" draggable="true" data-item="${i}" data-color="${item.color}" style="
+                                    background: ${item.bg};
+                                    color: ${['#ffffff', '#f5f5f5', '#fafafa'].includes(item.bg) ? '#333' : '#fff'};
+                                    padding: 15px;
+                                    border-radius: 10px;
+                                    cursor: move;
+                                    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 10px;
                                     font-weight: bold;
-                                    margin-right: 15px;
-                                    flex-shrink: 0;
-                                ">${i + 1}</span>
-                                <div style="flex: 1;">
-                                    <div style="font-size: 18px; font-weight: bold; color: #2c3e50; margin-bottom: 10px;">
-                                        ${step.instruction}
-                                    </div>
-                                    ${step.tip ? `
-                                        <div style="font-size: 14px; color: #7f8c8d; padding: 10px; background: rgba(52,152,219,0.1); border-radius: 6px; margin-top: 8px;">
-                                            💡 <strong>Tip:</strong> ${step.tip}
-                                        </div>
-                                    ` : ''}
-                                    ${step.safety ? `
-                                        <div style="font-size: 14px; color: #e74c3c; font-weight: bold; padding: 10px; background: rgba(231,76,60,0.1); border-radius: 6px; margin-top: 8px;">
-                                            ⚠️ <strong>Safety:</strong> ${step.safety}
-                                        </div>
-                                    ` : ''}
+                                    border: 2px solid rgba(0,0,0,0.1);
+                                ">
+                                    <span style="font-size: 24px;">${item.emoji}</span>
+                                    <span>${item.name}</span>
                                 </div>
-                            </div>
+                            `).join('')}
                         </div>
-                    `).join('')}
+                    </div>
+                    
+                    <!-- Sorting Baskets -->
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 15px;">
+                        <div class="basket" data-basket="whites" style="
+                            background: linear-gradient(135deg, #ffffff, #f5f5f5);
+                            border: 3px dashed #bdbdbd;
+                            border-radius: 15px;
+                            padding: 20px;
+                            min-height: 120px;
+                            text-align: center;
+                        ">
+                            <h4 style="color: #333; margin-bottom: 10px;">⚪ WHITES</h4>
+                            <div class="basket-items"></div>
+                        </div>
+                        
+                        <div class="basket" data-basket="darks" style="
+                            background: linear-gradient(135deg, #424242, #212121);
+                            border: 3px dashed #757575;
+                            border-radius: 15px;
+                            padding: 20px;
+                            min-height: 120px;
+                            text-align: center;
+                        ">
+                            <h4 style="color: #fff; margin-bottom: 10px;">⚫ DARKS</h4>
+                            <div class="basket-items"></div>
+                        </div>
+                        
+                        <div class="basket" data-basket="colors" style="
+                            background: linear-gradient(135deg, #ff6b6b, #4ecdc4, #ffe66d, #a8e6cf);
+                            border: 3px dashed #333;
+                            border-radius: 15px;
+                            padding: 20px;
+                            min-height: 120px;
+                            text-align: center;
+                        ">
+                            <h4 style="color: #333; margin-bottom: 10px;">🌈 COLORS</h4>
+                            <div class="basket-items"></div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div style="text-align: center; margin: 20px 0;">
-                    <div style="font-size: 18px; font-weight: bold; margin-bottom: 15px;">
-                        Step <span id="currentLaundryStep">1</span> of ${steps.length}
+                    <div style="font-size: 18px; font-weight: bold;">
+                        Sorted: <span id="laundryProgress">0</span> / ${clothes.length}
                     </div>
-                    <div class="progress-bar" style="height: 30px;">
-                        <div class="progress-fill" style="width: ${(1/steps.length)*100}%; transition: width 0.3s;">
-                            ${Math.round((1/steps.length)*100)}%
-                        </div>
-                    </div>
-                </div>
-                
-                <div style="display: flex; gap: 15px; justify-content: center; margin-top: 30px;">
-                    <button class="btn btn-success btn-large" onclick="LaundryMinigame.nextStep()">
-                        ✅ Next Step
-                    </button>
-                    <button class="btn btn-secondary" onclick="LaundryMinigame.skip()">
-                        Skip Tutorial
-                    </button>
                 </div>
             </div>
         `;
@@ -152,84 +120,77 @@ window.LaundryMinigame = {
         overlay.innerHTML = html;
         document.body.appendChild(overlay);
         
-        this.currentStep = 0;
-        this.steps = steps;
-    },
-    
-    nextStep() {
-        if (this.currentStep < this.steps.length) {
-            // Mark current as completed
-            const currentStepEl = document.getElementById(`laundry-step-${this.currentStep}`);
-            if (currentStepEl) {
-                currentStepEl.style.opacity = '0.6';
-                currentStepEl.style.background = '#f8f9fa';
-                currentStepEl.style.borderLeftColor = '#95a5a6';
-            }
+        // Drag and drop logic
+        let sortedCount = 0;
+        const totalItems = clothes.length;
+        
+        const items = document.querySelectorAll('.laundry-item');
+        items.forEach(item => {
+            item.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('itemId', e.target.dataset.item);
+                e.dataTransfer.setData('color', e.target.dataset.color);
+            });
+        });
+        
+        const baskets = document.querySelectorAll('.basket');
+        baskets.forEach(basket => {
+            basket.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                basket.style.borderColor = '#2196f3';
+                basket.style.transform = 'scale(1.02)';
+            });
             
-            this.currentStep++;
+            basket.addEventListener('dragleave', (e) => {
+                basket.style.borderColor = '';
+                basket.style.transform = 'scale(1)';
+            });
             
-            // Update progress
-            document.getElementById('currentLaundryStep').textContent = this.currentStep + 1;
-            const progressBar = document.querySelector('.progress-fill');
-            if (progressBar) {
-                const percent = ((this.currentStep + 1) / this.steps.length) * 100;
-                progressBar.style.width = percent + '%';
-                progressBar.textContent = Math.round(percent) + '%';
-            }
-            
-            if (this.currentStep < this.steps.length) {
-                // Show next step
-                const nextStepEl = document.getElementById(`laundry-step-${this.currentStep}`);
-                if (nextStepEl) {
-                    nextStepEl.style.background = '#e8f5e9';
-                    nextStepEl.style.borderLeftColor = '#27ae60';
+            basket.addEventListener('drop', (e) => {
+                e.preventDefault();
+                basket.style.borderColor = '';
+                basket.style.transform = 'scale(1)';
+                
+                const itemId = e.dataTransfer.getData('itemId');
+                const correctColor = e.dataTransfer.getData('color');
+                const basketColor = basket.dataset.basket;
+                
+                if (correctColor === basketColor) {
+                    // Correct!
+                    const item = document.querySelector(`[data-item="${itemId}"]`);
+                    item.remove();
+                    
+                    sortedCount++;
+                    document.getElementById('laundryProgress').textContent = sortedCount;
+                    
+                    UI.showNotification('✅ Correct!', 'success');
+                    
+                    if (sortedCount === totalItems) {
+                        setTimeout(() => {
+                            this.complete();
+                        }, 500);
+                    }
+                } else {
+                    UI.showNotification('❌ Wrong basket! Try again.', 'error');
                 }
-            } else {
-                // All done!
-                this.complete();
-            }
-        }
+            });
+        });
     },
     
     complete() {
-        const reward = 12;
-        const skill = 10;
-        
-        GameState.addMoney(reward, 'laundry');
-        GameState.addSkill('laundry', skill);
+        GameState.addMoney(12, 'laundry');
+        GameState.addSkill('laundry', 10);
         GameState.completeChore('laundry');
         GameState.clearBusy();
         GameState.stats.choresCompleted++;
         
-        UI.showNotification(`✅ Laundry complete! +$${reward}, +${skill} laundry skill`, 'success');
+        UI.showNotification('✅ Laundry sorted perfectly! +$12, +10 laundry skill', 'success');
         
-        // Achievement check
-        if (GameState.skills.laundry >= 50) {
-            GameState.addAchievement('Laundry Pro', 'Master laundry skills', '🧺');
-        }
-        if (GameState.skills.laundry >= 100) {
-            GameState.addAchievement('Laundry Master', 'Max out laundry skill', '⭐');
-        }
+        const overlay = document.getElementById('laundryGame');
+        if (overlay) overlay.remove();
         
-        this.close();
         loadHome();
         UI.updateStats();
-    },
-    
-    skip() {
-        if (confirm('Skip this tutorial? You\'ll still complete the chore.')) {
-            this.complete();
-        }
-    },
-    
-    close() {
-        const overlay = document.getElementById('laundryMinigame');
-        if (overlay) {
-            overlay.remove();
-        }
-        this.currentStep = 0;
-        this.steps = null;
     }
 };
 
-console.log('✅ laundry.js loaded - LaundryMinigame ready');
+console.log('✅ laundry.js loaded - Interactive LaundryMinigame ready');
