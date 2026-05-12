@@ -1,0 +1,354 @@
+// ==================== GAME STATE MANAGEMENT ====================
+
+const GameState = {
+    // Player Information
+    player: {
+        name: 'Alex',
+        gender: 'male',
+        age: 14,
+        grade: 9,
+        birthday: { month: 6, day: 15 }
+    },
+    
+    // Time System
+    time: {
+        minute: 0,
+        hour: 7,
+        day: 1, // 1=Monday, 7=Sunday
+        date: 1,
+        month: 9, // September
+        year: 1,
+        speed: 1,
+        paused: false
+    },
+    
+    // Financial
+    money: {
+        cash: 50,
+        bank: 0,
+        creditCard: null,
+        creditBalance: 0,
+        creditLimit: 500
+    },
+    
+    // School
+    school: {
+        gpa: 0.0,
+        grades: {
+            Math: 70,
+            English: 70,
+            Science: 70,
+            History: 70,
+            PE: 70
+        },
+        homework: [],
+        extracurriculars: [],
+        tardies: 0,
+        absences: 0,
+        attendance: {}
+    },
+    
+    // Work
+    work: {
+        hasResume: false,
+        currentJob: null,
+        jobHistory: [],
+        warnings: 0
+    },
+    
+    // Life Skills (0-100 scale)
+    skills: {
+        cooking: 0,
+        cleaning: 0,
+        laundry: 0,
+        budgeting: 0,
+        timeManagement: 0,
+        checkWriting: 0,
+        creditManagement: 0
+    },
+    
+    // Daily Tasks
+    daily: {
+        chores: [],
+        completedToday: []
+    },
+    
+    // Adult Life (18+)
+    adult: {
+        apartment: null,
+        bills: [],
+        groceries: 100, // Parents provide until 18
+        utilities: null,
+        rent: 0
+    },
+    
+    // Tutorial Progress
+    tutorials: {
+        completed: [],
+        current: null,
+        shown: {}
+    },
+    
+    // Inventory
+    inventory: [],
+    
+    // Achievements
+    achievements: [],
+    
+    // Statistics
+    stats: {
+        totalMoneyEarned: 0,
+        totalMoneySpent: 0,
+        choresCompleted: 0,
+        homeworkCompleted: 0,
+        daysPlayed: 0
+    },
+    
+    // Save/Load Methods
+    save() {
+        try {
+            const saveData = {
+                version: '1.0.0',
+                timestamp: new Date().toISOString(),
+                state: this
+            };
+            
+            localStorage.setItem('lifeSkillsAcademy', JSON.stringify(saveData));
+            console.log('✓ Game saved successfully');
+            
+            // Show save indicator
+            if (window.UI) {
+                UI.showNotification('Game saved!', 'success');
+            }
+            
+            return true;
+        } catch (e) {
+            console.error('Save failed:', e);
+            if (window.UI) {
+                UI.showNotification('Failed to save game!', 'error');
+            }
+            return false;
+        }
+    },
+    
+    load() {
+        try {
+            const saved = localStorage.getItem('lifeSkillsAcademy');
+            
+            if (!saved) {
+                console.log('No save data found');
+                return false;
+            }
+            
+            const saveData = JSON.parse(saved);
+            
+            // Merge save data with current state
+            Object.assign(this.player, saveData.state.player);
+            Object.assign(this.time, saveData.state.time);
+            Object.assign(this.money, saveData.state.money);
+            Object.assign(this.school, saveData.state.school);
+            Object.assign(this.work, saveData.state.work);
+            Object.assign(this.skills, saveData.state.skills);
+            Object.assign(this.daily, saveData.state.daily);
+            Object.assign(this.adult, saveData.state.adult);
+            Object.assign(this.tutorials, saveData.state.tutorials);
+            this.inventory = saveData.state.inventory || [];
+            this.achievements = saveData.state.achievements || [];
+            Object.assign(this.stats, saveData.state.stats);
+            
+            console.log('✓ Game loaded from:', saveData.timestamp);
+            return true;
+            
+        } catch (e) {
+            console.error('Load failed:', e);
+            return false;
+        }
+    },
+    
+    reset() {
+        if (confirm('Are you sure? This will delete ALL your progress!')) {
+            localStorage.removeItem('lifeSkillsAcademy');
+            location.reload();
+        }
+    },
+    
+    // Helper Methods
+    addMoney(amount, source = 'general') {
+        this.money.cash += amount;
+        this.stats.totalMoneyEarned += amount;
+        console.log(`+$${amount} from ${source}`);
+    },
+    
+    spendMoney(amount, reason = 'purchase') {
+        if (this.money.cash >= amount) {
+            this.money.cash -= amount;
+            this.stats.totalMoneySpent += amount;
+            console.log(`-$${amount} for ${reason}`);
+            return true;
+        }
+        return false;
+    },
+    
+    addSkill(skillName, amount) {
+        if (this.skills[skillName] !== undefined) {
+            this.skills[skillName] = Math.min(100, this.skills[skillName] + amount);
+            console.log(`${skillName} skill: +${amount} (now ${this.skills[skillName]})`);
+        }
+    },
+    
+    completeChore(choreId) {
+        if (!this.daily.completedToday.includes(choreId)) {
+            this.daily.completedToday.push(choreId);
+            this.stats.choresCompleted++;
+            return true;
+        }
+        return false;
+    },
+    
+    completeHomework(subject) {
+        this.stats.homeworkCompleted++;
+        // Improve grade
+        if (this.school.grades[subject]) {
+            this.school.grades[subject] = Math.min(100, this.school.grades[subject] + 2);
+            this.calculateGPA();
+        }
+    },
+    
+    calculateGPA() {
+        const grades = Object.values(this.school.grades);
+        const average = grades.reduce((a, b) => a + b, 0) / grades.length;
+        this.school.gpa = (average / 25).toFixed(2); // Convert to 4.0 scale
+    },
+    
+    advanceDay() {
+        this.time.day++;
+        if (this.time.day > 7) this.time.day = 1;
+        this.time.date++;
+        
+        // Reset daily tasks
+        this.daily.completedToday = [];
+        
+        // Check for birthday
+        if (this.time.month === this.player.birthday.month && 
+            this.time.date === this.player.birthday.day) {
+            this.player.age++;
+            console.log(`🎂 Happy Birthday! You're now ${this.player.age}!`);
+            
+            // Turn 18 - major milestone
+            if (this.player.age === 18) {
+                this.adult.groceries = 0; // Now must buy own groceries
+                console.log('🎉 You\'re an adult now! Time to manage everything yourself.');
+            }
+        }
+        
+        // Monthly rollover
+        if (this.time.date > 30) {
+            this.time.date = 1;
+            this.time.month++;
+            
+            // Credit card interest
+            if (this.money.creditCard && this.money.creditBalance > 0) {
+                this.money.creditBalance *= 1.02; // 2% monthly interest
+            }
+            
+            // Generate bills if have apartment
+            if (this.adult.apartment) {
+                this.generateMonthlyBills();
+            }
+            
+            // Year rollover
+            if (this.time.month > 12) {
+                this.time.month = 1;
+                this.time.year++;
+                
+                // Grade progression (September)
+                if (this.time.month === 9 && this.player.age < 18) {
+                    this.player.grade++;
+                    console.log(`📚 New school year! Now in grade ${this.player.grade}`);
+                }
+            }
+        }
+        
+        this.stats.daysPlayed++;
+    },
+    
+    generateMonthlyBills() {
+        this.adult.bills = [];
+        
+        if (this.adult.apartment) {
+            this.adult.bills.push({
+                name: 'Rent',
+                amount: this.adult.apartment.rent,
+                dueDate: this.time.date + 5,
+                paid: false
+            });
+            
+            this.adult.bills.push({
+                name: 'Electricity',
+                amount: 50 + Math.floor(Math.random() * 30),
+                dueDate: this.time.date + 10,
+                paid: false
+            });
+            
+            this.adult.bills.push({
+                name: 'Water',
+                amount: 30 + Math.floor(Math.random() * 20),
+                dueDate: this.time.date + 10,
+                paid: false
+            });
+        }
+    },
+    
+    isWeekday() {
+        return this.time.day >= 1 && this.time.day <= 5;
+    },
+    
+    isSchoolTime() {
+        if (!this.isWeekday()) return false;
+        const minutes = this.time.hour * 60 + this.time.minute;
+        return minutes >= 8 * 60 && minutes < 13 * 60 + 20; // 8:00 AM - 1:20 PM
+    },
+    
+    getCurrentPeriod() {
+        if (!this.isSchoolTime()) return null;
+        
+        const minutes = this.time.hour * 60 + this.time.minute;
+        const schedule = [
+            { name: 'Math', start: 8 * 60, end: 8 * 60 + 50 },
+            { name: 'English', start: 9 * 60, end: 9 * 60 + 50 },
+            { name: 'Science', start: 10 * 60, end: 10 * 60 + 50 },
+            { name: 'Lunch', start: 11 * 60, end: 11 * 60 + 30 },
+            { name: 'History', start: 11 * 60 + 30, end: 12 * 60 + 20 },
+            { name: 'PE', start: 12 * 60 + 30, end: 13 * 60 + 20 }
+        ];
+        
+        return schedule.find(p => minutes >= p.start && minutes < p.end) || null;
+    },
+    
+    addAchievement(name, description, icon) {
+        if (!this.achievements.find(a => a.name === name)) {
+            this.achievements.push({
+                name: name,
+                description: description,
+                icon: icon,
+                date: new Date().toISOString()
+            });
+            console.log(`🏆 Achievement unlocked: ${name}`);
+            if (window.UI) {
+                UI.showNotification(`🏆 ${name}`, 'success');
+            }
+        }
+    }
+};
+
+// Auto-save every 2 minutes
+setInterval(() => {
+    if (!GameState.time.paused) {
+        GameState.save();
+    }
+}, 120000);
+
+// Save before page unload
+window.addEventListener('beforeunload', () => {
+    GameState.save();
+});
