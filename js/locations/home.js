@@ -72,20 +72,11 @@ function doChore(choreId) {
     const chore = GameState.daily.chores.find(c => c.id === choreId);
     if (!chore) return;
     
-    if (GameState.isBusy()) {
-        UI.showNotification('❌ You are already busy!', 'error');
-        return;
-    }
-    
-    // Set player as busy
-    GameState.setBusy(chore.time / 60, chore.name);
-    
-    // Start minigame
-    if (window.ChoreMinigames) {
-        console.log('✅ Launching minigame for:', choreId);
+    // Start minigame based on chore type
+    if (window.ChoreMinigames && ChoreMinigames[choreId]) {
         ChoreMinigames.start(choreId);
     } else {
-        console.error('❌ ChoreMinigames not loaded!');
+        // Simple completion
         completeChoreSimple(chore);
     }
 }
@@ -94,7 +85,6 @@ function completeChoreSimple(chore) {
     if (GameState.completeChore(chore.id)) {
         GameState.addMoney(chore.reward, 'chore');
         GameState.addSkill(chore.skill, 5);
-        GameState.clearBusy();
         
         UI.showNotification(`✅ ${chore.name} completed! +$${chore.reward}`, 'success');
         
@@ -140,32 +130,10 @@ function renderCooking() {
 }
 
 function startCooking(recipeId) {
-    if (GameState.isBusy()) {
-        UI.showNotification('❌ You are already busy!', 'error');
-        return;
-    }
-    
-    const recipes = {
-        sandwich: { time: 10 },
-        eggs: { time: 15 },
-        pasta: { time: 30 },
-        salad: { time: 15 },
-        soup: { time: 45 }
-    };
-    
-    const recipe = recipes[recipeId];
-    if (!recipe) return;
-    
-    // Set player as busy
-    GameState.setBusy(recipe.time / 60, 'Cooking ' + recipeId);
-    
     if (window.CookingMinigame) {
-        console.log('✅ Launching cooking minigame for:', recipeId);
         CookingMinigame.start(recipeId);
     } else {
-        console.error('❌ CookingMinigame not loaded!');
-        UI.showNotification('🍳 Cooking minigame not available!', 'error');
-        GameState.clearBusy();
+        UI.showNotification('🍳 Cooking minigame coming soon!', 'info');
     }
 }
 
@@ -195,21 +163,10 @@ function renderLaundry() {
 }
 
 function startLaundry() {
-    if (GameState.isBusy()) {
-        UI.showNotification('❌ You are already busy!', 'error');
-        return;
-    }
-    
-    // Set player as busy
-    GameState.setBusy(1.5, 'Doing laundry');
-    
     if (window.LaundryMinigame) {
-        console.log('✅ Launching laundry minigame');
         LaundryMinigame.start();
     } else {
-        console.error('❌ LaundryMinigame not loaded!');
-        UI.showNotification('🧺 Laundry minigame not available!', 'error');
-        GameState.clearBusy();
+        UI.showNotification('🧺 Laundry minigame coming soon!', 'info');
     }
 }
 
@@ -262,6 +219,7 @@ function goToSleep() {
     GameState.time.hour = 7;
     GameState.time.minute = 0;
     GameState.advanceDay();
+    TimeManager.generateDailyTasks();
     
     UI.showNotification('☀️ Good morning! A new day begins.', 'success');
     
@@ -276,5 +234,3 @@ function goToSleep() {
     loadHome();
     UI.updateStats();
 }
-
-console.log('✅ home.js loaded');
