@@ -1,0 +1,398 @@
+/* ==================== LOCATION SCREEN ==================== */
+#locationScreen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #ecf0f1;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+}
+
+#locationScreen.hidden {
+    display: none;
+}
+
+/* ==================== LOCATION HEADER ==================== */
+.location-header {
+    background: linear-gradient(to right, #3498db, #2980b9);
+    color: white;
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.location-header h2 {
+    font-size: 28px;
+    font-weight: bold;
+    margin: 0;
+}
+
+.btn-back {
+    background: rgba(255,255,255,0.2);
+    border: 2px solid white;
+    color: white;
+    padding: 10px 25px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s;
+    font-size: 14px;
+}
+
+.btn-back:hover {
+    background: rgba(255,255,255,0.4);
+    transform: translateX(-3px);
+}
+
+/* ==================== LOCATION CONTENT ==================== */
+.location-content {
+    flex: 1;
+    padding: 30px;
+    overflow-y: auto;
+    background: #ecf0f1;
+}
+
+/* ==================== TABS ==================== */
+.tabs {
+    display: flex;
+    gap: 5px;
+    border-bottom: 2px solid #bdc3c7;
+    margin-bottom: 25px;
+    background: white;
+    padding: 0 20px;
+    border-radius: 8px 8px 0 0;
+}
+
+.tab {
+    padding: 15px 25px;
+    cursor: pointer;
+    font-weight: bold;
+    color: #7f8c8d;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s;
+    font-size: 14px;
+}
+
+.tab:hover {
+    color: #3498db;
+    background: rgba(52,152,219,0.05);
+}
+
+.tab.active {
+    color: #3498db;
+    border-bottom-color: #3498db;
+    background: rgba(52,152,219,0.1);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==================== CHECKLIST ==================== */
+.checklist {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.checklist-item {
+    background: white;
+    border-radius: 10px;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: all 0.3s;
+    border-left: 4px solid #3498db;
+}
+
+.checklist-item:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    transform: translateX(5px);
+}
+
+.checklist-item.completed {
+    opacity: 0.7;
+    background: #d4edda;
+    border-left-color: #27ae60;
+}
+
+.checklist-icon {
+    font-size: 28px;
+    min-width: 40px;
+    text-align: center;
+}
+
+.checklist-text {
+    flex: 1;
+}
+
+.checklist-text strong {
+    display: block;
+    font-size: 16px;
+    color: #2c3e50;
+    margin-bottom: 4px;
+}
+
+.checklist-text .desc {
+    font-size: 13px;
+    color: #7f8c8d;
+}
+
+.checklist-text .reward {
+    font-size: 12px;
+    color: #27ae60;
+    font-weight: bold;
+    margin-top: 4px;
+}
+
+/* ==================== INFO ROWS ==================== */
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #7f8c8d;
+    font-size: 14px;
+}
+
+.info-value {
+    font-weight: bold;
+    color: #2c3e50;
+    font-size: 14px;
+}
+
+/* ==================== STATS DISPLAY ==================== */
+.stats-display {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.stat-box {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: all 0.3s;
+}
+
+.stat-box:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+.stat-box .icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+}
+
+.stat-box .label {
+    font-size: 12px;
+    color: #7f8c8d;
+    text-transform: uppercase;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.stat-box .value {
+    font-size: 24px;
+    color: #2c3e50;
+    font-weight: bold;
+}
+
+/* ==================== SCHEDULE TABLE ==================== */
+.schedule-table {
+    width: 100%;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.schedule-table th,
+.schedule-table td {
+    padding: 15px;
+    text-align: left;
+}
+
+.schedule-table thead {
+    background: #3498db;
+    color: white;
+}
+
+.schedule-table tbody tr {
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.schedule-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.schedule-table tbody tr.current {
+    background: #d4edda;
+    font-weight: bold;
+}
+
+.schedule-table tbody tr.past {
+    opacity: 0.5;
+}
+
+/* ==================== SHOPPING ITEMS ==================== */
+.shop-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.shop-item {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+}
+
+.shop-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+
+.shop-item .item-icon {
+    font-size: 48px;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.shop-item .item-name {
+    font-size: 18px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 8px;
+}
+
+.shop-item .item-desc {
+    font-size: 13px;
+    color: #7f8c8d;
+    margin-bottom: 15px;
+    flex: 1;
+}
+
+.shop-item .item-price {
+    font-size: 24px;
+    color: #27ae60;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+/* ==================== JOB CARDS ==================== */
+.job-listing {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left: 5px solid #9b59b6;
+    transition: all 0.3s;
+}
+
+.job-listing:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    transform: translateX(5px);
+}
+
+.job-listing .job-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.job-listing .job-details {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.job-listing .job-detail {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #7f8c8d;
+}
+
+.job-listing .job-requirements {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    font-size: 13px;
+    color: #7f8c8d;
+}
+
+/* ==================== MOBILE RESPONSIVENESS ==================== */
+@media (max-width: 768px) {
+    .location-header {
+        padding: 15px 20px;
+    }
+    
+    .location-header h2 {
+        font-size: 22px;
+    }
+    
+    .location-content {
+        padding: 20px;
+    }
+    
+    .content-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .tabs {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+    }
+    
+    .tab {
+        white-space: nowrap;
+        padding: 12px 20px;
+    }
+    
+    .shop-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-display {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
