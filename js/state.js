@@ -7,7 +7,9 @@ const GameState = {
         gender: 'male',
         age: 14,
         grade: 9,
-        birthday: { month: 6, day: 15 }
+        birthday: { month: 6, day: 15 },
+        hasPhone: false,
+        phoneNumber: null
     },
     
     // Time System
@@ -19,7 +21,8 @@ const GameState = {
         month: 9, // September
         year: 1,
         speed: 1,
-        paused: false
+        paused: false,
+        busyUntil: null // When player is busy (working, in class, etc)
     },
     
     // Financial
@@ -45,7 +48,8 @@ const GameState = {
         extracurriculars: [],
         tardies: 0,
         absences: 0,
-        attendance: {}
+        attendance: {},
+        currentClass: null // Track current class session
     },
     
     // Work
@@ -53,7 +57,9 @@ const GameState = {
         hasResume: false,
         currentJob: null,
         jobHistory: [],
-        warnings: 0
+        warnings: 0,
+        onShift: false,
+        shiftStartTime: null
     },
     
     // Life Skills (0-100 scale)
@@ -64,7 +70,9 @@ const GameState = {
         budgeting: 0,
         timeManagement: 0,
         checkWriting: 0,
-        creditManagement: 0
+        creditManagement: 0,
+        bowling: 0,
+        skating: 0
     },
     
     // Daily Tasks
@@ -77,9 +85,31 @@ const GameState = {
     adult: {
         apartment: null,
         bills: [],
-        groceries: 100, // Parents provide until 18
+        groceries: 100,
         utilities: null,
         rent: 0
+    },
+    
+    // Phone System
+    phone: {
+        hasPhone: false,
+        model: null,
+        plan: null, // 'basic' or 'premium'
+        monthlyBill: 0,
+        lastBillDate: null,
+        apps: {
+            banking: false,
+            jobSearch: false,
+            schoolPortal: false,
+            social: true
+        }
+    },
+    
+    // Entertainment
+    entertainment: {
+        friendships: 0,
+        socialEnergy: 100,
+        lastHangout: null
     },
     
     // Tutorial Progress
@@ -101,14 +131,19 @@ const GameState = {
         totalMoneySpent: 0,
         choresCompleted: 0,
         homeworkCompleted: 0,
-        daysPlayed: 0
+        daysPlayed: 0,
+        hoursWorked: 0,
+        gamesPlayed: 0
     },
+    
+    // Activity System
+    currentActivity: null,
     
     // Save/Load Methods
     save() {
         try {
             const saveData = {
-                version: '1.0.0',
+                version: '2.0.0',
                 timestamp: new Date().toISOString(),
                 state: this
             };
@@ -116,9 +151,8 @@ const GameState = {
             localStorage.setItem('lifeSkillsAcademy', JSON.stringify(saveData));
             console.log('✓ Game saved successfully');
             
-            // Show save indicator
             if (window.UI) {
-                UI.showNotification('Game saved!', 'success');
+                UI.showNotification('Game saved!', 'success', 2000);
             }
             
             return true;
@@ -151,6 +185,8 @@ const GameState = {
             Object.assign(this.skills, saveData.state.skills);
             Object.assign(this.daily, saveData.state.daily);
             Object.assign(this.adult, saveData.state.adult);
+            Object.assign(this.phone, saveData.state.phone || {});
+            Object.assign(this.entertainment, saveData.state.entertainment || {});
             Object.assign(this.tutorials, saveData.state.tutorials);
             this.inventory = saveData.state.inventory || [];
             this.achievements = saveData.state.achievements || [];
@@ -207,7 +243,6 @@ const GameState = {
     
     completeHomework(subject) {
         this.stats.homeworkCompleted++;
-        // Improve grade
         if (this.school.grades[subject]) {
             this.school.grades[subject] = Math.min(100, this.school.grades[subject] + 2);
             this.calculateGPA();
@@ -217,7 +252,38 @@ const GameState = {
     calculateGPA() {
         const grades = Object.values(this.school.grades);
         const average = grades.reduce((a, b) => a + b, 0) / grades.length;
-        this.school.gpa = (average / 25).toFixed(2); // Convert to 4.0 scale
+        this.school.gpa = (average / 25).toFixed(2);
+    },
+    
+    isBusy() {
+        if (!this.time.busyUntil) return false;
+        
+        const currentMinutes = this.time.hour * 60 + this.time.minute;
+        const busyMinutes = this.time.busyUntil.hour * 60 + this.time.busyUntil.minute;
+        
+        return currentMinutes < busyMinutes;
+    },
+    
+    setBusy(hours, activityName) {
+        const endHour = this.time.hour + hours;
+        const endMinute = this.time.minute;
+        
+        this.time.busyUntil = {
+            hour: endHour >= 24 ? endHour - 24 : endHour,
+            minute: endMinute,
+            day: endHour >= 24 ? this.time.day + 1 : this.time.day
+        };
+        
+        this.currentActivity = activityName;
+        UI.showNotification(`⏳ ${activityName} for ${hours} hour(s)...`, 'info', 3000);
+    },
+    
+    clearBusy() {
+        this.time.busyUntil = null;
+        if (this.currentActivity) {
+            UI.showNotification(`✅ Finished: ${this.currentActivity}`, 'success');
+            this.currentActivity = null;
+        }
     },
     
     advanceDay() {
@@ -228,16 +294,18 @@ const GameState = {
         // Reset daily tasks
         this.daily.completedToday = [];
         
+        // Reset social energy
+        this.entertainment.socialEnergy = 100;
+        
         // Check for birthday
         if (this.time.month === this.player.birthday.month && 
             this.time.date === this.player.birthday.day) {
             this.player.age++;
             console.log(`🎂 Happy Birthday! You're now ${this.player.age}!`);
             
-            // Turn 18 - major milestone
             if (this.player.age === 18) {
-                this.adult.groceries = 0; // Now must buy own groceries
-                console.log('🎉 You\'re an adult now! Time to manage everything yourself.');
+                this.adult.groceries = 0;
+                console.log('🎉 You\'re an adult now!');
             }
         }
         
@@ -246,9 +314,19 @@ const GameState = {
             this.time.date = 1;
             this.time.month++;
             
+            // Phone bill
+            if (this.phone.hasPhone && this.phone.monthlyBill > 0) {
+                this.adult.bills.push({
+                    name: 'Cell Phone',
+                    amount: this.phone.monthlyBill,
+                    dueDate: this.time.date + 15,
+                    paid: false
+                });
+            }
+            
             // Credit card interest
             if (this.money.creditCard && this.money.creditBalance > 0) {
-                this.money.creditBalance *= 1.02; // 2% monthly interest
+                this.money.creditBalance *= 1.02;
             }
             
             // Generate bills if have apartment
@@ -261,7 +339,6 @@ const GameState = {
                 this.time.month = 1;
                 this.time.year++;
                 
-                // Grade progression (September)
                 if (this.time.month === 9 && this.player.age < 18) {
                     this.player.grade++;
                     console.log(`📚 New school year! Now in grade ${this.player.grade}`);
@@ -306,7 +383,7 @@ const GameState = {
     isSchoolTime() {
         if (!this.isWeekday()) return false;
         const minutes = this.time.hour * 60 + this.time.minute;
-        return minutes >= 8 * 60 && minutes < 13 * 60 + 20; // 8:00 AM - 1:20 PM
+        return minutes >= 8 * 60 && minutes < 13 * 60 + 20;
     },
     
     getCurrentPeriod() {
@@ -335,7 +412,7 @@ const GameState = {
             });
             console.log(`🏆 Achievement unlocked: ${name}`);
             if (window.UI) {
-                UI.showNotification(`🏆 ${name}`, 'success');
+                UI.showAchievement({ name, description, icon });
             }
         }
     }
