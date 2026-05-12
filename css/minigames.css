@@ -1,0 +1,496 @@
+/* ==================== MINIGAME OVERLAY ==================== */
+.minigame-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.95);
+    z-index: 1500;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.minigame-overlay.active {
+    display: flex;
+}
+
+.minigame-container {
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 900px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+
+.minigame-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 3px solid #3498db;
+}
+
+.minigame-title {
+    font-size: 32px;
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.minigame-subtitle {
+    font-size: 16px;
+    color: #7f8c8d;
+}
+
+/* ==================== TUTORIAL STEPS ==================== */
+.tutorial-steps {
+    margin: 30px 0;
+}
+
+.tutorial-step {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 20px;
+    border-left: 5px solid #3498db;
+    transition: all 0.3s;
+}
+
+.tutorial-step.active {
+    background: #e8f5e9;
+    border-left-color: #27ae60;
+    box-shadow: 0 4px 12px rgba(39,174,96,0.2);
+}
+
+.tutorial-step.completed {
+    opacity: 0.6;
+    border-left-color: #95a5a6;
+}
+
+.step-number {
+    display: inline-block;
+    background: #3498db;
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 30px;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.tutorial-step.active .step-number {
+    background: #27ae60;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.tutorial-step.completed .step-number {
+    background: #95a5a6;
+}
+
+.step-instruction {
+    font-size: 18px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.step-tip {
+    font-size: 14px;
+    color: #7f8c8d;
+    font-style: italic;
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(52,152,219,0.1);
+    border-radius: 6px;
+}
+
+.step-safety {
+    font-size: 14px;
+    color: #e74c3c;
+    font-weight: bold;
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(231,76,60,0.1);
+    border-radius: 6px;
+}
+
+/* ==================== INTERACTIVE ELEMENTS ==================== */
+.interactive-area {
+    background: #ecf0f1;
+    border-radius: 12px;
+    padding: 30px;
+    margin: 20px 0;
+    min-height: 300px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+/* ==================== BED MAKING GAME ==================== */
+.bed-game {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    height: 400px;
+    background: linear-gradient(135deg, #d7ccc8, #bcaaa4);
+    border-radius: 15px;
+    border: 5px solid #5d4037;
+    overflow: hidden;
+}
+
+.bed-item {
+    position: absolute;
+    cursor: move;
+    transition: all 0.3s;
+    user-select: none;
+}
+
+.bed-item:hover {
+    transform: scale(1.05);
+    filter: brightness(1.1);
+}
+
+.bed-item.placed {
+    cursor: default;
+    animation: placeItem 0.3s;
+}
+
+@keyframes placeItem {
+    0% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.sheet {
+    width: 500px;
+    height: 300px;
+    background: linear-gradient(135deg, #64b5f6, #42a5f5);
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.blanket {
+    width: 500px;
+    height: 250px;
+    background: linear-gradient(135deg, #ef5350, #e53935);
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.pillow {
+    width: 150px;
+    height: 80px;
+    background: linear-gradient(135deg, #ffa726, #fb8c00);
+    border-radius: 40px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* ==================== DISH WASHING GAME ==================== */
+.dish-game {
+    width: 100%;
+    max-width: 700px;
+}
+
+.sink {
+    background: linear-gradient(135deg, #90a4ae, #78909c);
+    border-radius: 15px;
+    padding: 30px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    min-height: 300px;
+}
+
+.dish {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 48px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.dish.dirty {
+    background: linear-gradient(135deg, #6d4c41, #5d4037);
+}
+
+.dish.clean {
+    background: linear-gradient(135deg, #eceff1, #cfd8dc);
+    animation: sparkle 0.5s;
+}
+
+@keyframes sparkle {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    25% { transform: scale(1.1) rotate(-5deg); }
+    75% { transform: scale(1.1) rotate(5deg); }
+}
+
+.dish:hover:not(.clean) {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+
+/* ==================== VACUUM GAME ==================== */
+.vacuum-game {
+    width: 100%;
+    max-width: 700px;
+}
+
+.floor {
+    background: linear-gradient(135deg, #d4a574, #c4956d);
+    border-radius: 15px;
+    padding: 20px;
+    min-height: 400px;
+    position: relative;
+    overflow: hidden;
+    border: 5px solid #8b6f47;
+}
+
+.dirt-spot {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    background: radial-gradient(circle, #3e2723, #4e342e);
+    border-radius: 50%;
+    opacity: 0.8;
+    transition: opacity 0.3s;
+}
+
+.vacuum {
+    position: absolute;
+    width: 60px;
+    height: 80px;
+    background: linear-gradient(135deg, #e53935, #c62828);
+    border-radius: 10px;
+    cursor: move;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 36px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transition: transform 0.1s;
+}
+
+.vacuum:active {
+    transform: scale(0.95);
+}
+
+/* ==================== COOKING GAME ==================== */
+.cooking-game {
+    width: 100%;
+}
+
+.recipe-header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.recipe-header h2 {
+    font-size: 28px;
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.recipe-info {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    font-size: 14px;
+    color: #7f8c8d;
+}
+
+.ingredients-list {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 25px;
+}
+
+.ingredients-list h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.ingredients-list ul {
+    list-style: none;
+    padding: 0;
+}
+
+.ingredients-list li {
+    padding: 8px 0;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.ingredients-list li:last-child {
+    border-bottom: none;
+}
+
+.cooking-step {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.cooking-step.active {
+    border: 3px solid #27ae60;
+    background: #e8f5e9;
+}
+
+/* ==================== CHECK WRITING ==================== */
+.check-writing {
+    background: white;
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.check-template {
+    background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+    border: 2px solid #4caf50;
+    border-radius: 8px;
+    padding: 30px;
+    font-family: 'Courier New', monospace;
+}
+
+.check-field {
+    margin-bottom: 20px;
+}
+
+.check-field label {
+    display: block;
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+}
+
+.check-field input {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-bottom: 2px solid #333;
+    background: transparent;
+    font-size: 16px;
+    font-family: 'Courier New', monospace;
+}
+
+.check-signature {
+    border-bottom: 2px solid #333;
+    padding: 20px 0;
+    text-align: center;
+    font-style: italic;
+    color: #666;
+}
+
+/* ==================== PROGRESS INDICATOR ==================== */
+.minigame-progress {
+    margin: 30px 0;
+}
+
+.progress-text {
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+/* ==================== ACTION BUTTONS ==================== */
+.minigame-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+.btn-complete {
+    background: #27ae60;
+    color: white;
+    padding: 15px 40px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-complete:hover {
+    background: #229954;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(39,174,96,0.3);
+}
+
+.btn-complete:disabled {
+    background: #95a5a6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-skip {
+    background: #95a5a6;
+    color: white;
+    padding: 15px 40px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-skip:hover {
+    background: #7f8c8d;
+}
+
+/* ==================== MOBILE RESPONSIVENESS ==================== */
+@media (max-width: 768px) {
+    .minigame-container {
+        padding: 20px;
+    }
+    
+    .minigame-title {
+        font-size: 24px;
+    }
+    
+    .sink {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+    
+    .dish {
+        font-size: 36px;
+    }
+    
+    .bed-game {
+        height: 300px;
+    }
+    
+    .minigame-actions {
+        flex-direction: column;
+    }
+    
+    .btn-complete,
+    .btn-skip {
+        width: 100%;
+    }
+}
