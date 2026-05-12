@@ -28,14 +28,18 @@ window.addEventListener('DOMContentLoaded', function() {
         console.log('✅ GameState initialized');
         
         // Try to load saved game
+        // Try to load saved game
         const loaded = SaveLoad.loadGame();
         if (!loaded) {
             console.log('📝 No saved game, showing character creation...');
             showCharacterCreation();
+            // Start auto-save even for new games
+            SaveLoad.startAutoSave();
         } else {
             console.log('✅ Saved game loaded');
+            // Auto-save is started in loadGame()
         }
-        
+
         // Initialize 3D city
         City3D.init();
         console.log('✅ City3D initialized');
