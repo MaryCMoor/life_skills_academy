@@ -1,6 +1,6 @@
 // ==================== CHORE MINIGAMES ====================
 
-const ChoreMinigames = {
+window.ChoreMinigames = {
     currentChore: null,
     currentStep: 0,
     
@@ -126,10 +126,10 @@ const ChoreMinigames = {
                 </div>
                 
                 <div class="minigame-actions">
-                    <button class="btn-complete" id="nextStepBtn" onclick="ChoreMinigames.nextStep()">
+                    <button class="btn-complete" id="nextStepBtn" onclick="window.ChoreMinigames.nextStep()">
                         Next Step
                     </button>
-                    <button class="btn-skip" onclick="ChoreMinigames.skipTutorial()">
+                    <button class="btn-skip" onclick="window.ChoreMinigames.skipTutorial()">
                         Skip Tutorial
                     </button>
                 </div>
