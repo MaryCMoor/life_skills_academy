@@ -1,4 +1,4 @@
-// ==================== 3D CITY (ROBUST VERSION) ====================
+// ==================== 3D CITY (ULTRA-ROBUST VERSION) ====================
 
 const City3D = {
     scene: null,
@@ -9,142 +9,159 @@ const City3D = {
     initialized: false,
     
     init() {
-        console.log('Initializing 3D City...');
+        console.log('🏙️ City3D.init() called');
         
-        // Wait a tick for DOM to be fully ready
+        // Wait for DOM to be fully ready and styled
         setTimeout(() => {
-            this.initializeCity();
-        }, 100);
+            this.attemptInitialization();
+        }, 200);
     },
     
-    initializeCity() {
+    attemptInitialization() {
+        console.log('🔍 Attempting city initialization...');
+        
         const container = document.getElementById('cityContainer');
         
         if (!container) {
-            console.error('❌ cityContainer element not found!');
+            console.error('❌ cityContainer not found!');
             return;
         }
         
-        // Ensure container is visible and styled
+        // Force container to be visible and have dimensions
         container.style.display = 'block';
-        container.style.width = '100%';
-        container.style.height = '100vh';
-        container.style.marginTop = '60px'; // Account for fixed top bar
+        container.style.position = 'fixed';
+        container.style.top = '60px';
+        container.style.left = '0';
+        container.style.right = '0';
+        container.style.bottom = '0';
+        container.style.width = '100vw';
+        container.style.height = 'calc(100vh - 60px)';
+        container.style.overflow = 'hidden';
         
-        // Force layout recalculation
-        container.offsetHeight;
+        // Force reflow
+        void container.offsetHeight;
         
-        // Get actual dimensions
-        const width = container.clientWidth;
-        const height = container.clientHeight;
-        
-        console.log(`📐 Container dimensions: ${width}x${height}`);
+        // Get dimensions with multiple fallbacks
+        let width = container.clientWidth;
+        let height = container.clientHeight;
         
         if (width === 0 || height === 0) {
-            console.error('❌ Container has zero dimensions!');
-            // Fallback to window size
-            const fallbackWidth = window.innerWidth;
-            const fallbackHeight = window.innerHeight - 60;
-            console.log(`Using fallback: ${fallbackWidth}x${fallbackHeight}`);
-            this.createScene(container, fallbackWidth, fallbackHeight);
-        } else {
-            this.createScene(container, width, height);
+            console.warn('⚠️ Container has zero dimensions, using window size');
+            width = window.innerWidth;
+            height = window.innerHeight - 60;
+        }
+        
+        if (width === 0 || height === 0) {
+            console.warn('⚠️ Window also has zero dimensions, using defaults');
+            width = 1920;
+            height = 1080;
+        }
+        
+        console.log(`📐 Using dimensions: ${width}x${height}`);
+        
+        try {
+            this.createCity(container, width, height);
+        } catch (error) {
+            console.error('❌ City creation failed:', error);
+            this.showFallbackMessage(container, error);
         }
     },
     
-    createScene(container, width, height) {
-        try {
-            // Create scene
-            this.scene = new THREE.Scene();
-            this.scene.background = new THREE.Color(0x87ceeb); // Sky blue
-            
-            // Create camera
-            this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-            this.camera.position.set(0, 15, 25);
-            this.camera.lookAt(0, 0, 0);
-            
-            // Create renderer with error handling
-            this.renderer = new THREE.WebGLRenderer({ antialias: true });
-            this.renderer.setSize(width, height);
-            container.innerHTML = ''; // Clear any existing content
-            container.appendChild(this.renderer.domElement);
-            
-            // Add lighting
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-            this.scene.add(ambientLight);
-            
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(10, 20, 10);
-            this.scene.add(directionalLight);
-            
-            // Add ground
-            const groundGeometry = new THREE.PlaneGeometry(100, 100);
-            const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x228b22 });
-            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-            ground.rotation.x = -Math.PI / 2;
-            ground.position.y = -0.5;
-            this.scene.add(ground);
-            
-            // Create buildings
-            this.createBuildings();
-            
-            // Setup event listeners
-            window.addEventListener('resize', () => this.onWindowResize());
-            this.renderer.domElement.addEventListener('click', (e) => this.onBuildingClick(e));
-            
-            // Start animation
-            this.animate();
-            
-            this.initialized = true;
-            console.log('✅ 3D City initialized successfully');
-            
-        } catch (error) {
-            console.error('❌ Failed to initialize 3D city:', error);
-            container.innerHTML = `
-                <div style="padding: 50px; text-align: center; background: white; margin: 60px 20px; border-radius: 10px;">
-                    <h2 style="color: #e74c3c;">3D Graphics Error</h2>
-                    <p>Your browser may not support WebGL.</p>
-                    <p style="color: #7f8c8d; font-size: 0.9em;">Error: ${error.message}</p>
-                </div>
-            `;
-        }
+    createCity(container, width, height) {
+        console.log('🏗️ Creating 3D city...');
+        
+        // Create scene
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0x87ceeb);
+        
+        // Create camera
+        this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+        this.camera.position.set(0, 15, 25);
+        this.camera.lookAt(0, 0, 0);
+        
+        // Create renderer with explicit dimensions
+        console.log('🎨 Creating WebGL renderer...');
+        this.renderer = new THREE.WebGLRenderer({ 
+            antialias: true,
+            alpha: false
+        });
+        
+        // Set size BEFORE appending to DOM
+        this.renderer.setSize(width, height, false);
+        this.renderer.setPixelRatio(window.devicePixelRatio || 1);
+        
+        // Clear container and append canvas
+        container.innerHTML = '';
+        container.appendChild(this.renderer.domElement);
+        
+        console.log('✅ Renderer created and attached');
+        
+        // Add lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        this.scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 20, 10);
+        this.scene.add(directionalLight);
+        
+        // Add ground
+        const groundGeometry = new THREE.PlaneGeometry(100, 100);
+        const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x228b22 });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -0.5;
+        this.scene.add(ground);
+        
+        // Create buildings
+        this.createBuildings();
+        
+        // Setup events
+        window.addEventListener('resize', () => this.handleResize());
+        this.renderer.domElement.addEventListener('click', (e) => this.handleClick(e));
+        this.renderer.domElement.style.cursor = 'pointer';
+        
+        // Start animation
+        this.initialized = true;
+        this.animate();
+        
+        console.log('✅ 3D City fully initialized!');
     },
     
     createBuildings() {
-        const buildingData = [
-            { name: 'Home', x: 0, z: -10, color: 0xffa500, icon: '🏠' },
-            { name: 'School', x: -8, z: -10, color: 0x4169e1, icon: '🏫' },
-            { name: 'Store', x: 8, z: -10, color: 0x32cd32, icon: '🏪' },
-            { name: 'Bank', x: -8, z: 0, color: 0xffd700, icon: '🏦' },
-            { name: 'Job Center', x: 8, z: 0, color: 0x9370db, icon: '💼' },
-            { name: 'Post Office', x: -8, z: 10, color: 0xff6347, icon: '📮' },
-            { name: 'Apartments', x: 8, z: 10, color: 0x8b4513, icon: '🏢' },
-            { name: 'College', x: 0, z: 10, color: 0x000080, icon: '🎓' },
-            { name: 'Entertainment', x: -12, z: 0, color: 0xff1493, icon: '🎮' },
-            { name: 'Phone Store', x: 12, z: 0, color: 0x00ced1, icon: '📱' }
+        const buildings = [
+            { name: 'Home', x: 0, z: -10, color: 0xffa500 },
+            { name: 'School', x: -8, z: -10, color: 0x4169e1 },
+            { name: 'Store', x: 8, z: -10, color: 0x32cd32 },
+            { name: 'Bank', x: -8, z: 0, color: 0xffd700 },
+            { name: 'Job Center', x: 8, z: 0, color: 0x9370db },
+            { name: 'Post Office', x: -8, z: 10, color: 0xff6347 },
+            { name: 'Apartments', x: 8, z: 10, color: 0x8b4513 },
+            { name: 'College', x: 0, z: 10, color: 0x000080 },
+            { name: 'Entertainment', x: -12, z: 0, color: 0xff1493 },
+            { name: 'Phone Store', x: 12, z: 0, color: 0x00ced1 }
         ];
         
-        buildingData.forEach((data) => {
+        buildings.forEach((data) => {
             const geometry = new THREE.BoxGeometry(4, 6, 4);
             const material = new THREE.MeshLambertMaterial({ color: data.color });
             const building = new THREE.Mesh(geometry, material);
             
             building.position.set(data.x, 3, data.z);
-            building.userData = { name: data.name, icon: data.icon };
+            building.userData = { name: data.name };
             building.originalY = 3;
             
             this.scene.add(building);
             this.buildings.push(building);
         });
         
-        console.log(`🏙️ Created ${this.buildings.length} buildings`);
+        console.log(`🏢 Created ${this.buildings.length} buildings`);
     },
     
-    onBuildingClick(event) {
-        if (!this.initialized || !this.camera || !this.renderer) return;
+    handleClick(event) {
+        if (!this.initialized) return;
         
         if (GameState.isBusy()) {
-            UI.showNotification(`⏳ Busy: ${GameState.currentActivity}`, 'warning');
+            UI.showNotification(`⏳ ${GameState.currentActivity}`, 'warning');
             return;
         }
         
@@ -153,23 +170,22 @@ const City3D = {
         const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
         
         const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera(new THREE.Vector2(x, y), this.camera);
+        raycaster.setFromCamera({ x, y }, this.camera);
         
         const intersects = raycaster.intersectObjects(this.buildings);
         
         if (intersects.length > 0) {
-            const building = intersects[0].object;
-            this.enterBuilding(building.userData.name);
+            const name = intersects[0].object.userData.name;
+            console.log(`🎯 Clicked: ${name}`);
+            this.enterLocation(name);
         }
     },
     
-    enterBuilding(name) {
-        console.log(`🏢 Entering: ${name}`);
-        
+    enterLocation(name) {
         document.getElementById('cityContainer').style.display = 'none';
         document.getElementById('locationScreen').style.display = 'block';
         
-        const locationMap = {
+        const locations = {
             'Home': loadHome,
             'School': loadSchool,
             'Store': loadStore,
@@ -182,8 +198,8 @@ const City3D = {
             'Phone Store': loadPhoneStore
         };
         
-        if (locationMap[name] && typeof locationMap[name] === 'function') {
-            locationMap[name]();
+        if (locations[name]) {
+            locations[name]();
         } else {
             document.getElementById('locationTitle').textContent = name;
             document.getElementById('locationContent').innerHTML = '<p>Coming soon!</p>';
@@ -202,26 +218,62 @@ const City3D = {
         this.camera.position.z = Math.cos(time) * 30;
         this.camera.lookAt(0, 0, 0);
         
-        // Animate buildings
-        this.buildings.forEach((building, i) => {
-            building.position.y = building.originalY + Math.sin(time + i) * 0.2;
+        // Bob buildings
+        this.buildings.forEach((b, i) => {
+            b.position.y = b.originalY + Math.sin(time + i) * 0.2;
         });
         
         this.renderer.render(this.scene, this.camera);
     },
     
-    onWindowResize() {
+    handleResize() {
         if (!this.initialized) return;
         
         const container = document.getElementById('cityContainer');
         if (!container) return;
         
         const width = container.clientWidth || window.innerWidth;
-        const height = container.clientHeight || (window.innerHeight - 60);
+        const height = container.clientHeight || window.innerHeight - 60;
         
         this.camera.aspect = width / height;
         this.camera.updateProjectionMatrix();
-        this.renderer.setSize(width, height);
+        this.renderer.setSize(width, height, false);
+    },
+    
+    showFallbackMessage(container, error) {
+        container.innerHTML = `
+            <div style="
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: white;
+                padding: 40px;
+                border-radius: 15px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                text-align: center;
+                max-width: 500px;
+            ">
+                <h2 style="color: #e74c3c; margin-top: 0;">⚠️ 3D View Unavailable</h2>
+                <p style="color: #2c3e50; line-height: 1.6;">
+                    Your browser doesn't support WebGL, or it's been disabled.
+                </p>
+                <p style="color: #7f8c8d; font-size: 0.9em;">
+                    Error: ${error.message}
+                </p>
+                <div style="margin-top: 30px;">
+                    <button onclick="location.reload()" style="
+                        padding: 12px 30px;
+                        background: #3498db;
+                        color: white;
+                        border: none;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        font-size: 1.1em;
+                    ">🔄 Try Again</button>
+                </div>
+            </div>
+        `;
     }
 };
 
