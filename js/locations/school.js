@@ -8,7 +8,7 @@ function loadSchool() {
             <div class="tab active" onclick="showSchoolTab('classes')">Classes</div>
             <div class="tab" onclick="showSchoolTab('homework')">Homework</div>
             <div class="tab" onclick="showSchoolTab('grades')">Grades</div>
-            <div class="tab" onclick="showSchoolTab('extracurricular')">Extracurricular</div>
+            <div class="tab" onclick="showSchoolTab('extracurricular')">Activities</div>
         </div>
         
         <div id="school-classes" class="tab-content active">
@@ -66,7 +66,6 @@ function renderClasses() {
     html += '<table class="schedule-table"><thead><tr><th>Time</th><th>Subject</th><th>Teacher</th><th>Status</th></tr></thead><tbody>';
     
     schedule.forEach(period => {
-        const isPast = isSchoolTime && currentPeriod && schedule.indexOf(period) < schedule.findIndex(p => p.subject === currentPeriod.name);
         const isCurrent = currentPeriod && period.subject === currentPeriod.name;
         const attended = GameState.school.attendance[period.subject];
         
@@ -76,16 +75,16 @@ function renderClasses() {
         if (isCurrent) {
             rowClass = 'current';
             status = attended ? '✅ Present' : '📍 In Progress';
-        } else if (isPast) {
+        } else if (isSchoolTime && schedule.indexOf(period) < schedule.findIndex(p => currentPeriod && p.subject === currentPeriod.name)) {
             rowClass = 'past';
             status = attended ? '✅ Attended' : '❌ Missed';
         }
         
         html += `
             <tr class="${rowClass}">
-                <td>${period.time}</td>
-                <td><strong>${period.subject}</strong></td>
-                <td>${period.teacher}</td>
+                <td>${Utils.escapeHtml(period.time)}</td>
+                <td><strong>${Utils.escapeHtml(period.subject)}</strong></td>
+                <td>${Utils.escapeHtml(period.teacher)}</td>
                 <td>${status}</td>
             </tr>
         `;
@@ -93,18 +92,18 @@ function renderClasses() {
     
     html += '</tbody></table>';
     
-    // Attendance button
-    if (isSchoolTime && currentPeriod && !GameState.school.attendance[currentPeriod.name]) {
+    // Attend button
+    if (isSchoolTime && currentPeriod && currentPeriod.name !== 'Lunch' && !GameState.school.attendance[currentPeriod.name]) {
         html += `
             <div class="mt-20 text-center">
                 <button class="btn btn-primary btn-large" onclick="attendClass()">
-                    📝 Attend ${currentPeriod.name} Class
+                    📝 Attend ${Utils.escapeHtml(currentPeriod.name)} Class
                 </button>
             </div>
         `;
     }
     
-    // Attendance record
+    // Attendance stats
     html += `
         <div class="mt-20">
             <div class="stats-display">
@@ -132,64 +131,75 @@ function renderClasses() {
 
 function attendClass() {
     const currentPeriod = GameState.getCurrentPeriod();
+    
     if (!currentPeriod || currentPeriod.name === 'Lunch') {
         UI.showNotification('⚠️ No class in session right now!', 'warning');
         return;
     }
     
+    if (GameState.school.attendance[currentPeriod.name]) {
+        UI.showNotification('✅ You already attended this class!', 'info');
+        return;
+    }
+    
     GameState.school.attendance[currentPeriod.name] = true;
-    UI.showNotification(`✅ Attended ${currentPeriod.name} class!`, 'success');
+    UI.showNotification(`✅ Attended ${currentPeriod.name}!`, 'success');
     
     // Small grade boost
-    if (GameState.school.grades[currentPeriod.name]) {
+    if (GameState.school.grades[currentPeriod.name] !== undefined) {
         GameState.school.grades[currentPeriod.name] = Math.min(100, GameState.school.grades[currentPeriod.name] + 1);
         GameState.calculateGPA();
     }
     
     loadSchool();
+    UI.updateStats();
 }
 
 function renderHomework() {
-    const homework = GameState.school.homework;
+    const homework = GameState.school.homework || [];
     
     let html = '<h3>📝 Homework Assignments</h3>';
     
     if (homework.length === 0 || homework.every(h => h.done)) {
         html += '<div class="alert alert-success">✅ All homework completed!</div>';
-        return html;
+    } else {
+        html += '<div class="checklist">';
+        
+        homework.forEach((hw, index) => {
+            if (!hw.done) {
+                html += `
+                    <div class="checklist-item">
+                        <div class="checklist-icon">📄</div>
+                        <div class="checklist-text">
+                            <strong>${Utils.escapeHtml(hw.subject)} - ${Utils.escapeHtml(hw.description)}</strong>
+                            <div class="desc">Time: ${hw.time} minutes</div>
+                            <div class="desc">Complete to improve your grade!</div>
+                        </div>
+                        <button class="btn btn-success" onclick="doHomework(${index})">Complete</button>
+                    </div>
+                `;
+            }
+        });
+        
+        html += '</div>';
     }
     
-    html += '<div class="checklist">';
-    
-    homework.forEach((hw, index) => {
-        html += `
-            <div class="checklist-item ${hw.done ? 'completed' : ''}">
-                <div class="checklist-icon">${hw.done ? '✅' : '📄'}</div>
-                <div class="checklist-text">
-                    <strong>${hw.subject} - ${hw.description}</strong>
-                    <div class="desc">Estimated time: ${hw.time} minutes</div>
-                    ${!hw.done ? '<div class="desc">Complete to improve your grade!</div>' : ''}
-                </div>
-                ${!hw.done ? `<button class="btn btn-success" onclick="doHomework(${index})">Complete</button>` : ''}
-            </div>
-        `;
-    });
-    
-    html += '</div>';
     return html;
 }
 
 function doHomework(index) {
     const hw = GameState.school.homework[index];
-    if (!hw || hw.done) return;
     
-    // Mark as done
+    if (!hw || hw.done) {
+        UI.showNotification('❌ Homework not available!', 'error');
+        return;
+    }
+    
     hw.done = true;
     GameState.completeHomework(hw.subject);
     
     UI.showNotification(`✅ ${hw.subject} homework completed! Grade improved!`, 'success');
     
-    // Achievement check
     if (GameState.stats.homeworkCompleted === 20) {
         GameState.addAchievement('Dedicated Student', 'Complete 20 homework assignments', '📚');
     }
@@ -221,7 +231,7 @@ function renderGrades() {
         
         html += `
             <tr>
-                <td><strong>${subject}</strong></td>
+                <td><strong>${Utils.escapeHtml(subject)}</strong></td>
                 <td>${grade}%</td>
                 <td>${letter}</td>
                 <td>
@@ -241,8 +251,8 @@ function renderGrades() {
             <ul>
                 <li>Attend all classes on time</li>
                 <li>Complete homework assignments daily</li>
-                <li>Join study groups (extracurriculars)</li>
-                <li>Ask teachers for help</li>
+                <li>Join study groups (activities)</li>
+                <li>Stay organized and manage your time</li>
             </ul>
         </div>
     `;
@@ -260,15 +270,15 @@ function getLetterGrade(percent) {
 
 function renderExtracurricular() {
     const activities = [
-        { id: 'chess', name: '♟️ Chess Club', time: 'Wed 3-5pm', benefit: '+5 Math skill' },
-        { id: 'debate', name: '🗣️ Debate Team', time: 'Thu 3-5pm', benefit: '+5 English skill' },
-        { id: 'science', name: '🔬 Science Club', time: 'Tue 3-5pm', benefit: '+5 Science skill' },
-        { id: 'sports', name: '⚽ Sports Team', time: 'Mon/Fri 3-5pm', benefit: '+5 PE grade' },
+        { id: 'chess', name: '♟️ Chess Club', time: 'Wed 3-5pm', benefit: '+Math skill' },
+        { id: 'debate', name: '🗣️ Debate Team', time: 'Thu 3-5pm', benefit: '+English skill' },
+        { id: 'science', name: '🔬 Science Club', time: 'Tue 3-5pm', benefit: '+Science skill' },
+        { id: 'sports', name: '⚽ Sports Team', time: 'Mon/Fri 3-5pm', benefit: '+PE grade' },
         { id: 'band', name: '🎵 Band', time: 'Daily 2-3pm', benefit: '+Time Management' }
     ];
     
     let html = '<h3>🎯 Extracurricular Activities</h3>';
-    html += '<p>Join clubs and activities to improve your skills and boost your college applications!</p>';
+    html += '<p>Join clubs to improve skills and boost college applications!</p>';
     
     html += '<div class="content-grid">';
     
@@ -277,13 +287,13 @@ function renderExtracurricular() {
         
         html += `
             <div class="card">
-                <div class="card-title">${activity.name}</div>
+                <div class="card-title">${Utils.escapeHtml(activity.name)}</div>
                 <div class="card-content">
-                    <p><strong>Schedule:</strong> ${activity.time}</p>
-                    <p><strong>Benefit:</strong> ${activity.benefit}</p>
+                    <p><strong>Schedule:</strong> ${Utils.escapeHtml(activity.time)}</p>
+                    <p><strong>Benefit:</strong> ${Utils.escapeHtml(activity.benefit)}</p>
                     ${joined ? 
-                        '<button class="btn btn-danger" onclick="leaveActivity(\'' + activity.id + '\')">Leave</button>' :
-                        '<button class="btn btn-success" onclick="joinActivity(\'' + activity.id + '\')">Join</button>'
+                        `<button class="btn btn-danger" onclick="leaveActivity('${activity.id}')">Leave</button>` :
+                        `<button class="btn btn-success" onclick="joinActivity('${activity.id}')">Join</button>`
                     }
                 </div>
             </div>
@@ -312,3 +322,5 @@ function leaveActivity(activityId) {
         loadSchool();
     }
 }
+
+console.log('✅ school.js loaded');
