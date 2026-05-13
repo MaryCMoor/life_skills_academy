@@ -11,8 +11,7 @@ window.ChoreMinigames = {
             'bed': () => this.bedGame(),
             'dishes': () => this.dishesGame(),
             'vacuum': () => this.vacuumGame(),
-            'trash': () => this.trashGame(),
-            'mow': () => this.mowGame()
+            'trash': () => this.trashGame()
         };
         
         if (games[choreId]) {
@@ -25,16 +24,14 @@ window.ChoreMinigames = {
     // ==================== BED MAKING GAME ====================
     bedGame() {
         const overlay = document.createElement('div');
-        overlay.className = 'modal-overlay';
+        overlay.className = 'minigame-overlay active';
         overlay.id = 'bedGame';
-        overlay.style.display = 'flex';
-        overlay.style.zIndex = '2000';
         
         let html = `
-            <div class="modal-content" style="max-width: 900px;">
-                <div style="text-align: center; padding-bottom: 20px; border-bottom: 3px solid #3498db;">
-                    <h2 style="margin: 0; font-size: 32px;">🛏️ Make the Bed</h2>
-                    <p style="color: #7f8c8d; margin: 10px 0 0 0;">Drag items onto the bed in the correct order</p>
+            <div class="minigame-container">
+                <div class="minigame-header">
+                    <div class="minigame-title">🛏️ Make the Bed</div>
+                    <div class="minigame-subtitle">Drag items onto the bed in the correct order</div>
                 </div>
                 
                 <div style="margin: 30px 0;">
@@ -48,7 +45,6 @@ window.ChoreMinigames = {
                         margin: 0 auto 30px;
                         overflow: hidden;
                     ">
-                        <!-- Bed frame (mattress) -->
                         <div style="
                             position: absolute;
                             bottom: 20px;
@@ -124,13 +120,20 @@ window.ChoreMinigames = {
                         Items Placed: <span id="bedProgress">0</span> / 3
                     </div>
                 </div>
+                
+                <div class="minigame-actions">
+                    <button class="btn-skip" onclick="ChoreMinigames.close()">Skip</button>
+                </div>
             </div>
         `;
         
         overlay.innerHTML = html;
         document.body.appendChild(overlay);
         
-        // Drag and drop logic
+        this.setupBedDragDrop();
+    },
+    
+    setupBedDragDrop() {
         let placedItems = [];
         const correctOrder = ['sheet', 'blanket', 'pillow'];
         
@@ -156,7 +159,7 @@ window.ChoreMinigames = {
                 return;
             }
             
-            if (placedItems.length > 0 && correctOrder.indexOf(itemName) !== placedItems.length) {
+            if (correctOrder.indexOf(itemName) !== placedItems.length) {
                 UI.showNotification('❌ Wrong order! Check the sequence.', 'error');
                 return;
             }
@@ -164,20 +167,22 @@ window.ChoreMinigames = {
             placedItems.push(itemName);
             document.getElementById('bedProgress').textContent = placedItems.length;
             
-            // Hide the dragged item
             document.querySelector(`[data-item="${itemName}"]`).style.display = 'none';
             
-            // Show item on bed
             const itemDiv = document.createElement('div');
+            const backgrounds = {
+                sheet: 'linear-gradient(135deg, #64b5f6, #42a5f5)',
+                blanket: 'linear-gradient(135deg, #ef5350, #e53935)',
+                pillow: 'linear-gradient(135deg, #ffa726, #fb8c00)'
+            };
+            
             itemDiv.style.cssText = `
                 position: absolute;
                 bottom: ${20 + placedItems.length * 30}px;
                 left: 50px;
                 right: 50px;
-                height: ${placedItems.length === 3 ? '60px' : '50px'};
-                background: ${itemName === 'sheet' ? 'linear-gradient(135deg, #64b5f6, #42a5f5)' : 
-                            itemName === 'blanket' ? 'linear-gradient(135deg, #ef5350, #e53935)' : 
-                            'linear-gradient(135deg, #ffa726, #fb8c00)'};
+                height: ${itemName === 'pillow' ? '60px' : '50px'};
+                background: ${backgrounds[itemName]};
                 border-radius: ${itemName === 'pillow' ? '30px' : '10px'};
                 box-shadow: 0 4px 8px rgba(0,0,0,0.3);
                 animation: placeItem 0.3s;
@@ -203,19 +208,16 @@ window.ChoreMinigames = {
     // ==================== DISHES WASHING GAME ====================
     dishesGame() {
         const overlay = document.createElement('div');
-        overlay.className = 'modal-overlay';
+        overlay.className = 'minigame-overlay active';
         overlay.id = 'dishesGame';
-        overlay.style.display = 'flex';
-        overlay.style.zIndex = '2000';
         
         const totalDishes = 8;
-        let cleanedDishes = 0;
         
         let html = `
-            <div class="modal-content" style="max-width: 900px;">
-                <div style="text-align: center; padding-bottom: 20px; border-bottom: 3px solid #3498db;">
-                    <h2 style="margin: 0; font-size: 32px;">🍽️ Wash the Dishes</h2>
-                    <p style="color: #7f8c8d; margin: 10px 0 0 0;">Click each dirty dish repeatedly to scrub it clean!</p>
+            <div class="minigame-container">
+                <div class="minigame-header">
+                    <div class="minigame-title">🍽️ Wash the Dishes</div>
+                    <div class="minigame-subtitle">Click each dirty dish 5 times to scrub it clean!</div>
                 </div>
                 
                 <div style="margin: 30px 0;">
@@ -265,13 +267,17 @@ window.ChoreMinigames = {
                         <div class="progress-fill" style="width: 0%; transition: width 0.3s;">0%</div>
                     </div>
                 </div>
+                
+                <div class="minigame-actions">
+                    <button class="btn-skip" onclick="ChoreMinigames.close()">Skip</button>
+                </div>
             </div>
         `;
         
         overlay.innerHTML = html;
         document.body.appendChild(overlay);
         
-        this.dishData = { cleanedDishes, totalDishes };
+        this.dishData = { cleanedDishes: 0, totalDishes };
     },
     
     scrubDish(dishId) {
@@ -285,15 +291,12 @@ window.ChoreMinigames = {
         const dirtLayer = dish.querySelector('.dirt-layer');
         
         if (clicks < 5) {
-            // Still dirty, reduce opacity
             dirtLayer.style.opacity = 1 - (clicks * 0.2);
             dish.style.transform = 'scale(1.1)';
             setTimeout(() => dish.style.transform = 'scale(1)', 100);
         } else {
-            // Clean!
             dish.style.background = 'linear-gradient(135deg, #eceff1, #cfd8dc)';
             dish.style.pointerEvents = 'none';
-            dish.style.animation = 'sparkle 0.5s';
             dirtLayer.remove();
             
             this.dishData.cleanedDishes++;
@@ -322,19 +325,16 @@ window.ChoreMinigames = {
     // ==================== VACUUM GAME ====================
     vacuumGame() {
         const overlay = document.createElement('div');
-        overlay.className = 'modal-overlay';
+        overlay.className = 'minigame-overlay active';
         overlay.id = 'vacuumGame';
-        overlay.style.display = 'flex';
-        overlay.style.zIndex = '2000';
         
         const totalDirt = 15;
-        let cleanedDirt = 0;
         
         let html = `
-            <div class="modal-content" style="max-width: 900px;">
-                <div style="text-align: center; padding-bottom: 20px; border-bottom: 3px solid #3498db;">
-                    <h2 style="margin: 0; font-size: 32px;">🧹 Vacuum the Floor</h2>
-                    <p style="color: #7f8c8d; margin: 10px 0 0 0;">Use arrow keys or WASD to move the vacuum!</p>
+            <div class="minigame-container">
+                <div class="minigame-header">
+                    <div class="minigame-title">🧹 Vacuum the Floor</div>
+                    <div class="minigame-subtitle">Use arrow keys or WASD to move the vacuum!</div>
                 </div>
                 
                 <div style="margin: 30px 0;">
@@ -348,8 +348,6 @@ window.ChoreMinigames = {
                         margin: 0 auto;
                         overflow: hidden;
                     ">
-                        <!-- Dirt spots will be added via JS -->
-                        <!-- Vacuum will be added via JS -->
                     </div>
                 </div>
                 
@@ -361,16 +359,24 @@ window.ChoreMinigames = {
                         <div class="progress-fill" style="width: 0%; transition: width 0.3s;">0%</div>
                     </div>
                 </div>
+                
+                <div class="minigame-actions">
+                    <button class="btn-skip" onclick="ChoreMinigames.close()">Skip</button>
+                </div>
             </div>
         `;
         
         overlay.innerHTML = html;
         document.body.appendChild(overlay);
         
+        this.setupVacuumGame(totalDirt);
+    },
+    
+    setupVacuumGame(totalDirt) {
         const floorArea = document.getElementById('floorArea');
+        const dirtSpots = [];
         
         // Create dirt spots
-        const dirtSpots = [];
         for (let i = 0; i < totalDirt; i++) {
             const dirt = document.createElement('div');
             dirt.className = 'dirt-spot';
@@ -384,6 +390,7 @@ window.ChoreMinigames = {
                 opacity: 0.8;
                 left: ${Math.random() * 640 + 20}px;
                 top: ${Math.random() * 440 + 20}px;
+                transition: opacity 0.3s, transform 0.3s;
             `;
             floorArea.appendChild(dirt);
             dirtSpots.push({ element: dirt, cleaned: false });
@@ -410,14 +417,16 @@ window.ChoreMinigames = {
         vacuum.textContent = '🧹';
         floorArea.appendChild(vacuum);
         
-        // Movement controls
         let x = 320, y = 210;
         const speed = 15;
         
-        this.vacuumData = { cleanedDirt, totalDirt, dirtSpots };
+        this.vacuumData = { cleanedDirt: 0, totalDirt, dirtSpots };
         
-        document.addEventListener('keydown', (e) => {
-            if (!document.getElementById('vacuumGame')) return;
+        const handleKeyDown = (e) => {
+            if (!document.getElementById('vacuumGame')) {
+                document.removeEventListener('keydown', handleKeyDown);
+                return;
+            }
             
             const key = e.key.toLowerCase();
             if (['arrowup', 'w'].includes(key)) y = Math.max(0, y - speed);
@@ -429,11 +438,13 @@ window.ChoreMinigames = {
             vacuum.style.top = y + 'px';
             
             this.checkVacuumCollision(x, y);
-        });
+        };
+        
+        document.addEventListener('keydown', handleKeyDown);
     },
     
     checkVacuumCollision(vacX, vacY) {
-        this.vacuumData.dirtSpots.forEach((spot, index) => {
+        this.vacuumData.dirtSpots.forEach((spot) => {
             if (spot.cleaned) return;
             
             const dirtRect = spot.element.getBoundingClientRect();
@@ -473,154 +484,6 @@ window.ChoreMinigames = {
         this.completeChore('vacuum');
     },
     
-    // ==================== MOW LAWN GAME ====================
-    mowGame() {
-        const overlay = document.createElement('div');
-        overlay.className = 'modal-overlay';
-        overlay.id = 'mowGame';
-        overlay.style.display = 'flex';
-        overlay.style.zIndex = '2000';
-        
-        const gridSize = 10;
-        let mowedSquares = 0;
-        const totalSquares = gridSize * gridSize;
-        
-        let html = `
-            <div class="modal-content" style="max-width: 900px;">
-                <div style="text-align: center; padding-bottom: 20px; border-bottom: 3px solid #3498db;">
-                    <h2 style="margin: 0; font-size: 32px;">🚜 Mow the Lawn</h2>
-                    <p style="color: #7f8c8d; margin: 10px 0 0 0;">Use arrow keys or WASD to drive! Mow all grass squares.</p>
-                </div>
-                
-                <div style="margin: 30px 0;">
-                    <div id="lawnArea" style="
-                        position: relative;
-                        width: 600px;
-                        height: 600px;
-                        background: #2d5016;
-                        border-radius: 15px;
-                        border: 5px solid #1a2f0b;
-                        margin: 0 auto;
-                        display: grid;
-                        grid-template-columns: repeat(${gridSize}, 1fr);
-                        grid-template-rows: repeat(${gridSize}, 1fr);
-                        gap: 2px;
-                        padding: 2px;
-                    ">
-                        ${Array(totalSquares).fill(0).map((_, i) => `
-                            <div class="grass-square" data-square="${i}" style="
-                                background: #4caf50;
-                                transition: background 0.3s;
-                            "></div>
-                        `).join('')}
-                        
-                        <div id="mower" style="
-                            position: absolute;
-                            width: 58px;
-                            height: 58px;
-                            background: linear-gradient(135deg, #ff5722, #d84315);
-                            border-radius: 8px;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            font-size: 32px;
-                            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-                            left: 2px;
-                            top: 2px;
-                            transition: all 0.2s;
-                            z-index: 10;
-                        ">🚜</div>
-                    </div>
-                </div>
-                
-                <div style="text-align: center; margin: 20px 0;">
-                    <div style="font-size: 18px; font-weight: bold;">
-                        Lawn Mowed: <span id="mowProgress">0</span> / ${totalSquares}
-                    </div>
-                    <div class="progress-bar" style="height: 30px; margin-top: 10px;">
-                        <div class="progress-fill" style="width: 0%; transition: width 0.3s;">0%</div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        overlay.innerHTML = html;
-        document.body.appendChild(overlay);
-        
-        const mower = document.getElementById('mower');
-        const squareSize = 60;
-        let gridX = 0, gridY = 0;
-        
-        const mowedGrid = Array(gridSize).fill(0).map(() => Array(gridSize).fill(false));
-        
-        this.mowData = { mowedSquares, totalSquares, mowedGrid, gridSize };
-        
-        // Mow initial square
-        this.mowSquare(0, 0);
-        
-        document.addEventListener('keydown', (e) => {
-            if (!document.getElementById('mowGame')) return;
-            
-            const key = e.key.toLowerCase();
-            let moved = false;
-            
-            if (['arrowup', 'w'].includes(key) && gridY > 0) {
-                gridY--;
-                moved = true;
-            }
-            if (['arrowdown', 's'].includes(key) && gridY < gridSize - 1) {
-                gridY++;
-                moved = true;
-            }
-            if (['arrowleft', 'a'].includes(key) && gridX > 0) {
-                gridX--;
-                moved = true;
-            }
-            if (['arrowright', 'd'].includes(key) && gridX < gridSize - 1) {
-                gridX++;
-                moved = true;
-            }
-            
-            if (moved) {
-                mower.style.left = (gridX * squareSize + 2) + 'px';
-                mower.style.top = (gridY * squareSize + 2) + 'px';
-                this.mowSquare(gridX, gridY);
-            }
-        });
-    },
-    
-    mowSquare(x, y) {
-        if (this.mowData.mowedGrid[y][x]) return; // Already mowed
-        
-        this.mowData.mowedGrid[y][x] = true;
-        this.mowData.mowedSquares++;
-        
-        const index = y * this.mowData.gridSize + x;
-        const square = document.querySelector(`[data-square="${index}"]`);
-        if (square) {
-            square.style.background = '#8bc34a';
-            square.style.opacity = '0.6';
-        }
-        
-        document.getElementById('mowProgress').textContent = this.mowData.mowedSquares;
-        
-        const percent = (this.mowData.mowedSquares / this.mowData.totalSquares) * 100;
-        const progressFill = document.querySelector('.progress-fill');
-        progressFill.style.width = percent + '%';
-        progressFill.textContent = Math.round(percent) + '%';
-        
-        if (this.mowData.mowedSquares === this.mowData.totalSquares) {
-            setTimeout(() => {
-                this.completeMowGame();
-            }, 500);
-        }
-    },
-    
-    completeMowGame() {
-        UI.showNotification('✅ Lawn mowed!', 'success');
-        this.completeChore('mow');
-    },
-    
     // ==================== COMPLETION ====================
     completeChore(choreId) {
         const chore = GameState.daily.chores.find(c => c.id === choreId);
@@ -634,25 +497,26 @@ window.ChoreMinigames = {
         
         UI.showNotification(`✅ ${chore.name} complete! +$${chore.reward}`, 'success');
         
-        // Close game
-        const gameId = choreId + 'Game';
-        const overlay = document.getElementById(gameId) || 
-                       document.getElementById('bedGame') ||
-                       document.getElementById('dishesGame') ||
-                       document.getElementById('vacuumGame') ||
-                       document.getElementById('mowGame');
-        if (overlay) overlay.remove();
+        this.close();
         
-        loadHome();
+        if (typeof loadHome === 'function') {
+            loadHome();
+        }
         UI.updateStats();
     },
     
     completeSimple(choreId) {
-        const chore = GameState.daily.chores.find(c => c.id === choreId);
-        if (!chore) return;
-        
         this.completeChore(choreId);
+    },
+    
+    close() {
+        const overlays = document.querySelectorAll('.minigame-overlay');
+        overlays.forEach(overlay => {
+            if (overlay.parentNode) {
+                overlay.parentNode.removeChild(overlay);
+            }
+        });
     }
 };
 
-console.log('✅ chores.js loaded - Interactive ChoreMinigames ready');
+console.log('✅ chores.js loaded');
