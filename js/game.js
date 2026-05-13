@@ -7,7 +7,7 @@ function initializeGame() {
     
     // Initialize time system
     if (typeof TimeManager !== 'undefined') {
-        TimeManager.init();
+        TimeManager.start();
     }
     
     // Initialize financial systems
@@ -21,9 +21,7 @@ function initializeGame() {
     
     // Initialize 3D city
     if (typeof City3D !== 'undefined') {
-        window.city = City3D;
         City3D.init();
-        City3D.startRendering();
     }
     
     // Update UI
@@ -89,7 +87,7 @@ document.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.key === 's') {
         e.preventDefault();
         if (typeof SaveSystem !== 'undefined') {
-            SaveSystem.saveGame();
+            SaveSystem.save();
         }
     }
     
@@ -97,7 +95,7 @@ document.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.key === 'l') {
         e.preventDefault();
         if (typeof SaveSystem !== 'undefined') {
-            SaveSystem.loadGame();
+            SaveSystem.load();
         }
     }
 });
