@@ -78,7 +78,7 @@ const ChoreMinigames = {
         this.currentChore = null;
     },
     
-    // ==================== BED MAKING GAME (FIXED LAYOUT) ====================
+    // ==================== BED MAKING GAME (ENHANCED VISIBILITY) ====================
     bedGame() {
         const overlay = document.createElement('div');
         overlay.className = 'minigame-overlay active';
@@ -92,91 +92,131 @@ const ChoreMinigames = {
                 </div>
                 
                 <div style="margin: 30px 0;">
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <h3 style="color: #2c3e50;">Items to Place (drag in order):</h3>
-                        <div style="font-size: 14px; color: #7f8c8d; margin-top: 5px;">1. Sheet (blue) → 2. Blanket (red) → 3. Pillow (orange)</div>
+                    <div style="text-align: center; margin-bottom: 25px;">
+                        <h2 style="color: #2c3e50; margin-bottom: 10px;">📦 Drag These Items (In Order):</h2>
                     </div>
                     
                     <div id="bedItems" style="
                         display: flex;
                         justify-content: center;
-                        gap: 30px;
+                        gap: 40px;
                         flex-wrap: wrap;
-                        margin-bottom: 30px;
-                        padding: 20px;
-                        background: rgba(236, 240, 241, 0.5);
-                        border-radius: 15px;
+                        margin-bottom: 40px;
+                        padding: 30px;
+                        background: rgba(255, 255, 255, 0.8);
+                        border-radius: 20px;
+                        border: 3px dashed #3498db;
+                        min-height: 160px;
                     ">
                         <div class="bed-item" draggable="true" data-item="sheet" data-order="1" style="
-                            width: 150px;
-                            height: 100px;
+                            width: 180px;
+                            height: 140px;
                             background: linear-gradient(135deg, #64b5f6, #42a5f5);
-                            border-radius: 10px;
+                            border-radius: 15px;
                             display: flex;
                             flex-direction: column;
                             align-items: center;
                             justify-content: center;
-                            cursor: move;
-                            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-                            font-size: 16px;
+                            cursor: grab;
+                            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+                            font-size: 18px;
                             font-weight: bold;
                             color: white;
-                            border: 3px solid #2196f3;
+                            border: 4px solid #1976d2;
                             transition: all 0.2s;
-                        " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                            <div style="font-size: 40px; margin-bottom: 8px;">📘</div>
-                            <div>Sheet</div>
-                            <div style="font-size: 12px; opacity: 0.9;">(Drag me first!)</div>
+                            position: relative;
+                        ">
+                            <div style="
+                                position: absolute;
+                                top: -15px;
+                                left: 50%;
+                                transform: translateX(-50%);
+                                background: #1976d2;
+                                color: white;
+                                padding: 5px 15px;
+                                border-radius: 20px;
+                                font-size: 14px;
+                                font-weight: bold;
+                            ">STEP 1</div>
+                            <div style="font-size: 50px; margin-bottom: 10px;">📘</div>
+                            <div style="font-size: 20px;">SHEET</div>
+                            <div style="font-size: 13px; opacity: 0.95; margin-top: 5px;">(Blue - Drag First!)</div>
                         </div>
                         
                         <div class="bed-item" draggable="true" data-item="blanket" data-order="2" style="
-                            width: 150px;
-                            height: 100px;
+                            width: 180px;
+                            height: 140px;
                             background: linear-gradient(135deg, #ef5350, #e53935);
-                            border-radius: 10px;
+                            border-radius: 15px;
                             display: flex;
                             flex-direction: column;
                             align-items: center;
                             justify-content: center;
-                            cursor: move;
-                            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-                            font-size: 16px;
+                            cursor: grab;
+                            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+                            font-size: 18px;
                             font-weight: bold;
                             color: white;
-                            border: 3px solid #c62828;
+                            border: 4px solid #c62828;
                             transition: all 0.2s;
-                        " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                            <div style="font-size: 40px; margin-bottom: 8px;">🟥</div>
-                            <div>Blanket</div>
-                            <div style="font-size: 12px; opacity: 0.9;">(Drag me second!)</div>
+                            position: relative;
+                        ">
+                            <div style="
+                                position: absolute;
+                                top: -15px;
+                                left: 50%;
+                                transform: translateX(-50%);
+                                background: #c62828;
+                                color: white;
+                                padding: 5px 15px;
+                                border-radius: 20px;
+                                font-size: 14px;
+                                font-weight: bold;
+                            ">STEP 2</div>
+                            <div style="font-size: 50px; margin-bottom: 10px;">🟥</div>
+                            <div style="font-size: 20px;">BLANKET</div>
+                            <div style="font-size: 13px; opacity: 0.95; margin-top: 5px;">(Red - Drag Second!)</div>
                         </div>
                         
                         <div class="bed-item" draggable="true" data-item="pillow" data-order="3" style="
-                            width: 150px;
-                            height: 100px;
+                            width: 180px;
+                            height: 140px;
                             background: linear-gradient(135deg, #ffa726, #fb8c00);
                             border-radius: 30px;
                             display: flex;
                             flex-direction: column;
                             align-items: center;
                             justify-content: center;
-                            cursor: move;
-                            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-                            font-size: 16px;
+                            cursor: grab;
+                            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+                            font-size: 18px;
                             font-weight: bold;
                             color: white;
-                            border: 3px solid #f57c00;
+                            border: 4px solid #f57c00;
                             transition: all 0.2s;
-                        " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                            <div style="font-size: 40px; margin-bottom: 8px;">🟧</div>
-                            <div>Pillow</div>
-                            <div style="font-size: 12px; opacity: 0.9;">(Drag me last!)</div>
+                            position: relative;
+                        ">
+                            <div style="
+                                position: absolute;
+                                top: -15px;
+                                left: 50%;
+                                transform: translateX(-50%);
+                                background: #f57c00;
+                                color: white;
+                                padding: 5px 15px;
+                                border-radius: 20px;
+                                font-size: 14px;
+                                font-weight: bold;
+                            ">STEP 3</div>
+                            <div style="font-size: 50px; margin-bottom: 10px;">🟧</div>
+                            <div style="font-size: 20px;">PILLOW</div>
+                            <div style="font-size: 13px; opacity: 0.95; margin-top: 5px;">(Orange - Drag Last!)</div>
                         </div>
                     </div>
                     
-                    <div style="text-align: center; margin-bottom: 15px;">
-                        <div style="font-size: 18px; font-weight: bold; color: #2c3e50;">
-                            Items Placed: <span id="bedProgress">0</span> / 3
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <div style="font-size: 22px; font-weight: bold; color: #2c3e50; background: rgba(255,255,255,0.9); padding: 10px 20px; border-radius: 10px; display: inline-block;">
+                            ✅ Items Placed: <span id="bedProgress" style="color: #27ae60;">0</span> / 3
                         </div>
                     </div>
                     
@@ -206,11 +246,13 @@ const ChoreMinigames = {
                             top: 50%;
                             left: 50%;
                             transform: translate(-50%, -50%);
-                            font-size: 48px;
-                            color: rgba(255,255,255,0.3);
+                            font-size: 36px;
+                            color: rgba(255,255,255,0.4);
                             pointer-events: none;
                             text-align: center;
-                        ">⬇️<br>Drop items here<br>⬇️</div>
+                            font-weight: bold;
+                            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                        ">⬇️ DROP HERE ⬇️</div>
                     </div>
                 </div>
                 
@@ -690,66 +732,211 @@ const ChoreMinigames = {
         });
     },
     
-    // ==================== LAUNDRY GAME ====================
+    // ==================== REALISTIC LAUNDRY GAME ====================
     laundryGame() {
         const overlay = document.createElement('div');
         overlay.className = 'minigame-overlay active';
         overlay.id = 'laundryGame';
         
+        // Define clothing items with care requirements
+        const clothes = [
+            { emoji: '👕', name: 'White T-Shirt', wash: 'warm', dry: 'dryer', color: 'white' },
+            { emoji: '🩱', name: 'White Swimsuit', wash: 'cold', dry: 'hang', color: 'white' },
+            { emoji: '🧦', name: 'White Socks', wash: 'warm', dry: 'dryer', color: 'white' },
+            { emoji: '👔', name: 'White Dress Shirt', wash: 'cold', dry: 'hang', color: 'white' },
+            { emoji: '👖', name: 'Blue Jeans', wash: 'cold', dry: 'dryer', color: 'color' },
+            { emoji: '👗', name: 'Red Dress', wash: 'cold', dry: 'hang', color: 'color' },
+            { emoji: '👘', name: 'Yellow Kimono', wash: 'cold', dry: 'hang', color: 'color' },
+            { emoji: '🩳', name: 'Green Shorts', wash: 'warm', dry: 'dryer', color: 'color' },
+            { emoji: '🧥', name: 'Pink Jacket', wash: 'cold', dry: 'hang', color: 'color' },
+            { emoji: '🩴', name: 'Purple Shirt', wash: 'warm', dry: 'dryer', color: 'color' }
+        ];
+        
+        // Shuffle clothes
+        clothes.sort(() => Math.random() - 0.5);
+        
         let html = `
-            <div class="minigame-container">
+            <div class="minigame-container" style="max-width: 1000px;">
                 <div class="minigame-header">
-                    <div class="minigame-title">👕 Do the Laundry</div>
-                    <div class="minigame-subtitle">Sort clothes by color: Whites and Colors!</div>
+                    <div class="minigame-title">🧺 Do the Laundry</div>
+                    <div class="minigame-subtitle">Sort clothes by wash temperature, then by dry method!</div>
                 </div>
                 
-                <div style="margin: 30px 0;">
-                    <div style="text-align: center; margin-bottom: 20px; font-size: 20px; font-weight: bold; color: #2c3e50;">
-                        Clothes Sorted: <span id="laundryProgress">0</span> / 10
+                <div style="margin: 20px 0;">
+                    <!-- Phase Indicator -->
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <div style="font-size: 20px; font-weight: bold; color: #2c3e50; background: #ecf0f1; padding: 10px 20px; border-radius: 10px; display: inline-block;">
+                            <span id="laundryPhase">Phase 1: Sort by Wash Temperature</span>
+                        </div>
+                        <div style="margin-top: 10px; font-size: 16px; color: #7f8c8d;">
+                            Sorted: <span id="laundryProgress">0</span> / 10
+                        </div>
                     </div>
                     
-                    <div style="display: flex; justify-content: space-around; max-width: 900px; margin: 0 auto;">
-                        <div id="whiteBin" data-color="white" style="
-                            width: 200px;
-                            height: 250px;
-                            background: linear-gradient(135deg, #f7f7f7, #e0e0e0);
-                            border-radius: 15px;
-                            border: 5px solid #bdbdbd;
-                            display: flex;
-                            flex-direction: column;
-                            align-items: center;
-                            justify-content: center;
-                            padding: 20px;
-                        ">
-                            <div style="font-size: 50px; margin-bottom: 10px;">🤍</div>
-                            <div style="font-size: 18px; font-weight: bold; color: #424242;">WHITES</div>
+                    <!-- Phase 1: Wash Sorting -->
+                    <div id="washPhase" style="display: block;">
+                        <div style="display: flex; justify-content: space-around; gap: 20px; margin-bottom: 20px;">
+                            <!-- Cold Wash Bin -->
+                            <div id="coldBin" data-wash="cold" style="
+                                flex: 1;
+                                min-height: 300px;
+                                background: linear-gradient(135deg, #a8dadc, #457b9d);
+                                border-radius: 15px;
+                                border: 4px solid #1d3557;
+                                padding: 20px;
+                                display: flex;
+                                flex-direction: column;
+                                align-items: center;
+                            ">
+                                <div style="font-size: 50px; margin-bottom: 10px;">❄️</div>
+                                <div style="font-size: 20px; font-weight: bold; color: white; margin-bottom: 10px;">COLD WASH</div>
+                                <div style="font-size: 14px; color: white; opacity: 0.9; text-align: center; margin-bottom: 15px;">
+                                    Delicates, bright colors, swimwear
+                                </div>
+                                <div class="clothes-container" data-bin="cold" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
+                                    <!-- Sorted clothes appear here -->
+                                </div>
+                            </div>
+                            
+                            <!-- Warm Wash Bin -->
+                            <div id="warmBin" data-wash="warm" style="
+                                flex: 1;
+                                min-height: 300px;
+                                background: linear-gradient(135deg, #f4a261, #e76f51);
+                                border-radius: 15px;
+                                border: 4px solid #d62828;
+                                padding: 20px;
+                                display: flex;
+                                flex-direction: column;
+                                align-items: center;
+                            ">
+                                <div style="font-size: 50px; margin-bottom: 10px;">🔥</div>
+                                <div style="font-size: 20px; font-weight: bold; color: white; margin-bottom: 10px;">WARM WASH</div>
+                                <div style="font-size: 14px; color: white; opacity: 0.9; text-align: center; margin-bottom: 15px;">
+                                    Whites, towels, heavily soiled items
+                                </div>
+                                <div class="clothes-container" data-bin="warm" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
+                                    <!-- Sorted clothes appear here -->
+                                </div>
+                            </div>
                         </div>
                         
+                        <!-- Unsorted Clothes Pile -->
+                        <div style="text-align: center; margin-bottom: 15px;">
+                            <div style="font-size: 18px; font-weight: bold; color: #2c3e50; background: rgba(255,255,255,0.8); padding: 8px 15px; border-radius: 8px; display: inline-block;">
+                                🧺 Unsorted Clothes (Click to see care label, then drag)
+                            </div>
+                        </div>
                         <div id="clothesPile" style="
                             display: flex;
                             flex-wrap: wrap;
                             gap: 15px;
                             justify-content: center;
-                            align-content: flex-start;
-                            max-width: 300px;
+                            padding: 20px;
+                            background: rgba(236, 240, 241, 0.5);
+                            border-radius: 15px;
+                            min-height: 150px;
                         ">
-                            <!-- Clothes will be generated here -->
+                            ${clothes.map((item, idx) => `
+                                <div class="laundry-item" draggable="true" 
+                                     data-index="${idx}"
+                                     data-wash="${item.wash}"
+                                     data-dry="${item.dry}"
+                                     data-color="${item.color}"
+                                     data-name="${item.name}"
+                                     style="
+                                        width: 90px;
+                                        height: 110px;
+                                        background: white;
+                                        border-radius: 12px;
+                                        border: 3px solid #95a5a6;
+                                        display: flex;
+                                        flex-direction: column;
+                                        align-items: center;
+                                        justify-content: center;
+                                        cursor: grab;
+                                        box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+                                        transition: all 0.2s;
+                                        position: relative;
+                                    ">
+                                    <div style="font-size: 50px;">${item.emoji}</div>
+                                    <div style="font-size: 11px; color: #7f8c8d; margin-top: 5px; text-align: center; padding: 0 5px;">${item.name}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <!-- Phase 2: Dry Sorting (Hidden initially) -->
+                    <div id="dryPhase" style="display: none;">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <div style="font-size: 16px; color: #27ae60; background: #d5f4e6; padding: 10px 20px; border-radius: 10px; display: inline-block;">
+                                ✅ Washing Complete! Now sort by drying method.
+                            </div>
                         </div>
                         
-                        <div id="colorBin" data-color="color" style="
-                            width: 200px;
-                            height: 250px;
-                            background: linear-gradient(135deg, #ffd54f, #ffb300);
-                            border-radius: 15px;
-                            border: 5px solid #f57f17;
+                        <div style="display: flex; justify-content: space-around; gap: 20px; margin-bottom: 20px;">
+                            <!-- Hang Dry Bin -->
+                            <div id="hangBin" data-dry="hang" style="
+                                flex: 1;
+                                min-height: 300px;
+                                background: linear-gradient(135deg, #a8e6cf, #56ab91);
+                                border-radius: 15px;
+                                border: 4px solid #3d7068;
+                                padding: 20px;
+                                display: flex;
+                                flex-direction: column;
+                                align-items: center;
+                            ">
+                                <div style="font-size: 50px; margin-bottom: 10px;">🪝</div>
+                                <div style="font-size: 20px; font-weight: bold; color: white; margin-bottom: 10px;">HANG DRY</div>
+                                <div style="font-size: 14px; color: white; opacity: 0.9; text-align: center; margin-bottom: 15px;">
+                                    Delicates, shrink-prone items
+                                </div>
+                                <div class="clothes-container" data-bin="hang" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
+                                    <!-- Sorted clothes appear here -->
+                                </div>
+                            </div>
+                            
+                            <!-- Machine Dry Bin -->
+                            <div id="dryerBin" data-dry="dryer" style="
+                                flex: 1;
+                                min-height: 300px;
+                                background: linear-gradient(135deg, #ffd97d, #ee9b00);
+                                border-radius: 15px;
+                                border: 4px solid #ca6702;
+                                padding: 20px;
+                                display: flex;
+                                flex-direction: column;
+                                align-items: center;
+                            ">
+                                <div style="font-size: 50px; margin-bottom: 10px;">🌀</div>
+                                <div style="font-size: 20px; font-weight: bold; color: white; margin-bottom: 10px;">MACHINE DRY</div>
+                                <div style="font-size: 14px; color: white; opacity: 0.9; text-align: center; margin-bottom: 15px;">
+                                    Sturdy fabrics, everyday clothes
+                                </div>
+                                <div class="clothes-container" data-bin="dryer" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
+                                    <!-- Sorted clothes appear here -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Washed Clothes Pile -->
+                        <div style="text-align: center; margin-bottom: 15px;">
+                            <div style="font-size: 18px; font-weight: bold; color: #2c3e50; background: rgba(255,255,255,0.8); padding: 8px 15px; border-radius: 8px; display: inline-block;">
+                                🧺 Clean Clothes (Click to see care label, then drag)
+                            </div>
+                        </div>
+                        <div id="washedPile" style="
                             display: flex;
-                            flex-direction: column;
-                            align-items: center;
+                            flex-wrap: wrap;
+                            gap: 15px;
                             justify-content: center;
                             padding: 20px;
+                            background: rgba(168, 218, 220, 0.3);
+                            border-radius: 15px;
+                            min-height: 150px;
                         ">
-                            <div style="font-size: 50px; margin-bottom: 10px;">🌈</div>
-                            <div style="font-size: 18px; font-weight: bold; color: #f57f17;">COLORS</div>
+                            <!-- Washed clothes will appear here after phase 1 -->
                         </div>
                     </div>
                 </div>
@@ -763,114 +950,197 @@ const ChoreMinigames = {
         overlay.innerHTML = html;
         document.body.appendChild(overlay);
         
-        this.setupLaundry();
+        this.setupLaundry(clothes);
     },
     
-    setupLaundry() {
-        const clothesPile = document.getElementById('clothesPile');
-        const whiteBin = document.getElementById('whiteBin');
-        const colorBin = document.getElementById('colorBin');
+    setupLaundry(clothes) {
+        let currentPhase = 1; // 1 = wash sorting, 2 = dry sorting
+        let washSorted = 0;
+        let drySorted = 0;
+        
         const progressSpan = document.getElementById('laundryProgress');
+        const phaseSpan = document.getElementById('laundryPhase');
         
-        const clothes = [
-            { emoji: '👕', color: 'white', bg: '#ffffff' },
-            { emoji: '👔', color: 'white', bg: '#f5f5f5' },
-            { emoji: '🩱', color: 'white', bg: '#eeeeee' },
-            { emoji: '🧦', color: 'white', bg: '#fafafa' },
-            { emoji: '👖', color: 'white', bg: '#f0f0f0' },
-            { emoji: '👕', color: 'color', bg: '#ff6b6b' },
-            { emoji: '👗', color: 'color', bg: '#4ecdc4' },
-            { emoji: '👘', color: 'color', bg: '#ffe66d' },
-            { emoji: '🩳', color: 'color', bg: '#a8e6cf' },
-            { emoji: '🧥', color: 'color', bg: '#ff8b94' }
-        ];
-        
-        let sorted = 0;
-        
-        // Shuffle clothes
-        clothes.sort(() => Math.random() - 0.5);
-        
-        clothes.forEach((item, index) => {
-            const cloth = document.createElement('div');
-            cloth.className = 'laundry-item';
-            cloth.draggable = true;
-            cloth.dataset.color = item.color;
-            cloth.dataset.index = index;
-            cloth.style.cssText = `
-                width: 80px;
-                height: 80px;
-                background: ${item.bg};
-                border-radius: 10px;
-                border: 3px solid #ccc;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 40px;
-                cursor: move;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-                transition: transform 0.2s;
-            `;
-            cloth.textContent = item.emoji;
+        // Setup drag and drop for all items
+        const setupDragDrop = () => {
+            const items = document.querySelectorAll('.laundry-item');
             
-            cloth.addEventListener('dragstart', (e) => {
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', cloth.dataset.index);
-                cloth.style.opacity = '0.5';
-            });
-            
-            cloth.addEventListener('dragend', () => {
-                cloth.style.opacity = '1';
-            });
-            
-            clothesPile.appendChild(cloth);
-        });
-        
-        [whiteBin, colorBin].forEach(bin => {
-            bin.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-                bin.style.transform = 'scale(1.05)';
-            });
-            
-            bin.addEventListener('dragleave', () => {
-                bin.style.transform = 'scale(1)';
-            });
-            
-            bin.addEventListener('drop', (e) => {
-                e.preventDefault();
-                bin.style.transform = 'scale(1)';
+            items.forEach(item => {
+                // Click to show care label
+                item.addEventListener('click', () => {
+                    const wash = item.dataset.wash;
+                    const dry = item.dataset.dry;
+                    const name = item.dataset.name;
+                    
+                    const washIcon = wash === 'cold' ? '❄️ Cold' : '🔥 Warm';
+                    const dryIcon = dry === 'hang' ? '🪝 Hang Dry' : '🌀 Dryer';
+                    
+                    UI.showNotification(
+                        `📋 ${name}<br>Wash: ${washIcon} | Dry: ${dryIcon}`,
+                        'info',
+                        3000
+                    );
+                });
                 
-                const clothIndex = e.dataTransfer.getData('text/plain');
-                const cloth = document.querySelector(`[data-index="${clothIndex}"]`);
+                item.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', item.dataset.index);
+                    item.style.opacity = '0.5';
+                    item.style.cursor = 'grabbing';
+                });
                 
-                if (!cloth) return;
+                item.addEventListener('dragend', () => {
+                    item.style.opacity = '1';
+                    item.style.cursor = 'grab';
+                });
                 
-                const clothColor = cloth.dataset.color;
-                const binColor = bin.dataset.color;
+                item.addEventListener('mouseover', () => {
+                    item.style.transform = 'scale(1.05)';
+                });
                 
-                if (clothColor === binColor) {
-                    // Correct bin!
-                    cloth.style.animation = 'fadeOut 0.3s forwards';
-                    setTimeout(() => {
-                        cloth.remove();
-                        sorted++;
-                        progressSpan.textContent = sorted;
+                item.addEventListener('mouseout', () => {
+                    item.style.transform = 'scale(1)';
+                });
+            });
+        };
+        
+        // Setup drop zones
+        const setupDropZones = (phase) => {
+            const bins = phase === 1 
+                ? [document.getElementById('coldBin'), document.getElementById('warmBin')]
+                : [document.getElementById('hangBin'), document.getElementById('dryerBin')];
+            
+            bins.forEach(bin => {
+                bin.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    bin.style.transform = 'scale(1.02)';
+                });
+                
+                bin.addEventListener('dragleave', () => {
+                    bin.style.transform = 'scale(1)';
+                });
+                
+                bin.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    bin.style.transform = 'scale(1)';
+                    
+                    const itemIndex = e.dataTransfer.getData('text/plain');
+                    const item = document.querySelector(`[data-index="${itemIndex}"]`);
+                    
+                    if (!item) return;
+                    
+                    const correctValue = phase === 1 ? item.dataset.wash : item.dataset.dry;
+                    const binValue = phase === 1 ? bin.dataset.wash : bin.dataset.dry;
+                    
+                    if (correctValue === binValue) {
+                        // Correct!
+                        const container = bin.querySelector('.clothes-container');
+                        item.style.animation = 'fadeOut 0.3s forwards';
                         
-                        if (sorted === 10) {
-                            setTimeout(() => {
-                                this.complete('laundry');
-                            }, 500);
-                        }
-                    }, 300);
-                } else {
-                    // Wrong bin!
-                    UI.showNotification('❌ Wrong bin! Sort by color.', 'error', 2000);
-                    cloth.style.animation = 'shake 0.5s';
-                    setTimeout(() => {
-                        cloth.style.animation = '';
-                    }, 500);
-                }
+                        setTimeout(() => {
+                            // Create smaller version in bin
+                            const miniItem = document.createElement('div');
+                            miniItem.style.cssText = `
+                                font-size: 35px;
+                                width: 50px;
+                                height: 50px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                background: white;
+                                border-radius: 8px;
+                                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                            `;
+                            miniItem.textContent = item.querySelector('div').textContent;
+                            miniItem.dataset.index = itemIndex;
+                            miniItem.dataset.wash = item.dataset.wash;
+                            miniItem.dataset.dry = item.dataset.dry;
+                            miniItem.dataset.name = item.dataset.name;
+                            container.appendChild(miniItem);
+                            
+                            item.remove();
+                            
+                            if (phase === 1) {
+                                washSorted++;
+                                progressSpan.textContent = washSorted;
+                                
+                                if (washSorted === 10) {
+                                    setTimeout(() => {
+                                        this.startDryPhase(miniItem);
+                                    }, 500);
+                                }
+                            } else {
+                                drySorted++;
+                                progressSpan.textContent = drySorted;
+                                
+                                if (drySorted === 10) {
+                                    setTimeout(() => {
+                                        this.complete('laundry');
+                                    }, 500);
+                                }
+                            }
+                        }, 300);
+                    } else {
+                        // Wrong!
+                        UI.showNotification('❌ Wrong! Check the care label.', 'error', 2000);
+                        item.style.animation = 'shake 0.5s';
+                        setTimeout(() => {
+                            item.style.animation = '';
+                        }, 500);
+                    }
+                });
             });
-        });
+        };
+        
+        setupDragDrop();
+        setupDropZones(1);
+        
+        // Transition to drying phase
+        this.startDryPhase = () => {
+            currentPhase = 2;
+            drySorted = 0;
+            progressSpan.textContent = '0';
+            phaseSpan.textContent = 'Phase 2: Sort by Drying Method';
+            
+            document.getElementById('washPhase').style.display = 'none';
+            document.getElementById('dryPhase').style.display = 'block';
+            
+            // Move all clothes from bins to washed pile
+            const washedPile = document.getElementById('washedPile');
+            const allSortedClothes = document.querySelectorAll('.clothes-container div');
+            
+            allSortedClothes.forEach((miniItem, idx) => {
+                const fullItem = document.createElement('div');
+                fullItem.className = 'laundry-item';
+                fullItem.draggable = true;
+                fullItem.dataset.index = idx;
+                fullItem.dataset.wash = miniItem.dataset.wash;
+                fullItem.dataset.dry = miniItem.dataset.dry;
+                fullItem.dataset.name = miniItem.dataset.name;
+                fullItem.style.cssText = `
+                    width: 90px;
+                    height: 110px;
+                    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+                    border-radius: 12px;
+                    border: 3px solid #64b5f6;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: grab;
+                    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+                    transition: all 0.2s;
+                `;
+                fullItem.innerHTML = `
+                    <div style="font-size: 50px;">${miniItem.textContent}</div>
+                    <div style="font-size: 11px; color: #1976d2; margin-top: 5px; text-align: center; padding: 0 5px; font-weight: bold;">✨ ${miniItem.dataset.name}</div>
+                `;
+                washedPile.appendChild(fullItem);
+            });
+            
+            setupDragDrop();
+            setupDropZones(2);
+        };
     }
 };
