@@ -6,7 +6,7 @@ function loadBank() {
     const content = `
         <div class="tabs">
             <div class="tab active" onclick="showBankTab('checking')">Checking Account</div>
-            <div class="tab" onclick="showBankTab('credit')">Credit Card ${GameState.player.age >= 18 ? '' : '(18+)'}</div>
+            <div class="tab" onclick="showBankTab('credit')">Credit Card ${GameState.player.age >= GameState.ADULT_AGE ? '' : '(18+)'}</div>
             <div class="tab" onclick="showBankTab('checks')">Write Check ${GameState.player.age >= 16 ? '' : '(16+)'}</div>
         </div>
         
@@ -87,9 +87,10 @@ function renderChecking() {
         <div class="info-box mt-20">
             <h4>💡 Banking Tips:</h4>
             <ul>
-                <li><strong>Save regularly:</strong> Put money in your bank account for safekeeping</li>
-                <li><strong>Emergency fund:</strong> Try to save at least $500 for unexpected expenses</li>
+                <li><strong>Save regularly:</strong> Build an emergency fund</li>
+                <li><strong>Emergency fund:</strong> Aim for at least $500</li>
                 <li><strong>Track spending:</strong> Know where your money goes</li>
+                <li><strong>Security:</strong> Keep most money in the bank</li>
             </ul>
         </div>
     `;
@@ -98,7 +99,10 @@ function renderChecking() {
 }
 
 function deposit() {
-    const amount = parseFloat(document.getElementById('depositAmount').value);
+    const input = document.getElementById('depositAmount');
+    if (!input) return;
+    
+    const amount = parseFloat(input.value);
     
     if (isNaN(amount) || amount <= 0) {
         UI.showNotification('❌ Invalid amount!', 'error');
@@ -121,7 +125,10 @@ function deposit() {
 }
 
 function withdraw() {
-    const amount = parseFloat(document.getElementById('withdrawAmount').value);
+    const input = document.getElementById('withdrawAmount');
+    if (!input) return;
+    
+    const amount = parseFloat(input.value);
     
     if (isNaN(amount) || amount <= 0) {
         UI.showNotification('❌ Invalid amount!', 'error');
@@ -143,10 +150,20 @@ function withdraw() {
 }
 
 function renderCredit() {
-    if (GameState.player.age < 18) {
+    if (GameState.player.age < GameState.ADULT_AGE) {
         return `
             <div class="alert alert-warning">
                 ⚠️ You must be 18 years old to apply for a credit card.
+            </div>
+            
+            <div class="info-box">
+                <h4>📚 Learn About Credit Cards:</h4>
+                <ul>
+                    <li><strong>Credit Limit:</strong> Maximum you can borrow</li>
+                    <li><strong>Interest:</strong> Fee for borrowing (APR)</li>
+                    <li><strong>Minimum Payment:</strong> Least you must pay monthly</li>
+                    <li><strong>Credit Score:</strong> Affects future loans</li>
+                </ul>
             </div>
         `;
     }
@@ -231,7 +248,10 @@ function applyCreditCard() {
 }
 
 function payCreditCard() {
-    const amount = parseFloat(document.getElementById('paymentAmount').value);
+    const input = document.getElementById('paymentAmount');
+    if (!input) return;
+    
+    const amount = parseFloat(input.value);
     
     if (isNaN(amount) || amount <= 0) {
         UI.showNotification('❌ Invalid amount!', 'error');
@@ -268,6 +288,12 @@ function renderChecks() {
             <div class="alert alert-warning">
                 ⚠️ You must be 16 years old to write checks.
             </div>
+            
+            <div class="info-box">
+                <h4>📝 What is a Check?</h4>
+                <p>A check is a written order to your bank to pay someone a specific amount from your account.</p>
+                <p>You'll learn to write checks when you turn 16!</p>
+            </div>
         `;
     }
     
@@ -295,8 +321,10 @@ function renderChecks() {
 
 function startCheckWriting() {
     if (window.CheckWritingMinigame) {
-        CheckWritingMinigame.start();
+        CheckWritingMinigame.start('Practice Recipient', 25.50);
     } else {
-        UI.showNotification('✍️ Check writing tutorial coming soon!', 'info');
+        UI.showNotification('✍️ Check writing tutorial loading...', 'info');
     }
 }
+
+console.log('✅ bank.js loaded');
