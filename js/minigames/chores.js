@@ -2,6 +2,7 @@
 
 window.ChoreMinigames = {
     currentChore: null,
+    vacuumKeys: {},
     
     start(choreId) {
         console.log('🎮 Starting interactive chore:', choreId);
@@ -21,7 +22,7 @@ window.ChoreMinigames = {
         }
     },
     
-    // ==================== BED MAKING GAME ====================
+    // ==================== BED MAKING GAME (SIMPLIFIED - NO INSPECTION NEEDED) ====================
     bedGame() {
         const overlay = document.createElement('div');
         overlay.className = 'minigame-overlay active';
@@ -31,7 +32,7 @@ window.ChoreMinigames = {
             <div class="minigame-container">
                 <div class="minigame-header">
                     <div class="minigame-title">🛏️ Make the Bed</div>
-                    <div class="minigame-subtitle">Drag items onto the bed in the correct order</div>
+                    <div class="minigame-subtitle">Drag items onto the bed in order: Sheet → Blanket → Pillow</div>
                 </div>
                 
                 <div style="margin: 30px 0;">
@@ -58,8 +59,8 @@ window.ChoreMinigames = {
                     </div>
                     
                     <div style="text-align: center; margin-bottom: 20px;">
-                        <h3 style="color: #2c3e50;">Items to Place (drag in order):</h3>
-                        <div style="font-size: 14px; color: #7f8c8d;">Sheet → Blanket → Pillow</div>
+                        <h3 style="color: #2c3e50;">Drag items in order:</h3>
+                        <div style="font-size: 14px; color: #7f8c8d;">1. Sheet (blue) → 2. Blanket (red) → 3. Pillow (orange)</div>
                     </div>
                     
                     <div id="bedItems" style="
@@ -68,7 +69,7 @@ window.ChoreMinigames = {
                         gap: 20px;
                         flex-wrap: wrap;
                     ">
-                        <div class="bed-item" draggable="true" data-item="sheet" style="
+                        <div class="bed-item" draggable="true" data-item="sheet" data-order="1" style="
                             width: 120px;
                             height: 80px;
                             background: linear-gradient(135deg, #64b5f6, #42a5f5);
@@ -83,7 +84,7 @@ window.ChoreMinigames = {
                             color: white;
                         ">Sheet</div>
                         
-                        <div class="bed-item" draggable="true" data-item="blanket" style="
+                        <div class="bed-item" draggable="true" data-item="blanket" data-order="2" style="
                             width: 120px;
                             height: 80px;
                             background: linear-gradient(135deg, #ef5350, #e53935);
@@ -98,7 +99,7 @@ window.ChoreMinigames = {
                             color: white;
                         ">Blanket</div>
                         
-                        <div class="bed-item" draggable="true" data-item="pillow" style="
+                        <div class="bed-item" draggable="true" data-item="pillow" data-order="3" style="
                             width: 100px;
                             height: 60px;
                             background: linear-gradient(135deg, #ffa726, #fb8c00);
@@ -143,15 +144,27 @@ window.ChoreMinigames = {
         items.forEach(item => {
             item.addEventListener('dragstart', (e) => {
                 e.dataTransfer.setData('text/plain', e.target.dataset.item);
+                e.target.style.opacity = '0.5';
+            });
+            
+            item.addEventListener('dragend', (e) => {
+                e.target.style.opacity = '1';
             });
         });
         
         bedArea.addEventListener('dragover', (e) => {
             e.preventDefault();
+            bedArea.style.borderColor = '#4caf50';
+        });
+        
+        bedArea.addEventListener('dragleave', (e) => {
+            bedArea.style.borderColor = '#4a3728';
         });
         
         bedArea.addEventListener('drop', (e) => {
             e.preventDefault();
+            bedArea.style.borderColor = '#4a3728';
+            
             const itemName = e.dataTransfer.getData('text/plain');
             
             if (placedItems.includes(itemName)) {
@@ -159,15 +172,19 @@ window.ChoreMinigames = {
                 return;
             }
             
-            if (correctOrder.indexOf(itemName) !== placedItems.length) {
-                UI.showNotification('❌ Wrong order! Check the sequence.', 'error');
+            const expectedItem = correctOrder[placedItems.length];
+            if (itemName !== expectedItem) {
+                UI.showNotification(`❌ Wrong order! Place ${expectedItem} first.`, 'error');
                 return;
             }
             
             placedItems.push(itemName);
             document.getElementById('bedProgress').textContent = placedItems.length;
             
-            document.querySelector(`[data-item="${itemName}"]`).style.display = 'none';
+            const draggedItem = document.querySelector(`[data-item="${itemName}"]`);
+            if (draggedItem) {
+                draggedItem.style.display = 'none';
+            }
             
             const itemDiv = document.createElement('div');
             const backgrounds = {
@@ -322,7 +339,7 @@ window.ChoreMinigames = {
         this.completeChore('dishes');
     },
     
-    // ==================== VACUUM GAME ====================
+    // ==================== VACUUM GAME (FIXED) ====================
     vacuumGame() {
         const overlay = document.createElement('div');
         overlay.className = 'minigame-overlay active';
@@ -334,7 +351,7 @@ window.ChoreMinigames = {
             <div class="minigame-container">
                 <div class="minigame-header">
                     <div class="minigame-title">🧹 Vacuum the Floor</div>
-                    <div class="minigame-subtitle">Use arrow keys or WASD to move the vacuum!</div>
+                    <div class="minigame-subtitle">Use arrow keys or WASD to move the vacuum over dirt spots!</div>
                 </div>
                 
                 <div style="margin: 30px 0;">
@@ -393,7 +410,7 @@ window.ChoreMinigames = {
                 transition: opacity 0.3s, transform 0.3s;
             `;
             floorArea.appendChild(dirt);
-            dirtSpots.push({ element: dirt, cleaned: false });
+            dirtSpots.push({ element: dirt, cleaned: false, x: parseFloat(dirt.style.left), y: parseFloat(dirt.style.top) });
         }
         
         // Create vacuum
@@ -412,52 +429,85 @@ window.ChoreMinigames = {
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             left: 320px;
             top: 210px;
-            transition: all 0.1s;
+            transition: none;
+            z-index: 10;
         `;
         vacuum.textContent = '🧹';
         floorArea.appendChild(vacuum);
         
         let x = 320, y = 210;
-        const speed = 15;
+        const speed = 10;
         
         this.vacuumData = { cleanedDirt: 0, totalDirt, dirtSpots };
+        this.vacuumKeys = {};
         
         const handleKeyDown = (e) => {
             if (!document.getElementById('vacuumGame')) {
                 document.removeEventListener('keydown', handleKeyDown);
+                document.removeEventListener('keyup', handleKeyUp);
                 return;
             }
             
             const key = e.key.toLowerCase();
-            if (['arrowup', 'w'].includes(key)) y = Math.max(0, y - speed);
-            if (['arrowdown', 's'].includes(key)) y = Math.min(420, y + speed);
-            if (['arrowleft', 'a'].includes(key)) x = Math.max(0, x - speed);
-            if (['arrowright', 'd'].includes(key)) x = Math.min(640, x + speed);
-            
-            vacuum.style.left = x + 'px';
-            vacuum.style.top = y + 'px';
-            
-            this.checkVacuumCollision(x, y);
+            this.vacuumKeys[key] = true;
+            e.preventDefault();
+        };
+        
+        const handleKeyUp = (e) => {
+            const key = e.key.toLowerCase();
+            this.vacuumKeys[key] = false;
         };
         
         document.addEventListener('keydown', handleKeyDown);
+        document.addEventListener('keyup', handleKeyUp);
+        
+        // Game loop
+        const gameLoop = () => {
+            if (!document.getElementById('vacuumGame')) {
+                return;
+            }
+            
+            let moved = false;
+            
+            if (this.vacuumKeys['arrowup'] || this.vacuumKeys['w']) {
+                y = Math.max(0, y - speed);
+                moved = true;
+            }
+            if (this.vacuumKeys['arrowdown'] || this.vacuumKeys['s']) {
+                y = Math.min(420, y + speed);
+                moved = true;
+            }
+            if (this.vacuumKeys['arrowleft'] || this.vacuumKeys['a']) {
+                x = Math.max(0, x - speed);
+                moved = true;
+            }
+            if (this.vacuumKeys['arrowright'] || this.vacuumKeys['d']) {
+                x = Math.min(640, x + speed);
+                moved = true;
+            }
+            
+            if (moved) {
+                vacuum.style.left = x + 'px';
+                vacuum.style.top = y + 'px';
+                this.checkVacuumCollision(x, y);
+            }
+            
+            requestAnimationFrame(gameLoop);
+        };
+        
+        gameLoop();
     },
     
     checkVacuumCollision(vacX, vacY) {
         this.vacuumData.dirtSpots.forEach((spot) => {
             if (spot.cleaned) return;
             
-            const dirtRect = spot.element.getBoundingClientRect();
-            const vacRect = document.getElementById('vacuum').getBoundingClientRect();
+            // Simple distance-based collision
+            const dx = vacX - spot.x + 30; // Center of vacuum (60px wide / 2)
+            const dy = vacY - spot.y + 40; // Center of vacuum (80px tall / 2)
+            const distance = Math.sqrt(dx * dx + dy * dy);
             
-            const collision = !(
-                dirtRect.right < vacRect.left ||
-                dirtRect.left > vacRect.right ||
-                dirtRect.bottom < vacRect.top ||
-                dirtRect.top > vacRect.bottom
-            );
-            
-            if (collision) {
+            if (distance < 50) { // Collision threshold
                 spot.cleaned = true;
                 spot.element.style.opacity = '0';
                 spot.element.style.transform = 'scale(0)';
@@ -466,9 +516,11 @@ window.ChoreMinigames = {
                 document.getElementById('vacuumProgress').textContent = this.vacuumData.cleanedDirt;
                 
                 const percent = (this.vacuumData.cleanedDirt / this.vacuumData.totalDirt) * 100;
-                const progressFill = document.querySelector('.progress-fill');
-                progressFill.style.width = percent + '%';
-                progressFill.textContent = Math.round(percent) + '%';
+                const progressFill = document.querySelector('#vacuumGame .progress-fill');
+                if (progressFill) {
+                    progressFill.style.width = percent + '%';
+                    progressFill.textContent = Math.round(percent) + '%';
+                }
                 
                 if (this.vacuumData.cleanedDirt === this.vacuumData.totalDirt) {
                     setTimeout(() => {
@@ -482,6 +534,40 @@ window.ChoreMinigames = {
     completeVacuumGame() {
         UI.showNotification('✅ Floor vacuumed!', 'success');
         this.completeChore('vacuum');
+    },
+    
+    // ==================== TRASH GAME (SIMPLE) ====================
+    trashGame() {
+        const overlay = document.createElement('div');
+        overlay.className = 'minigame-overlay active';
+        overlay.id = 'trashGame';
+        
+        overlay.innerHTML = `
+            <div class="minigame-container">
+                <div class="minigame-header">
+                    <div class="minigame-title">🗑️ Take Out Trash</div>
+                    <div class="minigame-subtitle">Click to take the trash outside!</div>
+                </div>
+                
+                <div style="margin: 50px 0; text-align: center;">
+                    <div style="font-size: 120px; cursor: pointer;" onclick="ChoreMinigames.completeTrashGame()" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" style="transition: all 0.2s;">
+                        🗑️
+                    </div>
+                    <div style="font-size: 18px; margin-top: 20px; color: #7f8c8d;">Click the trash can!</div>
+                </div>
+                
+                <div class="minigame-actions">
+                    <button class="btn-skip" onclick="ChoreMinigames.close()">Skip</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(overlay);
+    },
+    
+    completeTrashGame() {
+        UI.showNotification('✅ Trash taken out!', 'success');
+        this.completeChore('trash');
     },
     
     // ==================== COMPLETION ====================
@@ -516,6 +602,7 @@ window.ChoreMinigames = {
                 overlay.parentNode.removeChild(overlay);
             }
         });
+        this.vacuumKeys = {};
     }
 };
 
