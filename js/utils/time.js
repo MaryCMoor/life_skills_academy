@@ -13,6 +13,7 @@ const TimeManager = {
     init() {
         this.currentSpeed = this.speeds.normal;
         this.start();
+        this.updateUI();
         console.log('⏰ Time Manager initialized');
     },
     
@@ -104,6 +105,7 @@ const TimeManager = {
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         
+        // Update time display
         const timeStr = `${String(time.hour).padStart(2, '0')}:${String(time.minute).padStart(2, '0')}`;
         const dateStr = `${days[time.day]} ${months[time.month - 1]} ${time.date}, ${time.year}`;
         
@@ -113,31 +115,66 @@ const TimeManager = {
         if (timeEl) timeEl.textContent = timeStr;
         if (dateEl) dateEl.textContent = dateStr;
         
-        Object.keys(GameState.needs).forEach(need => {
-            const el = document.getElementById(`${need}Bar`);
-            if (el) {
+        // Update needs bars AND values
+        const needsList = ['hunger', 'energy', 'hygiene', 'happiness', 'health'];
+        needsList.forEach(need => {
+            const bar = document.getElementById(`${need}Bar`);
+            const valueDisplay = document.getElementById(`${need}Value`);
+            
+            if (bar) {
                 const value = Math.max(0, Math.min(100, GameState.needs[need]));
-                el.style.width = value + '%';
+                bar.style.width = value + '%';
                 
-                if (value < 30) el.style.background = '#e74c3c';
-                else if (value < 70) el.style.background = '#f39c12';
-                else el.style.background = '#27ae60';
+                // Color coding
+                if (value < 30) bar.style.background = '#e74c3c';
+                else if (value < 70) bar.style.background = '#f39c12';
+                else bar.style.background = '#27ae60';
+            }
+            
+            if (valueDisplay) {
+                const value = Math.round(GameState.needs[need]);
+                valueDisplay.textContent = value;
+                
+                // Color code the value text too
+                if (value < 30) valueDisplay.style.color = '#e74c3c';
+                else if (value < 70) valueDisplay.style.color = '#f39c12';
+                else valueDisplay.style.color = '#27ae60';
             }
         });
         
+        // Update money display
         const cashEl = document.getElementById('playerCash');
         if (cashEl) {
             cashEl.textContent = Math.floor(GameState.money.cash);
         }
         
+        // Update age display
+        const ageEl = document.getElementById('playerAge');
+        if (ageEl) {
+            ageEl.textContent = GameState.player.age;
+        }
+        
+        // Update GPA display
         const gpaEl = document.getElementById('playerGpa');
         if (gpaEl) {
             gpaEl.textContent = GameState.school.gpa.toFixed(1);
         }
     },
     
+    setSpeed(speed) {
+        if (this.speeds[speed] !== undefined) {
+            this.currentSpeed = this.speeds[speed];
+            GameState.time.paused = false;
+            this.stop();
+            this.start();
+            UI.showNotification(`⏰ Speed: ${speed}`, 'info', 1000);
+        }
+    },
+    
     pause() {
-        GameState.time.paused = true;
+        GameState.time.paused = !GameState.time.paused;
+        const status = GameState.time.paused ? 'Paused' : 'Resumed';
+        UI.showNotification(`⏸️ ${status}`, 'info', 1000);
     },
     
     resume() {
