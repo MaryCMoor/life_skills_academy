@@ -1,6 +1,4 @@
 // ==================== TIME MANAGER ====================
-// Controls game time, day/night cycle, events
-
 const TimeManager = {
     speeds: {
         paused: 0,
@@ -41,7 +39,6 @@ const TimeManager = {
         if (GameState.time.minute >= 60) {
             GameState.time.minute = 0;
             GameState.time.hour += 1;
-            
             this.hourlyDecay();
         }
         
@@ -86,66 +83,14 @@ const TimeManager = {
         const time = GameState.time;
         const minutes = time.hour * 60 + time.minute;
         
-        // School warnings
-        if (minutes === 7 * 60 + 50 && GameState.isWeekday() && GameState.player.age < GameState.ADULT_AGE) {
+        if (minutes === 7 * 60 + 50 && GameState.isWeekday() && GameState.player.age < 18) {
             UI.showNotification('⚠️ School starts in 10 minutes!', 'warning');
         }
         
-        // School tardy
-        if (minutes === 8 * 60 + 5 && GameState.isWeekday() && GameState.player.age < GameState.ADULT_AGE) {
-            const period = GameState.getCurrentPeriod();
-            if (period && period.name !== 'Lunch' && !GameState.school.attendance[period.name]) {
-                GameState.school.tardies++;
-                UI.showNotification(`📚 TARDY for ${period.name}!`, 'error');
-            }
-        }
-        
-        // Work warnings
-        if (GameState.work.currentJob && minutes === 15 * 60 + 25) {
-            UI.showNotification('💼 Work shift starts in 5 minutes!', 'warning');
-        }
-        
-        if (GameState.work.currentJob && minutes === 15 * 60 + 35 && !GameState.work.onShift) {
-            GameState.work.warnings++;
-            UI.showNotification(`⚠️ LATE for work! Warning ${GameState.work.warnings}/3`, 'error');
-            
-            if (GameState.work.warnings >= 3) {
-                UI.showNotification('🚫 FIRED for excessive tardiness!', 'error');
-                GameState.work.currentJob = null;
-                GameState.work.warnings = 0;
-            }
-        }
-        
-        // Bill reminders (for adults)
-        if (GameState.player.age >= GameState.ADULT_AGE && time.hour === 9 && time.minute === 0) {
-            GameState.adult.bills.forEach(bill => {
-                if (!bill.paid) {
-                    const daysUntilDue = bill.dueDate - time.date;
-                    
-                    if (daysUntilDue === 3) {
-                        UI.showNotification(`💰 ${bill.name} due in 3 days!`, 'warning');
-                    } else if (daysUntilDue === 0) {
-                        UI.showNotification(`⚠️ ${bill.name} DUE TODAY!`, 'error');
-                    } else if (daysUntilDue < 0) {
-                        bill.amount *= 1.05; // 5% late fee
-                        UI.showNotification(`🚨 ${bill.name} OVERDUE! Late fee added.`, 'error');
-                    }
-                }
-            });
-        }
-        
-        // Grocery warning
-        if (GameState.player.age >= GameState.ADULT_AGE && time.hour === 18 && time.minute === 0) {
-            if (GameState.adult.groceries < 20) {
-                UI.showNotification('🛒 Running low on groceries!', 'warning');
-            }
-        }
-        
-        // Clear busy status - FIXED
         if (GameState.isBusy()) {
             const busyMinutes = GameState.status.busyUntil.hour * 60 + GameState.status.busyUntil.minute;
             if (minutes >= busyMinutes) {
-                const activity = GameState.status.busyActivity; // FIXED: was GameState.currentActivity
+                const activity = GameState.status.busyActivity;
                 GameState.clearBusy();
                 if (activity) {
                     UI.showNotification(`✅ Finished: ${activity}`, 'success');
@@ -168,7 +113,6 @@ const TimeManager = {
         if (timeEl) timeEl.textContent = timeStr;
         if (dateEl) dateEl.textContent = dateStr;
         
-        // Update needs bars
         Object.keys(GameState.needs).forEach(need => {
             const el = document.getElementById(`${need}Bar`);
             if (el) {
@@ -181,50 +125,23 @@ const TimeManager = {
             }
         });
         
-        // Update money display
         const cashEl = document.getElementById('playerCash');
         if (cashEl) {
             cashEl.textContent = Math.floor(GameState.money.cash);
         }
         
-        // Update GPA
         const gpaEl = document.getElementById('playerGpa');
         if (gpaEl) {
             gpaEl.textContent = GameState.school.gpa.toFixed(1);
         }
     },
     
-    setSpeed(speed) {
-        if (this.speeds[speed] !== undefined) {
-            this.currentSpeed = this.speeds[speed];
-            this.stop();
-            this.start();
-            console.log(`⏰ Speed set to: ${speed}`);
-        }
-    },
-    
     pause() {
         GameState.time.paused = true;
-        console.log('⏸️ Time paused');
     },
     
     resume() {
         GameState.time.paused = false;
-        console.log('▶️ Time resumed');
-    },
-    
-    formatTime(minutes) {
-        const hours = Math.floor(minutes / 60);
-        const mins = minutes % 60;
-        return `${hours}h ${mins}m`;
-    },
-    
-    getTimeOfDay() {
-        const hour = GameState.time.hour;
-        if (hour >= 5 && hour < 12) return 'morning';
-        if (hour >= 12 && hour < 17) return 'afternoon';
-        if (hour >= 17 && hour < 21) return 'evening';
-        return 'night';
     }
 };
 
