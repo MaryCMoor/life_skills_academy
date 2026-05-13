@@ -17,46 +17,46 @@ function loadStore() {
 
 function renderStoreItems() {
     const items = [
-        { id: 'groceries', name: '🛒 Groceries (Weekly)', price: 50, desc: 'Essential food supplies for the week', category: 'food' },
+        { id: 'groceries', name: '🛒 Groceries (Weekly)', price: 50, desc: 'Essential food for the week', category: 'food' },
         { id: 'snacks', name: '🍿 Snacks', price: 10, desc: 'Quick energy boost', category: 'food' },
         { id: 'notebook', name: '📓 Notebook', price: 5, desc: 'For school notes', category: 'school' },
-        { id: 'backpack', name: '🎒 Backpack', price: 35, desc: 'Carry your school supplies', category: 'school' },
+        { id: 'backpack', name: '🎒 Backpack', price: 35, desc: 'Carry your supplies', category: 'school' },
         { id: 'clothing', name: '👕 Clothing', price: 25, desc: 'Fresh outfit', category: 'personal' },
         { id: 'toiletries', name: '🧴 Toiletries', price: 15, desc: 'Hygiene essentials', category: 'personal' },
         { id: 'phone', name: '📱 Smartphone', price: 200, desc: 'Stay connected', category: 'electronics' },
         { id: 'laptop', name: '💻 Laptop', price: 500, desc: 'For school and work', category: 'electronics' }
     ];
     
-    // Filter items if needed
-    let html = '<div class="shop-grid">';
+    let html = '';
+    
+    // Adult grocery warning
+    if (GameState.player.age >= GameState.ADULT_AGE && GameState.adult.groceries < 20) {
+        html += '<div class="alert alert-danger">⚠️ You need groceries! You\'re running low on food!</div>';
+    }
+    
+    html += '<div class="shop-grid">';
     
     items.forEach(item => {
-        // Check if already owned
         const owned = GameState.inventory.find(i => i.id === item.id);
+        const canAfford = GameState.money.cash >= item.price;
         
         html += `
             <div class="shop-item">
                 <div class="item-icon">${item.name.split(' ')[0]}</div>
-                <div class="item-name">${item.name}</div>
-                <div class="item-desc">${item.desc}</div>
+                <div class="item-name">${Utils.escapeHtml(item.name)}</div>
+                <div class="item-desc">${Utils.escapeHtml(item.desc)}</div>
                 <div class="item-price">$${item.price}</div>
                 ${owned ? 
                     '<button class="btn" disabled>✅ Owned</button>' :
-                    `<button class="btn btn-success" onclick="buyItem('${item.id}', ${item.price}, '${item.name}')">Buy</button>`
+                    canAfford ?
+                        `<button class="btn btn-success" onclick="buyItem('${item.id}', ${item.price}, '${Utils.escapeHtml(item.name)}')">Buy</button>` :
+                        '<button class="btn" disabled>💰 Can\'t Afford</button>'
                 }
             </div>
         `;
     });
     
     html += '</div>';
-    
-    // Grocery warning for adults
-    if (GameState.player.age >= 18) {
-        const hasGroceries = GameState.adult.groceries > 0;
-        if (!hasGroceries) {
-            html = '<div class="alert alert-danger">⚠️ You need to buy groceries! You\'re out of food!</div>' + html;
-        }
-    }
     
     return html;
 }
@@ -74,15 +74,15 @@ function buyItem(itemId, price, itemName) {
             purchaseDate: new Date().toISOString()
         });
         
-        // Special handling for groceries
+        // Special handling
         if (itemId === 'groceries') {
             GameState.adult.groceries = 100;
-            UI.showNotification('✅ Groceries purchased! You\'re stocked for the week.', 'success');
+            UI.showNotification('✅ Groceries purchased! Stocked for the week.', 'success');
         } else {
             UI.showNotification(`✅ Purchased ${itemName}!`, 'success');
         }
         
-        // Achievement check
+        // Achievement
         if (GameState.inventory.length === 5) {
             GameState.addAchievement('Smart Shopper', 'Buy 5 different items', '🛍️');
         }
@@ -91,3 +91,5 @@ function buyItem(itemId, price, itemName) {
         UI.updateStats();
     }
 }
+
+console.log('✅ store.js loaded');
