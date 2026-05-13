@@ -38,12 +38,22 @@ function renderMail() {
     let html = '<h3>📬 Your Mail</h3>';
     
     const mailItems = [
-        { type: 'info', icon: '📄', subject: 'Welcome to Life Skills Academy!', message: 'This is your mailbox. Check here for important documents, bills, and packages.' },
-        { type: 'school', icon: '🎓', subject: 'School Report Card', message: 'Your current GPA is ' + GameState.school.gpa + '. Keep up the good work!' }
+        { type: 'info', icon: '📄', subject: 'Welcome to Life Skills Academy!', message: 'Check here for important documents, bills, and packages.' }
     ];
     
-    // Add birthday mail
-    if (GameState.time.month === GameState.player.birthday.month && 
+    // School report
+    if (GameState.school.gpa) {
+        mailItems.push({ 
+            type: 'school', 
+            icon: '🎓', 
+            subject: 'School Report Card', 
+            message: `Your current GPA is ${GameState.school.gpa}. Keep up the good work!` 
+        });
+    }
+    
+    // Birthday mail
+    if (GameState.player.birthday && 
+        GameState.time.month === GameState.player.birthday.month && 
         GameState.time.date === GameState.player.birthday.day) {
         mailItems.unshift({ 
             type: 'birthday', 
@@ -65,8 +75,8 @@ function renderMail() {
             <div class="checklist-item">
                 <div class="checklist-icon">${mail.icon}</div>
                 <div class="checklist-text">
-                    <strong>${mail.subject}</strong>
-                    <div class="desc">${mail.message}</div>
+                    <strong>${Utils.escapeHtml(mail.subject)}</strong>
+                    <div class="desc">${Utils.escapeHtml(mail.message)}</div>
                 </div>
                 <button class="btn btn-primary" onclick="readMail(${index})">Read</button>
             </div>
@@ -84,7 +94,7 @@ function readMail(index) {
 function renderBills() {
     let html = '<h3>💰 Bills</h3>';
     
-    if (GameState.player.age < 18) {
+    if (GameState.player.age < GameState.ADULT_AGE) {
         html += `
             <div class="alert alert-info">
                 ℹ️ You don't have any bills yet. Your parents pay for everything!
@@ -101,7 +111,7 @@ function renderBills() {
         return html;
     }
     
-    const bills = GameState.adult.bills;
+    const bills = GameState.adult.bills || [];
     
     if (bills.length === 0) {
         html += '<div class="alert alert-success">✅ No bills due!</div>';
@@ -112,13 +122,13 @@ function renderBills() {
     
     bills.forEach((bill, index) => {
         const overdue = GameState.time.date > bill.dueDate;
-        const dueSoon = bill.dueDate - GameState.time.date <= 3;
+        const dueSoon = bill.dueDate - GameState.time.date <= 3 && bill.dueDate - GameState.time.date > 0;
         
         html += `
             <div class="checklist-item ${bill.paid ? 'completed' : ''}">
                 <div class="checklist-icon">${bill.paid ? '✅' : overdue ? '🚨' : dueSoon ? '⚠️' : '📄'}</div>
                 <div class="checklist-text">
-                    <strong>${bill.name}</strong>
+                    <strong>${Utils.escapeHtml(bill.name)}</strong>
                     <div class="desc">Amount: $${bill.amount.toFixed(2)}</div>
                     <div class="desc">Due: Day ${bill.dueDate} ${overdue ? '(OVERDUE!)' : dueSoon ? '(Soon!)' : ''}</div>
                 </div>
@@ -151,6 +161,11 @@ function renderBills() {
 
 function payBill(index) {
     const bill = GameState.adult.bills[index];
+    
+    if (!bill) {
+        UI.showNotification('❌ Bill not found!', 'error');
+        return;
+    }
     
     if (bill.paid) {
         UI.showNotification('✅ Bill already paid!', 'info');
@@ -191,3 +206,5 @@ function renderPackages() {
         </div>
     `;
 }
+
+console.log('✅ postoffice.js loaded');
