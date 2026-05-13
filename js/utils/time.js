@@ -1,203 +1,292 @@
-// ==================== MAIN GAME CONTROLLER ====================
+// ==================== TIME SYSTEM ====================
 
-let gameInitialized = false;
-
-function startGame() {
-    const nameInput = document.getElementById('nameInput');
-    const genderInput = document.getElementById('genderInput');
+const TimeManager = {
+    interval: null,
+    baseInterval: 1000, // 1 second
     
-    if (!nameInput || !genderInput) {
-        console.error('Input elements not found');
-        return;
-    }
+    start() {
+        this.stop(); // Clear any existing interval
+        
+        if (GameState.time.speed <= 0) {
+            console.warn('Invalid speed, setting to 1');
+            GameState.time.speed = 1;
+        }
+        
+        const intervalTime = this.baseInterval / GameState.time.speed;
+        
+        this.interval = setInterval(() => {
+            if (!GameState.time.paused) {
+                this.tick();
+            }
+        }, intervalTime);
+        
+        console.log(`⏰ Time started at ${GameState.time.speed}x speed`);
+    },
     
-    const name = Utils.sanitizeInput(nameInput.value.trim(), 15);
-    const gender = genderInput.value;
+    stop() {
+        if (this.interval) {
+            clearInterval(this.interval);
+            this.interval = null;
+        }
+    },
     
-    if (!name || name.length < 2) {
-        UI.showNotification('Please enter a valid name (at least 2 characters)!', 'error');
-        return;
-    }
+    tick() {
+        GameState.time.minute++;
+        
+        if (GameState.time.minute >= 60) {
+            GameState.time.minute = 0;
+            GameState.time.hour++;
+        }
+        
+        if (GameState.time.hour >= 24) {
+            GameState.time.hour = 0;
+            GameState.advanceDay();
+            this.generateDailyTasks();
+        }
+        
+        // Check for timed events
+        this.checkEvents();
+        
+        // Update display
+        this.updateDisplay();
+    },
     
-    GameState.player.name = name;
-    GameState.player.gender = gender;
-    GameState.player.birthday = { month: 1, day: 1 };
-    
-    const onboarding = document.getElementById('onboarding');
-    if (onboarding) {
-        onboarding.classList.remove('active');
-    }
-    
-    initializeGame();
-}
-
-function initializeGame() {
-    if (gameInitialized) {
-        console.warn('Game already initialized');
-        return;
-    }
-    
-    console.log('🎮 Initializing Life Skills Academy...');
-    
-    try {
-        // Try to load saved game
-        const hasSave = SaveSystem.hasSaveData();
-        if (hasSave) {
-            const saveInfo = SaveSystem.getSaveInfo();
-            if (saveInfo && confirm(`Load existing save? (${saveInfo.playerName}, Age ${saveInfo.age})`)) {
-                SaveSystem.load();
+    checkEvents() {
+        const time = GameState.time;
+        const minutes = time.hour * 60 + time.minute;
+        
+        // School warnings
+        if (minutes === 7 * 60 + 50 && GameState.isWeekday() && GameState.player.age < GameState.ADULT_AGE) {
+            UI.showNotification('⚠️ School starts in 10 minutes!', 'warning');
+        }
+        
+        // School tardy
+        if (minutes === 8 * 60 + 5 && GameState.isWeekday() && GameState.player.age < GameState.ADULT_AGE) {
+            const period = GameState.getCurrentPeriod();
+            if (period && period.name !== 'Lunch' && !GameState.school.attendance[period.name]) {
+                GameState.school.tardies++;
+                UI.showNotification(`📚 TARDY for ${period.name}!`, 'error');
             }
         }
         
-        // Initialize systems
-        SaveSystem.init();
-        City3D.init();
-        TimeManager.start();
+        // Work warnings
+        if (GameState.work.currentJob && minutes === 15 * 60 + 25) {
+            UI.showNotification('💼 Work shift starts in 5 minutes!', 'warning');
+        }
         
-        // Generate daily content
+        if (GameState.work.currentJob && minutes === 15 * 60 + 35 && !GameState.work.onShift) {
+            GameState.work.warnings++;
+            UI.showNotification(`⚠️ LATE for work! Warning ${GameState.work.warnings}/3`, 'error');
+            
+            if (GameState.work.warnings >= 3) {
+                UI.showNotification('🚫 FIRED for excessive tardiness!', 'error');
+                GameState.work.currentJob = null;
+                GameState.work.warnings = 0;
+            }
+        }
+        
+        // Bill reminders (for adults)
+        if (GameState.player.age >= GameState.ADULT_AGE && time.hour === 9 && time.minute === 0) {
+            GameState.adult.bills.forEach(bill => {
+                if (!bill.paid) {
+                    const daysUntilDue = bill.dueDate - time.date;
+                    
+                    if (daysUntilDue === 3) {
+                        UI.showNotification(`💰 ${bill.name} due in 3 days!`, 'warning');
+                    } else if (daysUntilDue === 0) {
+                        UI.showNotification(`⚠️ ${bill.name} DUE TODAY!`, 'error');
+                    } else if (daysUntilDue < 0) {
+                        bill.amount *= 1.05; // 5% late fee
+                        UI.showNotification(`🚨 ${bill.name} OVERDUE! Late fee added.`, 'error');
+                    }
+                }
+            });
+        }
+        
+        // Grocery warning
+        if (GameState.player.age >= GameState.ADULT_AGE && time.hour === 18 && time.minute === 0) {
+            if (GameState.adult.groceries < 20) {
+                UI.showNotification('🛒 Running low on groceries!', 'warning');
+            }
+        }
+        
+        // Clear busy status
+        if (GameState.isBusy()) {
+            const busyMinutes = GameState.time.busyUntil.hour * 60 + GameState.time.busyUntil.minute;
+            if (minutes >= busyMinutes) {
+                const activity = GameState.currentActivity;
+                GameState.clearBusy();
+                if (activity) {
+                    UI.showNotification(`✅ Finished: ${activity}`, 'success');
+                }
+            }
+        }
+    },
+    
+    generateDailyTasks() {
+        console.log('📋 Generating daily tasks...');
+        
+        // Generate chores
         GameState.generateDailyChores();
-        TimeManager.generateHomework();
-        GameState.calculateGPA();
         
-        // Update UI
-        UI.updateStats();
-        
-        // Welcome message
-        setTimeout(() => {
-            UI.showNotification(`Welcome, ${GameState.player.name}!`, 'success', 5000);
-        }, 500);
-        
-        // Tutorial
-        if (!GameState.tutorials.shown.welcome) {
-            setTimeout(() => {
-                showWelcomeTutorial();
-                GameState.tutorials.shown.welcome = true;
-            }, 2000);
+        // Generate homework
+        if (GameState.isWeekday() && GameState.player.age < GameState.ADULT_AGE) {
+            this.generateHomework();
         }
         
-        gameInitialized = true;
-        console.log('✓ Game initialized successfully');
+        // Reset school attendance
+        GameState.school.attendance = {};
         
-    } catch (error) {
-        console.error('Failed to initialize game:', error);
-        UI.showNotification('Failed to start game. Please refresh the page.', 'error');
-    }
-}
-
-function showWelcomeTutorial() {
-    const content = `
-        <div class="info-box">
-            <h3>Welcome to Life Skills Academy!</h3>
-            <p><strong>Your Goal:</strong> Learn real-world skills to prepare for adulthood.</p>
-            
-            <h4>🏠 Click buildings to explore:</h4>
-            <ul>
-                <li><strong>Home:</strong> Do chores, cook meals, sleep</li>
-                <li><strong>School:</strong> Attend classes, do homework</li>
-                <li><strong>Bank:</strong> Manage money, open accounts</li>
-                <li><strong>Store:</strong> Buy supplies</li>
-                <li><strong>Job Center:</strong> Find work and earn money</li>
-            </ul>
-            
-            <h4>⏰ Time System:</h4>
-            <p>Time progresses automatically. Complete tasks before deadlines!</p>
-            <ul>
-                <li>School: Monday-Friday, 8:00 AM - 1:20 PM</li>
-                <li>Don't be late! Tardies affect your record</li>
-                <li>Complete homework to improve grades</li>
-            </ul>
-            
-            <h4>🎂 Age Progression:</h4>
-            <p>You start at age 14. When you turn 18, you'll need to:</p>
-            <ul>
-                <li>Pay rent if you move out</li>
-                <li>Buy your own groceries</li>
-                <li>Manage all bills independently</li>
-            </ul>
-            
-            <p class="text-center mt-20"><strong>Good luck! 🌟</strong></p>
-        </div>
-    `;
-    
-    UI.showModal('🎓 How to Play', content, [
-        { 
-            text: 'Got it!', 
-            class: 'btn-primary', 
-            action: () => {} 
+        // Monthly bills for adults
+        if (GameState.player.age >= GameState.ADULT_AGE && GameState.time.date === 1) {
+            this.generateMonthlyBills();
         }
-    ]);
-}
-
-// Time control functions
-function setSpeed(speed) {
-    if (![1, 3, 10].includes(speed)) {
-        console.error('Invalid speed:', speed);
-        return;
-    }
-    TimeManager.setSpeed(speed);
-}
-
-function togglePause() {
-    TimeManager.togglePause();
-}
-
-// Stats update interval
-let statsUpdateInterval = null;
-
-function startStatsUpdate() {
-    if (statsUpdateInterval) {
-        clearInterval(statsUpdateInterval);
-    }
-    statsUpdateInterval = setInterval(() => {
-        UI.updateStats();
-    }, 5000);
-}
-
-// Keyboard shortcuts
-document.addEventListener('keydown', (e) => {
-    // Don't trigger if typing in input
-    if (e.target.matches('input, textarea')) {
-        return;
-    }
+    },
     
-    switch(e.code) {
-        case 'Space':
-            e.preventDefault();
-            togglePause();
-            break;
-        case 'Digit1':
-            setSpeed(1);
-            break;
-        case 'Digit2':
-            setSpeed(3);
-            break;
-        case 'Digit3':
-            setSpeed(10);
-            break;
-        case 'Escape':
-            const locationScreen = document.getElementById('locationScreen');
-            if (locationScreen && !locationScreen.classList.contains('hidden')) {
-                backToCity();
+    generateHomework() {
+        const subjects = Object.keys(GameState.school.grades);
+        
+        GameState.school.homework = subjects.map(subject => ({
+            subject: subject,
+            description: this.getHomeworkDescription(subject),
+            time: 30 + Math.floor(Math.random() * 30),
+            done: false
+        }));
+        
+        console.log(`📚 Generated homework for ${subjects.length} subjects`);
+    },
+    
+    getHomeworkDescription(subject) {
+        const descriptions = {
+            Math: ['Algebra worksheet', 'Geometry problems', 'Word problems', 'Practice equations', 'Chapter review'],
+            English: ['Essay writing', 'Read chapter 5', 'Grammar exercises', 'Book report', 'Vocabulary study'],
+            Science: ['Lab report', 'Study for quiz', 'Research project', 'Worksheet', 'Chapter questions'],
+            History: ['Read chapter', 'Timeline activity', 'Essay questions', 'Study notes', 'Map work'],
+            PE: ['Fitness log', 'Health worksheet', 'Sports rules study', 'Wellness plan', 'Activity report']
+        };
+        
+        const options = descriptions[subject] || ['Complete assignment'];
+        return options[Math.floor(Math.random() * options.length)];
+    },
+    
+    generateMonthlyBills() {
+        GameState.adult.bills = [];
+        
+        // Rent bill
+        if (GameState.adult.apartment) {
+            GameState.adult.bills.push({
+                name: 'Rent',
+                amount: GameState.adult.apartment.rent,
+                dueDate: 5,
+                paid: false
+            });
+        }
+        
+        // Utilities (if adult)
+        if (GameState.adult.apartment) {
+            GameState.adult.bills.push({
+                name: 'Electricity',
+                amount: 50 + Math.floor(Math.random() * 30),
+                dueDate: 15,
+                paid: false
+            });
+            
+            GameState.adult.bills.push({
+                name: 'Water',
+                amount: 30 + Math.floor(Math.random() * 20),
+                dueDate: 15,
+                paid: false
+            });
+        }
+        
+        // Phone bill
+        if (GameState.player.hasPhone) {
+            GameState.adult.bills.push({
+                name: 'Phone',
+                amount: 40,
+                dueDate: 10,
+                paid: false
+            });
+        }
+        
+        // Credit card bill
+        if (GameState.money.creditBalance > 0) {
+            const minPayment = Math.max(25, GameState.money.creditBalance * 0.02);
+            GameState.adult.bills.push({
+                name: 'Credit Card (min payment)',
+                amount: minPayment,
+                dueDate: 20,
+                paid: false
+            });
+        }
+        
+        console.log(`💰 Generated ${GameState.adult.bills.length} bills for this month`);
+    },
+    
+    updateDisplay() {
+        const time = GameState.time;
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
+        const dayName = days[time.day - 1] || days[0];
+        const monthName = months[time.month] || 'Jan';
+        
+        let hour = time.hour === 0 ? 12 : time.hour > 12 ? time.hour - 12 : time.hour;
+        const minute = String(time.minute).padStart(2, '0');
+        const ampm = time.hour >= 12 ? 'PM' : 'AM';
+        
+        const display = `${dayName}, ${monthName} ${time.date} - ${hour}:${minute} ${ampm}`;
+        
+        const element = document.getElementById('timeDisplay');
+        if (element) {
+            element.textContent = display;
+        }
+    },
+    
+    setSpeed(speed) {
+        if (![1, 3, 10].includes(speed)) {
+            console.error('Invalid speed:', speed);
+            return;
+        }
+        
+        GameState.time.speed = speed;
+        this.start(); // Restart with new speed
+        
+        // Update button states
+        document.querySelectorAll('.time-btn:not(.pause)').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        const speedBtn = document.getElementById(`speed${speed}`);
+        if (speedBtn) {
+            speedBtn.classList.add('active');
+        }
+        
+        console.log(`⏩ Speed set to ${speed}x`);
+    },
+    
+    togglePause() {
+        GameState.time.paused = !GameState.time.paused;
+        
+        const btn = document.getElementById('pauseBtn');
+        if (btn) {
+            if (GameState.time.paused) {
+                btn.textContent = '▶';
+                btn.classList.remove('pause');
+                btn.classList.add('active');
+                btn.style.background = '#27ae60';
+                btn.style.borderColor = '#27ae60';
+            } else {
+                btn.textContent = '⏸';
+                btn.classList.remove('active');
+                btn.classList.add('pause');
+                btn.style.background = '#e74c3c';
+                btn.style.borderColor = '#e74c3c';
             }
-            break;
+        }
+        
+        console.log(GameState.time.paused ? '⏸ Paused' : '▶️ Resumed');
     }
-});
+};
 
-// Cleanup on page unload
-window.addEventListener('beforeunload', () => {
-    if (statsUpdateInterval) {
-        clearInterval(statsUpdateInterval);
-    }
-    if (City3D) {
-        City3D.destroy();
-    }
-    if (TimeManager) {
-        TimeManager.stop();
-    }
-    SaveSystem.save(true);
-});
-
-// Start stats updates when game starts
-startStatsUpdate();
-
-console.log('✅ game.js loaded');
+console.log('✅ time.js loaded');
