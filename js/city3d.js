@@ -9,6 +9,7 @@ const City3D = {
     raycaster: null,
     mouse: null,
     animationId: null,
+    isRendering: false,
     
     buildingData: [
         { name: 'Home', color: 0xff5555, x: -8, z: 8, width: 3, height: 2.5, desc: 'Your family home', icon: '🏠' },
@@ -24,53 +25,61 @@ const City3D = {
     init() {
         console.log('Initializing 3D City...');
         
-        // Setup Three.js
-        this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x87ceeb);
-        this.scene.fog = new THREE.Fog(0x87ceeb, 20, 60);
-        
-        // Camera
-        this.camera = new THREE.PerspectiveCamera(
-            60,
-            window.innerWidth / (window.innerHeight - 60),
-            0.1,
-            1000
-        );
-        this.camera.position.set(0, 15, 20);
-        this.camera.lookAt(0, 0, 0);
-        
-        // Renderer
-        const canvas = document.getElementById('cityCanvas');
-        this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-        this.renderer.setSize(window.innerWidth, window.innerHeight - 60);
-        this.renderer.shadowMap.enabled = true;
-        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        
-        // Raycaster for hover detection
-        this.raycaster = new THREE.Raycaster();
-        this.mouse = new THREE.Vector2();
-        
-        // Build the city
-        this.createLighting();
-        this.createGround();
-        this.createBuildings();
-        this.createEnvironment();
-        
-        // Event listeners
-        this.setupEventListeners();
-        
-        // Start animation loop
-        this.animate();
-        
-        console.log('✓ 3D City initialized');
+        try {
+            // Setup Three.js
+            this.scene = new THREE.Scene();
+            this.scene.background = new THREE.Color(0x87ceeb);
+            this.scene.fog = new THREE.Fog(0x87ceeb, 20, 60);
+            
+            // Camera
+            this.camera = new THREE.PerspectiveCamera(
+                60,
+                window.innerWidth / (window.innerHeight - 60),
+                0.1,
+                1000
+            );
+            this.camera.position.set(0, 15, 20);
+            this.camera.lookAt(0, 0, 0);
+            
+            // Renderer
+            const canvas = document.getElementById('cityCanvas');
+            if (!canvas) {
+                throw new Error('Canvas element not found');
+            }
+            
+            this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            this.renderer.setSize(window.innerWidth, window.innerHeight - 60);
+            this.renderer.shadowMap.enabled = true;
+            this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            
+            // Raycaster for hover detection
+            this.raycaster = new THREE.Raycaster();
+            this.mouse = new THREE.Vector2();
+            
+            // Build the city
+            this.createLighting();
+            this.createGround();
+            this.createBuildings();
+            this.createEnvironment();
+            
+            // Event listeners
+            this.setupEventListeners();
+            
+            // Start animation loop
+            this.isRendering = true;
+            this.animate();
+            
+            console.log('✓ 3D City initialized');
+        } catch (error) {
+            console.error('Failed to initialize 3D city:', error);
+            UI.showNotification('Failed to load 3D view', 'error');
+        }
     },
     
     createLighting() {
-        // Ambient light
         const ambient = new THREE.AmbientLight(0xffffff, 0.6);
         this.scene.add(ambient);
         
-        // Directional light (sun)
         const sun = new THREE.DirectionalLight(0xffffff, 0.8);
         sun.position.set(10, 20, 10);
         sun.castShadow = true;
@@ -84,7 +93,6 @@ const City3D = {
     },
     
     createGround() {
-        // Ground plane
         const groundGeometry = new THREE.PlaneGeometry(50, 50);
         const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x5a8f5a });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
@@ -92,22 +100,18 @@ const City3D = {
         ground.receiveShadow = true;
         this.scene.add(ground);
         
-        // Roads
         const roadMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
         
-        // Horizontal road
         const roadH = new THREE.Mesh(new THREE.PlaneGeometry(50, 4), roadMaterial);
         roadH.rotation.x = -Math.PI / 2;
         roadH.position.y = 0.01;
         this.scene.add(roadH);
         
-        // Vertical road
         const roadV = new THREE.Mesh(new THREE.PlaneGeometry(4, 50), roadMaterial);
         roadV.rotation.x = -Math.PI / 2;
         roadV.position.y = 0.01;
         this.scene.add(roadV);
         
-        // Road markings
         const markingMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
         for (let i = -20; i < 20; i += 3) {
             const marking = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 1.5), markingMaterial);
@@ -136,7 +140,6 @@ const City3D = {
     createBuilding(data) {
         const group = new THREE.Group();
         
-        // Main building
         const geometry = new THREE.BoxGeometry(data.width, data.height, data.width);
         const material = new THREE.MeshLambertMaterial({ color: data.color });
         const building = new THREE.Mesh(geometry, material);
@@ -145,7 +148,6 @@ const City3D = {
         building.receiveShadow = true;
         group.add(building);
         
-        // Roof
         const roofGeometry = new THREE.ConeGeometry(data.width * 0.7, data.height * 0.3, 4);
         const roofMaterial = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
         const roof = new THREE.Mesh(roofGeometry, roofMaterial);
@@ -154,7 +156,6 @@ const City3D = {
         roof.castShadow = true;
         group.add(roof);
         
-        // Windows
         const windowMaterial = new THREE.MeshBasicMaterial({ color: 0x88ccff });
         const windowSize = 0.3;
         const windowSpacing = 0.8;
@@ -174,14 +175,12 @@ const City3D = {
             }
         }
         
-        // Door
         const doorGeometry = new THREE.PlaneGeometry(0.6, 1);
         const doorMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
         const door = new THREE.Mesh(doorGeometry, doorMaterial);
         door.position.set(0, 0.5, data.width / 2 + 0.01);
         group.add(door);
         
-        // Position the building
         group.position.set(data.x, 0, data.z);
         group.userData = data;
         
@@ -189,7 +188,6 @@ const City3D = {
     },
     
     createEnvironment() {
-        // Trees
         const treePositions = [
             [-12, 12], [12, 12], [-12, -12], [12, -12],
             [-15, 0], [15, 0], [0, 15], [0, -15]
@@ -201,7 +199,6 @@ const City3D = {
             this.scene.add(tree);
         });
         
-        // Street lights
         const lightPositions = [
             [-5, 5], [5, 5], [-5, -5], [5, -5]
         ];
@@ -212,7 +209,6 @@ const City3D = {
             this.scene.add(light);
         });
         
-        // Clouds
         for (let i = 0; i < 10; i++) {
             const cloud = this.createCloud();
             cloud.position.set(
@@ -227,7 +223,6 @@ const City3D = {
     createTree() {
         const group = new THREE.Group();
         
-        // Trunk
         const trunkGeometry = new THREE.CylinderGeometry(0.2, 0.3, 2, 8);
         const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
         const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
@@ -235,7 +230,6 @@ const City3D = {
         trunk.castShadow = true;
         group.add(trunk);
         
-        // Leaves
         const leavesGeometry = new THREE.SphereGeometry(1.2, 8, 8);
         const leavesMaterial = new THREE.MeshLambertMaterial({ color: 0x228b22 });
         const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
@@ -249,7 +243,6 @@ const City3D = {
     createStreetLight() {
         const group = new THREE.Group();
         
-        // Pole
         const poleGeometry = new THREE.CylinderGeometry(0.1, 0.1, 4, 8);
         const poleMaterial = new THREE.MeshLambertMaterial({ color: 0x666666 });
         const pole = new THREE.Mesh(poleGeometry, poleMaterial);
@@ -257,14 +250,12 @@ const City3D = {
         pole.castShadow = true;
         group.add(pole);
         
-        // Light
         const lightGeometry = new THREE.SphereGeometry(0.3, 8, 8);
         const lightMaterial = new THREE.MeshBasicMaterial({ color: 0xffffaa });
         const light = new THREE.Mesh(lightGeometry, lightMaterial);
         light.position.y = 4;
         group.add(light);
         
-        // Point light
         const pointLight = new THREE.PointLight(0xffffaa, 0.5, 10);
         pointLight.position.y = 4;
         group.add(pointLight);
@@ -295,23 +286,28 @@ const City3D = {
     },
     
     setupEventListeners() {
-        // Mouse move for hover
-        window.addEventListener('mousemove', (e) => this.onMouseMove(e));
+        this.onMouseMove = this.onMouseMove.bind(this);
+        this.onMouseClick = this.onMouseClick.bind(this);
+        this.onWindowResize = this.onWindowResize.bind(this);
         
-        // Click to enter building
-        window.addEventListener('click', (e) => this.onMouseClick(e));
+        window.addEventListener('mousemove', this.onMouseMove);
+        window.addEventListener('click', this.onMouseClick);
+        window.addEventListener('resize', this.onWindowResize);
         
-        // Window resize
-        window.addEventListener('resize', () => this.onWindowResize());
+        const rotateLeft = document.getElementById('rotateLeft');
+        const rotateRight = document.getElementById('rotateRight');
+        const zoomIn = document.getElementById('zoomIn');
+        const zoomOut = document.getElementById('zoomOut');
         
-        // Camera controls
-        document.getElementById('rotateLeft').addEventListener('click', () => this.rotateCamera(-1));
-        document.getElementById('rotateRight').addEventListener('click', () => this.rotateCamera(1));
-        document.getElementById('zoomIn').addEventListener('click', () => this.zoomCamera(-1));
-        document.getElementById('zoomOut').addEventListener('click', () => this.zoomCamera(1));
+        if (rotateLeft) rotateLeft.addEventListener('click', () => this.rotateCamera(-1));
+        if (rotateRight) rotateRight.addEventListener('click', () => this.rotateCamera(1));
+        if (zoomIn) zoomIn.addEventListener('click', () => this.zoomCamera(-1));
+        if (zoomOut) zoomOut.addEventListener('click', () => this.zoomCamera(1));
     },
     
     onMouseMove(event) {
+        if (!this.renderer) return;
+        
         const canvas = this.renderer.domElement;
         const rect = canvas.getBoundingClientRect();
         
@@ -322,19 +318,19 @@ const City3D = {
     },
     
     checkHover() {
+        if (!this.raycaster || !this.camera) return;
+        
         this.raycaster.setFromCamera(this.mouse, this.camera);
         
         const buildingMeshes = this.buildings.map(b => b.mesh.children[0]);
         const intersects = this.raycaster.intersectObjects(buildingMeshes);
         
-        // Reset previous hover
         if (this.hoveredBuilding) {
             this.hoveredBuilding.children[0].material.emissive.setHex(0x000000);
             this.hoveredBuilding = null;
             this.hideTooltip();
         }
         
-        // New hover
         if (intersects.length > 0) {
             const building = intersects[0].object.parent;
             this.hoveredBuilding = building;
@@ -348,31 +344,36 @@ const City3D = {
     
     showTooltip(data) {
         const tooltip = document.getElementById('buildingTooltip');
-        tooltip.classList.remove('hidden');
-        tooltip.querySelector('.tooltip-title').textContent = `${data.icon} ${data.name}`;
-        tooltip.querySelector('.tooltip-desc').textContent = data.desc;
+        if (!tooltip) return;
         
-        // Position tooltip near mouse
+        tooltip.classList.remove('hidden');
+        
+        const titleEl = tooltip.querySelector('.tooltip-title');
+        const descEl = tooltip.querySelector('.tooltip-desc');
+        
+        if (titleEl) titleEl.textContent = `${data.icon} ${data.name}`;
+        if (descEl) descEl.textContent = data.desc;
+        
         tooltip.style.left = (this.mouse.x * 0.5 + 0.5) * window.innerWidth + 'px';
         tooltip.style.top = ((1 - this.mouse.y) * 0.5) * (window.innerHeight - 60) + 'px';
     },
     
     hideTooltip() {
         const tooltip = document.getElementById('buildingTooltip');
-        tooltip.classList.add('hidden');
+        if (tooltip) {
+            tooltip.classList.add('hidden');
+        }
     },
     
     onMouseClick(event) {
         if (this.hoveredBuilding) {
             const data = this.hoveredBuilding.userData;
-            console.log('Entering:', data.name);
             this.enterBuilding(data.name);
         }
     },
     
     enterBuilding(buildingName) {
-        // Check restrictions
-        if (buildingName === 'Apartments' && GameState.player.age < 18) {
+        if (buildingName === 'Apartments' && GameState.player.age < GameState.ADULT_AGE) {
             UI.showNotification('❌ You must be 18 to rent an apartment!', 'error');
             return;
         }
@@ -382,11 +383,12 @@ const City3D = {
             return;
         }
         
-        // Hide city, show location
+        // Pause rendering when entering location
+        this.pauseRendering();
+        
         document.getElementById('cityContainer').classList.add('hidden');
         document.getElementById('locationScreen').classList.remove('hidden');
         
-        // Load location
         const locationMap = {
             'Home': 'loadHome',
             'School': 'loadSchool',
@@ -399,12 +401,29 @@ const City3D = {
         };
         
         const loadFunction = locationMap[buildingName];
-        if (window[loadFunction]) {
+        if (loadFunction && typeof window[loadFunction] === 'function') {
             window[loadFunction]();
         }
     },
     
+    pauseRendering() {
+        this.isRendering = false;
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+        }
+    },
+    
+    resumeRendering() {
+        if (!this.isRendering) {
+            this.isRendering = true;
+            this.animate();
+        }
+    },
+    
     rotateCamera(direction) {
+        if (!this.camera) return;
+        
         const angle = direction * Math.PI / 8;
         const x = this.camera.position.x;
         const z = this.camera.position.z;
@@ -415,10 +434,11 @@ const City3D = {
     },
     
     zoomCamera(direction) {
+        if (!this.camera) return;
+        
         const factor = 1 + direction * 0.1;
         this.camera.position.multiplyScalar(factor);
         
-        // Clamp zoom
         const distance = this.camera.position.length();
         if (distance < 15) {
             this.camera.position.normalize().multiplyScalar(15);
@@ -428,43 +448,76 @@ const City3D = {
     },
     
     onWindowResize() {
+        if (!this.camera || !this.renderer) return;
+        
         this.camera.aspect = window.innerWidth / (window.innerHeight - 60);
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(window.innerWidth, window.innerHeight - 60);
     },
     
     animate() {
+        if (!this.isRendering) return;
+        
         this.animationId = requestAnimationFrame(() => this.animate());
         
-        // Rotate clouds slowly
         this.scene.children.forEach(obj => {
-            if (obj.type === 'Group' && obj.children.length > 2 && obj.children[0].geometry.type === 'SphereGeometry') {
+            if (obj.type === 'Group' && obj.children.length > 2 && 
+                obj.children[0].geometry && obj.children[0].geometry.type === 'SphereGeometry') {
                 obj.position.x += 0.002;
                 if (obj.position.x > 25) obj.position.x = -25;
             }
         });
         
-        this.renderer.render(this.scene, this.camera);
+        if (this.renderer && this.scene && this.camera) {
+            this.renderer.render(this.scene, this.camera);
+        }
     },
     
     destroy() {
-        if (this.animationId) {
-            cancelAnimationFrame(this.animationId);
-        }
+        console.log('Destroying 3D City...');
+        
+        this.pauseRendering();
+        
+        // Remove event listeners
+        window.removeEventListener('mousemove', this.onMouseMove);
+        window.removeEventListener('click', this.onMouseClick);
+        window.removeEventListener('resize', this.onWindowResize);
         
         // Cleanup Three.js resources
-        this.scene.traverse(obj => {
-            if (obj.geometry) obj.geometry.dispose();
-            if (obj.material) obj.material.dispose();
-        });
+        if (this.scene) {
+            this.scene.traverse(obj => {
+                if (obj.geometry) obj.geometry.dispose();
+                if (obj.material) {
+                    if (Array.isArray(obj.material)) {
+                        obj.material.forEach(mat => mat.dispose());
+                    } else {
+                        obj.material.dispose();
+                    }
+                }
+            });
+        }
         
-        this.renderer.dispose();
+        if (this.renderer) {
+            this.renderer.dispose();
+            this.renderer = null;
+        }
+        
+        this.scene = null;
+        this.camera = null;
+        this.buildings = [];
+        this.hoveredBuilding = null;
+        this.raycaster = null;
+        this.mouse = null;
+        
+        console.log('✓ 3D City destroyed');
     }
 };
 
-// Back to city function
 function backToCity() {
     document.getElementById('cityContainer').classList.remove('hidden');
     document.getElementById('locationScreen').classList.add('hidden');
     City3D.hideTooltip();
+    City3D.resumeRendering();
 }
+
+console.log('✅ city3d.js loaded');
