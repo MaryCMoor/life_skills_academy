@@ -12,55 +12,52 @@
     <link rel="stylesheet" href="css/minigames.css">
 </head>
 <body>
-    <!-- HUD Overlay -->
-    <div id="hud">
-        <div id="stats">
-            <div class="stat-item">
-                <span class="stat-label">💵 Cash:</span>
-                <span id="statCash">$50.00</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">📅 Date:</span>
-                <span id="statDate">Jan 1, 2020</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">⏰ Time:</span>
-                <span id="statTime">07:00</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">👤 Age:</span>
-                <span id="statAge">13</span>
+    <!-- Top Bar -->
+    <div id="topBar">
+        <div class="time-section">
+            <div class="time-display" id="timeDisplay">Loading...</div>
+            <div class="time-controls">
+                <button class="time-btn active" id="speed1" onclick="TimeManager.setSpeed(1)">1x</button>
+                <button class="time-btn" id="speed3" onclick="TimeManager.setSpeed(3)">3x</button>
+                <button class="time-btn" id="speed10" onclick="TimeManager.setSpeed(10)">10x</button>
+                <button class="time-btn pause" id="pauseBtn" onclick="TimeManager.togglePause()">⏸</button>
             </div>
         </div>
         
-        <div id="controls">
-            <button onclick="toggleView()">Switch View</button>
-            <button onclick="SaveSystem.saveGame()">💾 Save</button>
-            <button onclick="SaveSystem.loadGame()">📁 Load</button>
+        <div class="stats-section">
+            <div class="stat">💵 $<span id="playerCash">50</span></div>
+            <div class="stat">👤 Age <span id="playerAge">13</span></div>
+            <div class="stat">📚 GPA <span id="playerGpa">3.0</span></div>
         </div>
     </div>
     
-    <!-- Notification Area -->
-    <div id="notifications"></div>
-    
     <!-- City 3D View -->
-    <div id="city3d-container">
-        <canvas id="city3d-canvas"></canvas>
-        <div id="city3d-ui">
-            <div id="buildingInfo" class="info-panel">
-                <h3>Welcome to Life Skills Academy!</h3>
-                <p>Click on buildings to visit locations</p>
-            </div>
+    <div id="cityContainer">
+        <canvas id="cityCanvas"></canvas>
+        
+        <!-- City Controls -->
+        <div id="cityControls">
+            <button class="control-btn" id="rotateLeft">← Rotate</button>
+            <button class="control-btn" id="zoomIn">+ Zoom</button>
+            <button class="control-btn" id="zoomOut">- Zoom</button>
+            <button class="control-btn" id="rotateRight">Rotate →</button>
+        </div>
+        
+        <!-- Building Tooltip -->
+        <div id="buildingTooltip" class="tooltip hidden">
+            <div class="tooltip-title">Building Name</div>
+            <div class="tooltip-desc">Description</div>
+            <div class="tooltip-hint">Click to enter</div>
         </div>
     </div>
     
     <!-- Location Detail View -->
-    <div id="locationView" style="display: none;">
-        <div id="locationHeader">
+    <div id="locationScreen" class="hidden">
+        <div class="location-header">
             <h2 id="locationTitle">Location</h2>
-            <button onclick="toggleView()" class="btn-back">← Back to City</button>
+            <button class="btn-back" onclick="backToCity()">← Back to City</button>
         </div>
-        <div id="locationContent">
+        <div class="location-content" id="locationContent">
             <!-- Dynamic content loaded here -->
         </div>
     </div>
@@ -78,7 +75,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="js/city3d.js"></script>
     
-    <!-- Finance Scripts (NEW) -->
+    <!-- Finance Scripts -->
     <script src="js/finance/taxes.js"></script>
     <script src="js/finance/stocks.js"></script>
     
@@ -91,7 +88,6 @@
     <script src="js/locations/postoffice.js"></script>
     <script src="js/locations/apartments.js"></script>
     <script src="js/locations/college.js"></script>
-    <!-- <script src="js/finance/broker.js"></script>
     
     <!-- Minigame Scripts -->
     <script src="js/minigames/chores.js"></script>
