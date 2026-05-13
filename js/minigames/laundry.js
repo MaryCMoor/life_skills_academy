@@ -1,4 +1,4 @@
-// ==================== INTERACTIVE LAUNDRY SORTING GAME ====================
+// ==================== LAUNDRY SORTING MINIGAME ====================
 
 window.LaundryMinigame = {
     start() {
@@ -8,10 +8,8 @@ window.LaundryMinigame = {
     
     showSortingGame() {
         const overlay = document.createElement('div');
-        overlay.className = 'modal-overlay';
+        overlay.className = 'minigame-overlay active';
         overlay.id = 'laundryGame';
-        overlay.style.display = 'flex';
-        overlay.style.zIndex = '2000';
         
         const clothes = [
             { name: 'White Shirt', color: 'whites', emoji: '👕', bg: '#ffffff' },
@@ -29,14 +27,13 @@ window.LaundryMinigame = {
         ];
         
         let html = `
-            <div class="modal-content" style="max-width: 1000px;">
-                <div style="text-align: center; padding-bottom: 20px; border-bottom: 3px solid #3498db;">
-                    <h2 style="margin: 0; font-size: 32px;">🧺 Sort the Laundry</h2>
-                    <p style="color: #7f8c8d; margin: 10px 0 0 0;">Drag each item to the correct basket!</p>
+            <div class="minigame-container" style="max-width: 1000px;">
+                <div class="minigame-header">
+                    <div class="minigame-title">🧺 Sort the Laundry</div>
+                    <div class="minigame-subtitle">Drag each item to the correct basket!</div>
                 </div>
                 
                 <div style="margin: 30px 0; display: flex; gap: 20px;">
-                    <!-- Unsorted Pile -->
                     <div style="flex: 1;">
                         <h3 style="text-align: center; color: #2c3e50; margin-bottom: 15px;">Unsorted Laundry</h3>
                         <div id="unsortedPile" style="
@@ -63,13 +60,12 @@ window.LaundryMinigame = {
                                     border: 2px solid rgba(0,0,0,0.1);
                                 ">
                                     <span style="font-size: 24px;">${item.emoji}</span>
-                                    <span>${item.name}</span>
+                                    <span>${Utils.escapeHtml(item.name)}</span>
                                 </div>
                             `).join('')}
                         </div>
                     </div>
                     
-                    <!-- Sorting Baskets -->
                     <div style="flex: 1; display: flex; flex-direction: column; gap: 15px;">
                         <div class="basket" data-basket="whites" style="
                             background: linear-gradient(135deg, #ffffff, #f5f5f5);
@@ -114,15 +110,21 @@ window.LaundryMinigame = {
                         Sorted: <span id="laundryProgress">0</span> / ${clothes.length}
                     </div>
                 </div>
+                
+                <div class="minigame-actions">
+                    <button class="btn-skip" onclick="LaundryMinigame.close()">Skip</button>
+                </div>
             </div>
         `;
         
         overlay.innerHTML = html;
         document.body.appendChild(overlay);
         
-        // Drag and drop logic
+        this.setupLaundryDragDrop(clothes.length);
+    },
+    
+    setupLaundryDragDrop(totalItems) {
         let sortedCount = 0;
-        const totalItems = clothes.length;
         
         const items = document.querySelectorAll('.laundry-item');
         items.forEach(item => {
@@ -140,7 +142,7 @@ window.LaundryMinigame = {
                 basket.style.transform = 'scale(1.02)';
             });
             
-            basket.addEventListener('dragleave', (e) => {
+            basket.addEventListener('dragleave', () => {
                 basket.style.borderColor = '';
                 basket.style.transform = 'scale(1)';
             });
@@ -155,7 +157,6 @@ window.LaundryMinigame = {
                 const basketColor = basket.dataset.basket;
                 
                 if (correctColor === basketColor) {
-                    // Correct!
                     const item = document.querySelector(`[data-item="${itemId}"]`);
                     item.remove();
                     
@@ -185,12 +186,20 @@ window.LaundryMinigame = {
         
         UI.showNotification('✅ Laundry sorted perfectly! +$12, +10 laundry skill', 'success');
         
-        const overlay = document.getElementById('laundryGame');
-        if (overlay) overlay.remove();
+        this.close();
         
-        loadHome();
+        if (typeof loadHome === 'function') {
+            loadHome();
+        }
         UI.updateStats();
+    },
+    
+    close() {
+        const overlay = document.getElementById('laundryGame');
+        if (overlay && overlay.parentNode) {
+            overlay.parentNode.removeChild(overlay);
+        }
     }
 };
 
-console.log('✅ laundry.js loaded - Interactive LaundryMinigame ready');
+console.log('✅ laundry.js loaded');
