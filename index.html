@@ -15,12 +15,15 @@
     <!-- Top Bar -->
     <div id="topBar">
         <div class="time-section">
-            <div class="time-display" id="timeDisplay">Loading...</div>
+            <div class="time-display">
+                <div id="gameTime">07:00</div>
+                <div id="gameDate">Mon Jan 1, 2020</div>
+            </div>
             <div class="time-controls">
-                <button class="time-btn active" id="speed1" onclick="TimeManager.setSpeed(1)">1x</button>
-                <button class="time-btn" id="speed3" onclick="TimeManager.setSpeed(3)">3x</button>
-                <button class="time-btn" id="speed10" onclick="TimeManager.setSpeed(10)">10x</button>
-                <button class="time-btn pause" id="pauseBtn" onclick="TimeManager.togglePause()">⏸</button>
+                <button class="time-btn" onclick="TimeManager.setSpeed('normal')">1x</button>
+                <button class="time-btn" onclick="TimeManager.setSpeed('fast')">5x</button>
+                <button class="time-btn" onclick="TimeManager.setSpeed('veryFast')">30x</button>
+                <button class="time-btn pause" onclick="TimeManager.pause()">⏸</button>
             </div>
         </div>
         
@@ -28,6 +31,62 @@
             <div class="stat">💵 $<span id="playerCash">50</span></div>
             <div class="stat">👤 Age <span id="playerAge">13</span></div>
             <div class="stat">📚 GPA <span id="playerGpa">3.0</span></div>
+            <button class="btn btn-stats" onclick="StatsPanel.show()">📊 Stats</button>
+        </div>
+    </div>
+    
+    <!-- Needs Panel (Side) -->
+    <div id="needsPanel" style="position: fixed; right: 10px; top: 80px; background: rgba(255,255,255,0.95); padding: 15px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 100; min-width: 200px;">
+        <h3 style="margin: 0 0 15px 0; color: #2c3e50; font-size: 18px; border-bottom: 2px solid #3498db; padding-bottom: 5px;">Basic Needs</h3>
+        
+        <div class="need-item" style="margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span style="font-weight: bold; color: #2c3e50;">🍔 Hunger</span>
+                <span id="hungerValue" style="color: #27ae60; font-weight: bold;">100</span>
+            </div>
+            <div style="background: #ecf0f1; border-radius: 5px; height: 10px; overflow: hidden;">
+                <div id="hungerBar" style="width: 100%; height: 100%; background: #27ae60; transition: width 0.3s, background 0.3s;"></div>
+            </div>
+        </div>
+        
+        <div class="need-item" style="margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span style="font-weight: bold; color: #2c3e50;">⚡ Energy</span>
+                <span id="energyValue" style="color: #27ae60; font-weight: bold;">100</span>
+            </div>
+            <div style="background: #ecf0f1; border-radius: 5px; height: 10px; overflow: hidden;">
+                <div id="energyBar" style="width: 100%; height: 100%; background: #27ae60; transition: width 0.3s, background 0.3s;"></div>
+            </div>
+        </div>
+        
+        <div class="need-item" style="margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span style="font-weight: bold; color: #2c3e50;">🚿 Hygiene</span>
+                <span id="hygieneValue" style="color: #27ae60; font-weight: bold;">100</span>
+            </div>
+            <div style="background: #ecf0f1; border-radius: 5px; height: 10px; overflow: hidden;">
+                <div id="hygieneBar" style="width: 100%; height: 100%; background: #27ae60; transition: width 0.3s, background 0.3s;"></div>
+            </div>
+        </div>
+        
+        <div class="need-item" style="margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span style="font-weight: bold; color: #2c3e50;">😊 Happiness</span>
+                <span id="happinessValue" style="color: #27ae60; font-weight: bold;">100</span>
+            </div>
+            <div style="background: #ecf0f1; border-radius: 5px; height: 10px; overflow: hidden;">
+                <div id="happinessBar" style="width: 100%; height: 100%; background: #27ae60; transition: width 0.3s, background 0.3s;"></div>
+            </div>
+        </div>
+        
+        <div class="need-item" style="margin-bottom: 0;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span style="font-weight: bold; color: #2c3e50;">❤️ Health</span>
+                <span id="healthValue" style="color: #27ae60; font-weight: bold;">100</span>
+            </div>
+            <div style="background: #ecf0f1; border-radius: 5px; height: 10px; overflow: hidden;">
+                <div id="healthBar" style="width: 100%; height: 100%; background: #27ae60; transition: width 0.3s, background 0.3s;"></div>
+            </div>
         </div>
     </div>
     
@@ -68,6 +127,7 @@
     
     <!-- Utility Scripts -->
     <script src="js/utils/ui.js"></script>
+    <script src="js/utils/stats.js"></script>
     <script src="js/utils/time.js"></script>
     <script src="js/utils/saveload.js"></script>
     
