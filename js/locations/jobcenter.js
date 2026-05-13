@@ -5,21 +5,21 @@ function loadJobCenter() {
     
     const content = `
         <div class="tabs">
-            <div class="tab active" onclick="showJobTab('resume')">Resume</div>
-            <div class="tab" onclick="showJobTab('jobs')">Job Listings</div>
+            <div class="tab active" onclick="showJobTab('browse')">Browse Jobs</div>
             <div class="tab" onclick="showJobTab('current')">Current Job</div>
+            <div class="tab" onclick="showJobTab('applications')">My Applications</div>
         </div>
         
-        <div id="job-resume" class="tab-content active">
-            ${renderResume()}
-        </div>
-        
-        <div id="job-jobs" class="tab-content">
-            ${renderJobListings()}
+        <div id="job-browse" class="tab-content active">
+            ${renderJobBrowse()}
         </div>
         
         <div id="job-current" class="tab-content">
             ${renderCurrentJob()}
+        </div>
+        
+        <div id="job-applications" class="tab-content">
+            ${renderApplications()}
         </div>
     `;
     
@@ -34,158 +34,110 @@ function showJobTab(tab) {
     document.getElementById(`job-${tab}`).classList.add('active');
 }
 
-function renderResume() {
-    let html = '<h3>📄 Your Resume</h3>';
-    
-    if (!GameState.work.hasResume) {
-        html += `
-            <div class="alert alert-warning">
-                ⚠️ You need a resume before applying for jobs!
-            </div>
-            
-            <div class="card">
-                <div class="card-title">Create Your Resume</div>
-                <div class="card-content">
-                    <p>A resume is a document that shows employers:</p>
-                    <ul>
-                        <li>Your contact information</li>
-                        <li>Your education</li>
-                        <li>Your work experience</li>
-                        <li>Your skills</li>
-                    </ul>
-                    <button class="btn btn-primary btn-large mt-20" onclick="createResume()">
-                        ✍️ Create Resume
-                    </button>
-                </div>
-            </div>
-        `;
-    } else {
-        html += `
-            <div class="alert alert-success">
-                ✅ You have a resume ready!
-            </div>
-            
-            <div class="card">
-                <div class="card-title">📄 ${GameState.player.name}'s Resume</div>
-                <div class="card-content">
-                    <h4>Education:</h4>
-                    <p>Currently in Grade ${GameState.player.grade}</p>
-                    <p>GPA: ${GameState.school.gpa}</p>
-                    
-                    <h4>Skills:</h4>
-                    <ul>
-                        ${Object.keys(GameState.skills).map(skill => 
-                            `<li>${skill}: ${GameState.skills[skill]}/100</li>`
-                        ).join('')}
-                    </ul>
-                    
-                    <h4>Work Experience:</h4>
-                    ${GameState.work.jobHistory.length > 0 ? 
-                        '<ul>' + GameState.work.jobHistory.map(job => 
-                            `<li>${job.title} - ${job.duration}</li>`
-                        ).join('') + '</ul>' :
-                        '<p>No work experience yet</p>'
-                    }
-                    
-                    <button class="btn btn-primary mt-20" onclick="updateResume()">
-                        ✏️ Update Resume
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-    
-    return html;
-}
-
-function createResume() {
-    GameState.work.hasResume = true;
-    UI.showNotification('✅ Resume created!', 'success');
-    GameState.addSkill('timeManagement', 5);
-    loadJobCenter();
-}
-
-function updateResume() {
-    UI.showNotification('✅ Resume updated!', 'success');
-    loadJobCenter();
-}
-
-function renderJobListings() {
-    if (!GameState.work.hasResume) {
-        return `
-            <div class="alert alert-danger">
-                ❌ You need to create a resume first!
-            </div>
-        `;
-    }
+function renderJobBrowse() {
+    const age = GameState.player.age;
     
     const jobs = [
-        { id: 'cashier', title: 'Cashier', wage: 12, minAge: 14, minGPA: 0, hours: '4pm-8pm', desc: 'Work at local store', requirement: 'None' },
-        { id: 'tutor', title: 'Tutor', wage: 20, minAge: 15, minGPA: 3.5, hours: '3pm-6pm', desc: 'Help younger students', requirement: 'GPA 3.5+' },
-        { id: 'waiter', title: 'Waiter', wage: 15, minAge: 16, minGPA: 0, hours: '5pm-9pm', desc: 'Restaurant service', requirement: 'Age 16+' },
-        { id: 'retail', title: 'Retail Associate', wage: 14, minAge: 16, minGPA: 0, hours: '4pm-9pm', desc: 'Sales and stocking', requirement: 'Age 16+' },
-        { id: 'intern', title: 'Office Intern', wage: 18, minAge: 17, minGPA: 3.0, hours: '3pm-7pm', desc: 'Office work experience', requirement: 'Age 17+, GPA 3.0+' }
+        { 
+            id: 'paperboy', title: 'Paper Delivery', wage: 8, minAge: 12, hours: 10,
+            desc: 'Deliver newspapers early morning', requirements: ['None'], icon: '📰'
+        },
+        { 
+            id: 'babysitter', title: 'Babysitter', wage: 12, minAge: 13, hours: 15,
+            desc: 'Watch children for families', requirements: ['Good communication'], icon: '👶'
+        },
+        { 
+            id: 'grocery', title: 'Grocery Bagger', wage: 10, minAge: 14, hours: 20,
+            desc: 'Bag groceries at supermarket', requirements: ['Customer service'], icon: '🛒'
+        },
+        { 
+            id: 'cashier', title: 'Cashier', wage: 12, minAge: 16, hours: 25,
+            desc: 'Handle cash register', requirements: ['Math skills', 'Age 16+'], icon: '💵'
+        },
+        { 
+            id: 'restaurant', title: 'Server', wage: 15, minAge: 16, hours: 30,
+            desc: 'Serve food at restaurant', requirements: ['Communication', 'Age 16+'], icon: '🍽️'
+        },
+        { 
+            id: 'retail', title: 'Retail Sales', wage: 13, minAge: 16, hours: 30,
+            desc: 'Help customers in store', requirements: ['Sales skills', 'Age 16+'], icon: '👔'
+        }
     ];
     
     let html = '<h3>💼 Available Jobs</h3>';
+    html += '<p>Find a job that matches your age and skills!</p>';
+    
+    html += '<div class="content-grid">';
     
     jobs.forEach(job => {
-        const meetsAge = GameState.player.age >= job.minAge;
-        const meetsGPA = parseFloat(GameState.school.gpa) >= job.minGPA;
-        const eligible = meetsAge && meetsGPA;
+        const meetsAge = age >= job.minAge;
         const hasJob = GameState.work.currentJob !== null;
         
         html += `
-            <div class="job-listing">
-                <div class="job-title">${job.title}</div>
-                <div class="job-details">
-                    <div class="job-detail">💰 $${job.wage}/hour</div>
-                    <div class="job-detail">⏰ ${job.hours}</div>
-                    <div class="job-detail">📋 ${job.requirement}</div>
+            <div class="card">
+                <div class="card-title">${job.icon} ${Utils.escapeHtml(job.title)}</div>
+                <div class="card-content">
+                    <p>${Utils.escapeHtml(job.desc)}</p>
+                    
+                    <div class="info-row">
+                        <span class="info-label">Wage:</span>
+                        <span class="info-value">$${job.wage}/hour</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Hours/week:</span>
+                        <span class="info-value">${job.hours} hours</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Min Age:</span>
+                        <span class="info-value">${job.minAge}+ ${meetsAge ? '✅' : '❌'}</span>
+                    </div>
+                    
+                    <h4 style="margin-top: 15px;">Requirements:</h4>
+                    <ul style="margin: 5px 0; padding-left: 20px;">
+                        ${job.requirements.map(req => `<li>${Utils.escapeHtml(req)}</li>`).join('')}
+                    </ul>
+                    
+                    ${!meetsAge ?
+                        '<button class="btn" disabled>Too Young</button>' :
+                        hasJob ?
+                            '<button class="btn" disabled>Already Employed</button>' :
+                            `<button class="btn btn-primary" onclick="applyForJob('${job.id}', '${Utils.escapeHtml(job.title)}', ${job.wage}, ${job.hours})">
+                                Apply Now
+                            </button>`
+                    }
                 </div>
-                <div class="job-requirements">${job.desc}</div>
-                
-                ${!eligible ? 
-                    `<div class="alert alert-warning">
-                        ❌ Requirements not met
-                        ${!meetsAge ? `<br>• Need to be ${job.minAge} years old` : ''}
-                        ${!meetsGPA ? `<br>• Need GPA of ${job.minGPA}` : ''}
-                    </div>` :
-                    hasJob ?
-                        '<button class="btn" disabled>Already have a job</button>' :
-                        `<button class="btn btn-success" onclick="applyJob('${job.id}', '${job.title}', ${job.wage})">Apply</button>`
-                }
             </div>
         `;
     });
     
+    html += '</div>';
+    
     return html;
 }
 
-function applyJob(jobId, title, wage) {
-    GameState.work.currentJob = {
-        id: jobId,
-        title: title,
-        wage: wage,
-        startDate: new Date().toISOString()
-    };
-    
-    UI.showNotification(`🎉 Congratulations! You got the ${title} job!`, 'success');
-    UI.showNotification('💼 Work shifts start at 3:30 PM. Don\'t be late!', 'info', 5000);
-    
-    loadJobCenter();
-}
-
 function renderCurrentJob() {
-    if (!GameState.work.currentJob) {
+    const job = GameState.work.currentJob;
+    
+    if (!job) {
         return `
             <div class="alert alert-info">
-                You don't have a job yet. Check the Job Listings!
+                You don't have a job yet. Check the Browse Jobs tab to find work!
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Why Get a Job?</div>
+                <div class="card-content">
+                    <ul>
+                        <li>💵 Earn steady income</li>
+                        <li>📈 Build work experience</li>
+                        <li>🎯 Develop professional skills</li>
+                        <li>👔 Learn responsibility</li>
+                        <li>💼 Prepare for career</li>
+                    </ul>
+                </div>
             </div>
         `;
     }
-    
-    const job = GameState.work.currentJob;
     
     let html = '<h3>💼 Your Current Job</h3>';
     
@@ -193,76 +145,152 @@ function renderCurrentJob() {
         <div class="card">
             <div class="card-title">${job.title}</div>
             <div class="card-content">
-                <div class="info-row">
-                    <span class="info-label">Wage:</span>
-                    <span class="info-value">$${job.wage}/hour</span>
+                <div class="stats-display">
+                    <div class="stat-box">
+                        <div class="icon">💵</div>
+                        <div class="label">Hourly Wage</div>
+                        <div class="value">$${job.wage}/hr</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="icon">⏰</div>
+                        <div class="label">Hours/Week</div>
+                        <div class="value">${job.hours} hrs</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="icon">📊</div>
+                        <div class="label">Weekly Pay</div>
+                        <div class="value">$${(job.wage * job.hours).toFixed(2)}</div>
+                    </div>
                 </div>
-                <div class="info-row">
-                    <span class="info-label">Warnings:</span>
-                    <span class="info-value">${GameState.work.warnings}/3</span>
-                </div>
-                
-                ${GameState.work.warnings > 0 ? 
-                    `<div class="alert alert-warning mt-20">
-                        ⚠️ You have ${GameState.work.warnings} warning(s). 3 warnings = fired!
-                    </div>` : ''
-                }
                 
                 <div class="mt-20">
-                    <button class="btn btn-primary" onclick="workShift()">🕐 Work Shift (4 hours)</button>
-                    <button class="btn btn-danger" onclick="quitJob()">Quit Job</button>
+                    <button class="btn btn-success btn-large" onclick="workShift()">
+                        💼 Work a Shift
+                    </button>
+                    <button class="btn btn-danger" onclick="quitJob()">
+                        Quit Job
+                    </button>
                 </div>
             </div>
-        </div>
-    `;
-    
-    html += `
-        <div class="info-box mt-20">
-            <h4>💡 Job Tips:</h4>
-            <ul>
-                <li>Show up on time (3:30 PM)</li>
-                <li>Complete your full shift</li>
-                <li>Build good work history for future jobs</li>
-                <li>Save your earnings!</li>
-            </ul>
         </div>
     `;
     
     return html;
 }
 
+function renderApplications() {
+    let html = '<h3>📋 My Applications</h3>';
+    
+    if (GameState.work.applications.length === 0) {
+        html += `
+            <div class="alert alert-info">
+                You haven't applied to any jobs yet.
+            </div>
+        `;
+    } else {
+        html += '<div class="checklist">';
+        
+        GameState.work.applications.forEach((app, index) => {
+            html += `
+                <div class="checklist-item">
+                    <div class="checklist-icon">📄</div>
+                    <div class="checklist-text">
+                        <strong>${Utils.escapeHtml(app.title)}</strong>
+                        <div class="desc">Status: ${Utils.escapeHtml(app.status)}</div>
+                        <div class="desc">Applied: ${new Date(app.date).toLocaleDateString()}</div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+    }
+    
+    return html;
+}
+
+function applyForJob(jobId, title, wage, hours) {
+    if (!confirm(`Apply for ${title}?\n\nWage: $${wage}/hour\nHours: ${hours}/week`)) {
+        return;
+    }
+    
+    // Add to applications
+    GameState.work.applications.push({
+        id: jobId,
+        title: title,
+        status: 'Pending',
+        date: new Date().toISOString()
+    });
+    
+    // Auto-hire after a delay (simplified)
+    setTimeout(() => {
+        GameState.work.currentJob = {
+            id: jobId,
+            title: title,
+            wage: wage,
+            hours: hours,
+            startDate: new Date().toISOString()
+        };
+        
+        // Update application status
+        const app = GameState.work.applications.find(a => a.id === jobId);
+        if (app) app.status = 'Hired!';
+        
+        GameState.addAchievement('First Job', 'Get your first job', '💼');
+        
+        UI.showNotification(`🎉 Congratulations! You're hired at ${title}!`, 'success');
+        
+        loadJobCenter();
+    }, 2000);
+    
+    UI.showNotification(`📋 Application submitted for ${title}!`, 'info');
+    loadJobCenter();
+}
+
 function workShift() {
+    if (GameState.isBusy()) {
+        UI.showNotification('You are already busy!', 'warning');
+        return;
+    }
+    
     const job = GameState.work.currentJob;
     if (!job) return;
     
-    const hours = 4;
-    const earnings = job.wage * hours;
+    const shiftHours = 4; // 4 hour shift
+    const earnings = job.wage * shiftHours;
     
-    GameState.addMoney(earnings, 'work');
-    GameState.addSkill('timeManagement', 3);
+    GameState.setBusy('working', shiftHours * 3);
     
-    UI.showNotification(`✅ Shift complete! Earned $${earnings}`, 'success');
+    UI.showNotification(`💼 Working ${shiftHours} hour shift...`, 'info');
     
-    // Achievement
-    if (GameState.stats.totalMoneyEarned >= 500) {
-        GameState.addAchievement('Hard Worker', 'Earn $500 from jobs', '💼');
-    }
-    
-    UI.updateStats();
+    setTimeout(() => {
+        GameState.addMoney(earnings, job.title);
+        GameState.stats.hoursWorked += shiftHours;
+        GameState.addSkill('communication', 3);
+        GameState.addSkill('timeManagement', 2);
+        GameState.clearBusy();
+        
+        UI.showNotification(`✅ Shift complete! Earned $${earnings.toFixed(2)}`, 'success');
+        
+        loadJobCenter();
+        UI.updateStats();
+    }, shiftHours * 3000);
 }
 
 function quitJob() {
-    if (!confirm('Are you sure you want to quit your job?')) return;
+    if (!confirm('Are you sure you want to quit your job?')) {
+        return;
+    }
     
-    const job = GameState.work.currentJob;
     GameState.work.jobHistory.push({
-        title: job.title,
-        duration: 'Short term'
+        ...GameState.work.currentJob,
+        endDate: new Date().toISOString()
     });
     
     GameState.work.currentJob = null;
-    GameState.work.warnings = 0;
     
     UI.showNotification('You quit your job', 'info');
     loadJobCenter();
 }
+
+console.log('✅ jobcenter.js loaded');
