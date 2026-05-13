@@ -3,7 +3,7 @@
 function loadApartments() {
     document.getElementById('locationTitle').textContent = '🏢 Apartments';
     
-    if (GameState.player.age < 18) {
+    if (GameState.player.age < GameState.ADULT_AGE) {
         const content = `
             <div class="alert alert-warning">
                 ⚠️ You must be 18 years old to rent an apartment.
@@ -92,26 +92,31 @@ function renderApartmentBrowse() {
     html += '<div class="content-grid">';
     
     apartments.forEach(apt => {
+        const totalCost = apt.rent * 2;
+        const canAfford = GameState.money.cash >= totalCost;
+        
         html += `
             <div class="card">
-                <div class="card-title">${apt.name}</div>
+                <div class="card-title">${Utils.escapeHtml(apt.name)}</div>
                 <div class="card-content">
-                    <p>${apt.desc}</p>
+                    <p>${Utils.escapeHtml(apt.desc)}</p>
                     <h4>Features:</h4>
                     <ul>
-                        ${apt.features.map(f => `<li>${f}</li>`).join('')}
+                        ${apt.features.map(f => `<li>${Utils.escapeHtml(f)}</li>`).join('')}
                     </ul>
                     <div class="mt-20">
                         <strong>Monthly Rent:</strong> $${apt.rent}
                     </div>
                     <div class="alert alert-warning mt-20">
-                        💰 First month + deposit: $${apt.rent * 2}
+                        💰 First month + deposit: $${totalCost}
                     </div>
                     ${GameState.adult.apartment ? 
                         '<button class="btn" disabled>Already Renting</button>' :
-                        `<button class="btn btn-primary" onclick="rentApartment('${apt.id}', '${apt.name}', ${apt.rent})">
-                            Rent Apartment
-                        </button>`
+                        !canAfford ?
+                            '<button class="btn" disabled>💰 Can\'t Afford</button>' :
+                            `<button class="btn btn-primary" onclick="rentApartment('${apt.id}', '${Utils.escapeHtml(apt.name)}', ${apt.rent})">
+                                Rent Apartment
+                            </button>`
                     }
                 </div>
             </div>
@@ -196,7 +201,7 @@ function renderCurrentApartment() {
     
     html += `
         <div class="card">
-            <div class="card-title">${apt.name}</div>
+            <div class="card-title">${Utils.escapeHtml(apt.name)}</div>
             <div class="card-content">
                 <div class="info-row">
                     <span class="info-label">Monthly Rent:</span>
@@ -261,3 +266,5 @@ function moveOut() {
     UI.showNotification('📦 You moved out and are back home with your parents', 'info');
     loadApartments();
 }
+
+console.log('✅ apartments.js loaded');
