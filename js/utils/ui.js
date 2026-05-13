@@ -33,7 +33,7 @@ const UI = {
         
         const notification = document.createElement('div');
         notification.className = `notification notification-${type}`;
-        notification.textContent = message; // Use textContent for safety
+        notification.innerHTML = message; // Allow HTML for formatting like <br>
         
         Object.assign(notification.style, {
             position: 'fixed',
@@ -73,14 +73,12 @@ const UI = {
         return colors[type] || colors.info;
     },
     
-    // Update stats display
+    // Update stats display - FIXED
     updateStats() {
         const updates = {
-            playerName: Utils.escapeHtml(GameState.player.name),
+            playerCash: Math.floor(GameState.money.cash),
             playerAge: GameState.player.age,
-            cash: Math.floor(GameState.money.cash),
-            bank: Math.floor(GameState.money.bank),
-            gpa: GameState.school.gpa
+            playerGpa: GameState.school.gpa.toFixed(1)
         };
         
         Object.entries(updates).forEach(([id, value]) => {
