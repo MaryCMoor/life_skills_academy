@@ -7,13 +7,14 @@ const StatsPanel = {
         overlay.className = 'minigame-overlay active';
         overlay.id = 'statsPanel';
         
-        const player = GameState;
-        const needs = player.needs;
+        // FIXED: Use GameState directly
+        const needs = GameState.needs;
+        const totalMoney = GameState.money.cash + GameState.money.bank;
         
         let html = `
             <div class="minigame-container" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
                 <div class="minigame-header">
-                    <div class="minigame-title">📊 ${player.name}'s Stats</div>
+                    <div class="minigame-title">📊 ${GameState.player.name}'s Stats</div>
                     <div class="minigame-subtitle">Click any stat to see improvement tips!</div>
                 </div>
                 
@@ -21,9 +22,9 @@ const StatsPanel = {
                     <!-- Personal Info -->
                     <div style="text-align: center; margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 15px; color: white;">
                         <div style="font-size: 60px; margin-bottom: 10px;">👤</div>
-                        <div style="font-size: 28px; font-weight: bold; margin-bottom: 5px;">${player.name}</div>
-                        <div style="font-size: 18px; opacity: 0.9;">Age: ${player.age} | Grade: ${player.grade}</div>
-                        <div style="font-size: 22px; margin-top: 10px;">💰 Money: $${player.money.toFixed(2)}</div>
+                        <div style="font-size: 28px; font-weight: bold; margin-bottom: 5px;">${GameState.player.name}</div>
+                        <div style="font-size: 18px; opacity: 0.9;">Age: ${GameState.player.age} | Grade: ${GameState.player.grade}</div>
+                        <div style="font-size: 22px; margin-top: 10px;">💰 Money: $${totalMoney.toFixed(2)}</div>
                     </div>
                     
                     <!-- Needs Section -->
@@ -85,14 +86,14 @@ const StatsPanel = {
                             📚 Academic Performance
                         </h2>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                            ${this.createStatCard('gpa', '🎓', 'GPA', player.calculateGPA ? player.calculateGPA() : 0,
-                                player.calculateGPA && player.calculateGPA() < 2.0 ? 'critical' : 
-                                player.calculateGPA && player.calculateGPA() < 3.0 ? 'warning' : 'good',
+                            ${this.createStatCard('gpa', '🎓', 'GPA', GameState.school.gpa,
+                                GameState.school.gpa < 2.0 ? 'critical' : 
+                                GameState.school.gpa < 3.0 ? 'warning' : 'good',
                                 'Attend school regularly. Complete homework assignments. Study for tests. Higher GPA unlocks better opportunities.',
                                 true, 4.0
                             )}
                             ${this.createStatCard('homework', '📝', 'Homework Done', 
-                                player.homework ? Object.values(player.homework).filter(h => h.completed).length : 0,
+                                GameState.stats.homeworkCompleted || 0,
                                 'good',
                                 'Complete homework assignments on time. Each completed assignment improves your grades and skills.',
                                 false
@@ -106,17 +107,23 @@ const StatsPanel = {
                             🎯 Life Skills
                         </h2>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                            ${this.createSkillCard('cooking', '👨‍🍳', 'Cooking', player.skills?.cooking || 0,
+                            ${this.createSkillCard('cooking', '👨‍🍳', 'Cooking', GameState.skills.cooking || 0,
                                 'Cook meals at home to improve. Higher cooking skill unlocks complex recipes and better meals.'
                             )}
-                            ${this.createSkillCard('cleaning', '🧹', 'Cleaning', player.skills?.cleaning || 0,
+                            ${this.createSkillCard('cleaning', '🧹', 'Cleaning', GameState.skills.cleaning || 0,
                                 'Complete chores to improve. Higher cleaning skill makes chores faster and more rewarding.'
                             )}
-                            ${this.createSkillCard('social', '💬', 'Social', player.skills?.social || 0,
-                                'Interact with friends and family. Higher social skill unlocks new relationships and opportunities.'
+                            ${this.createSkillCard('budgeting', '💰', 'Budgeting', GameState.skills.budgeting || 0,
+                                'Manage your money wisely. Higher budgeting skill helps you save money and make better financial decisions.'
                             )}
-                            ${this.createSkillCard('fitness', '💪', 'Fitness', player.skills?.fitness || 0,
-                                'Exercise regularly. Higher fitness improves energy recovery and health maintenance.'
+                            ${this.createSkillCard('timeManagement', '⏰', 'Time Management', GameState.skills.timeManagement || 0,
+                                'Complete tasks efficiently. Higher time management unlocks better scheduling and productivity.'
+                            )}
+                            ${this.createSkillCard('communication', '💬', 'Communication', GameState.skills.communication || 0,
+                                'Interact with others effectively. Higher communication skill helps in jobs and relationships.'
+                            )}
+                            ${this.createSkillCard('organization', '📋', 'Organization', GameState.skills.organization || 0,
+                                'Keep things tidy and planned. Higher organization skill improves efficiency in all activities.'
                             )}
                         </div>
                     </div>
@@ -128,36 +135,76 @@ const StatsPanel = {
                         </h2>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
                             <div style="background: white; padding: 15px; border-radius: 10px; border: 2px solid #ddd; text-align: center;">
+                                <div style="font-size: 30px; margin-bottom: 5px;">💵</div>
+                                <div style="font-size: 20px; font-weight: bold; color: #27ae60;">$${(GameState.stats.moneyEarned || 0).toFixed(2)}</div>
+                                <div style="font-size: 14px; color: #7f8c8d;">Total Earned</div>
+                            </div>
+                            <div style="background: white; padding: 15px; border-radius: 10px; border: 2px solid #ddd; text-align: center;">
+                                <div style="font-size: 30px; margin-bottom: 5px;">💸</div>
+                                <div style="font-size: 20px; font-weight: bold; color: #e74c3c;">$${(GameState.stats.moneySpent || 0).toFixed(2)}</div>
+                                <div style="font-size: 14px; color: #7f8c8d;">Total Spent</div>
+                            </div>
+                            <div style="background: white; padding: 15px; border-radius: 10px; border: 2px solid #ddd; text-align: center;">
                                 <div style="font-size: 30px; margin-bottom: 5px;">🍳</div>
-                                <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${player.stats?.mealsCooked || 0}</div>
+                                <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${GameState.stats.mealsCooked || 0}</div>
                                 <div style="font-size: 14px; color: #7f8c8d;">Meals Cooked</div>
                             </div>
                             <div style="background: white; padding: 15px; border-radius: 10px; border: 2px solid #ddd; text-align: center;">
                                 <div style="font-size: 30px; margin-bottom: 5px;">🧹</div>
-                                <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${player.stats?.choresCompleted || 0}</div>
+                                <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${GameState.stats.choresCompleted || 0}</div>
                                 <div style="font-size: 14px; color: #7f8c8d;">Chores Done</div>
                             </div>
                             <div style="background: white; padding: 15px; border-radius: 10px; border: 2px solid #ddd; text-align: center;">
                                 <div style="font-size: 30px; margin-bottom: 5px;">📚</div>
-                                <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${player.stats?.homeworkCompleted || 0}</div>
+                                <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${GameState.stats.homeworkCompleted || 0}</div>
                                 <div style="font-size: 14px; color: #7f8c8d;">Homework Done</div>
                             </div>
                             <div style="background: white; padding: 15px; border-radius: 10px; border: 2px solid #ddd; text-align: center;">
+                                <div style="font-size: 30px; margin-bottom: 5px;">⏱️</div>
+                                <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${GameState.stats.hoursWorked || 0}</div>
+                                <div style="font-size: 14px; color: #7f8c8d;">Hours Worked</div>
+                            </div>
+                            <div style="background: white; padding: 15px; border-radius: 10px; border: 2px solid #ddd; text-align: center;">
                                 <div style="font-size: 30px; margin-bottom: 5px;">🏆</div>
-                                <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${player.achievements?.length || 0}</div>
+                                <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${GameState.achievements.length || 0}</div>
                                 <div style="font-size: 14px; color: #7f8c8d;">Achievements</div>
                             </div>
                             <div style="background: white; padding: 15px; border-radius: 10px; border: 2px solid #ddd; text-align: center;">
                                 <div style="font-size: 30px; margin-bottom: 5px;">📅</div>
-                                <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${player.time?.day || 1}</div>
+                                <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${GameState.stats.daysPlayed || 0}</div>
                                 <div style="font-size: 14px; color: #7f8c8d;">Days Played</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Money Breakdown -->
+                    <div style="margin-bottom: 25px;">
+                        <h2 style="color: #2c3e50; margin-bottom: 15px; border-bottom: 3px solid #27ae60; padding-bottom: 10px;">
+                            💰 Financial Overview
+                        </h2>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div style="background: white; padding: 20px; border-radius: 10px; border: 2px solid #27ae60;">
+                                <div style="font-size: 14px; color: #7f8c8d; margin-bottom: 5px;">💵 Cash on Hand</div>
+                                <div style="font-size: 28px; font-weight: bold; color: #27ae60;">$${GameState.money.cash.toFixed(2)}</div>
+                            </div>
+                            <div style="background: white; padding: 20px; border-radius: 10px; border: 2px solid #3498db;">
+                                <div style="font-size: 14px; color: #7f8c8d; margin-bottom: 5px;">🏦 Bank Account</div>
+                                <div style="font-size: 28px; font-weight: bold; color: #3498db;">$${GameState.money.bank.toFixed(2)}</div>
+                            </div>
+                            <div style="background: white; padding: 20px; border-radius: 10px; border: 2px solid #e74c3c;">
+                                <div style="font-size: 14px; color: #7f8c8d; margin-bottom: 5px;">💳 Debt</div>
+                                <div style="font-size: 28px; font-weight: bold; color: #e74c3c;">$${GameState.money.debt.toFixed(2)}</div>
+                            </div>
+                            <div style="background: white; padding: 20px; border-radius: 10px; border: 2px solid #9b59b6;">
+                                <div style="font-size: 14px; color: #7f8c8d; margin-bottom: 5px;">💎 Net Worth</div>
+                                <div style="font-size: 28px; font-weight: bold; color: #9b59b6;">$${(totalMoney - GameState.money.debt).toFixed(2)}</div>
                             </div>
                         </div>
                     </div>
                 </div>
                 
                 <div class="minigame-actions">
-                    <button class="btn-primary" onclick="StatsPanel.close()">Close</button>
+                    <button class="btn btn-primary btn-large" onclick="StatsPanel.close()">Close</button>
                 </div>
             </div>
         `;
@@ -166,171 +213,114 @@ const StatsPanel = {
         document.body.appendChild(overlay);
     },
     
-    createStatCard(id, emoji, name, value, status, tips, isDecimal = false, maxValue = 100) {
-        const displayValue = isDecimal ? value.toFixed(2) : Math.round(value);
-        const percentage = (value / maxValue) * 100;
+    // Create stat card with clickable tooltip
+    createStatCard(id, emoji, label, value, status, tip, isDecimal = false, maxValue = 100) {
+        const percentage = Math.min(100, (value / maxValue) * 100);
+        const displayValue = isDecimal ? value.toFixed(1) : Math.round(value);
         
         const colors = {
-            critical: { bg: '#fee', border: '#e74c3c', bar: '#e74c3c', text: '#c0392b' },
-            warning: { bg: '#ffeaa7', border: '#f39c12', bar: '#f39c12', text: '#d68910' },
-            good: { bg: '#d5f4e6', border: '#27ae60', bar: '#27ae60', text: '#1e8449' }
+            critical: '#e74c3c',
+            warning: '#f39c12',
+            good: '#27ae60'
         };
         
-        const color = colors[status];
+        const color = colors[status] || colors.good;
         
         return `
-            <div class="stat-card" data-stat="${id}" style="
-                background: ${color.bg};
-                border: 3px solid ${color.border};
-                border-radius: 12px;
-                padding: 15px;
-                cursor: pointer;
-                transition: all 0.3s;
-                position: relative;
-            " onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(0,0,0,0.2)'" 
-               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'"
-               onclick="StatsPanel.showTip('${name}', \`${tips}\`)">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                    <div style="font-size: 35px;">${emoji}</div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 24px; font-weight: bold; color: ${color.text};">${displayValue}${isDecimal ? '' : '%'}</div>
-                        <div style="font-size: 12px; color: #7f8c8d;">${name}</div>
+            <div class="stat-card" 
+                 style="background: white; padding: 15px; border-radius: 10px; border: 3px solid ${color}; cursor: pointer; transition: transform 0.2s;"
+                 onclick="StatsPanel.showTip('${label}', '${tip}')"
+                 onmouseover="this.style.transform='scale(1.05)'"
+                 onmouseout="this.style.transform='scale(1)'">
+                <div style="text-align: center; margin-bottom: 10px;">
+                    <div style="font-size: 40px;">${emoji}</div>
+                    <div style="font-size: 16px; font-weight: bold; color: #2c3e50; margin-top: 5px;">${label}</div>
+                </div>
+                <div style="background: #ecf0f1; border-radius: 10px; height: 20px; overflow: hidden; margin-bottom: 10px;">
+                    <div style="background: ${color}; height: 100%; width: ${percentage}%; transition: width 0.3s;"></div>
+                </div>
+                <div style="text-align: center;">
+                    <span style="font-size: 24px; font-weight: bold; color: ${color};">${displayValue}</span>
+                    <span style="font-size: 16px; color: #7f8c8d;">/${maxValue}</span>
+                </div>
+            </div>
+        `;
+    },
+    
+    // Create nutrition card
+    createNutritionCard(id, emoji, label, current, target, unit, tip) {
+        const percentage = Math.min(100, (current / target) * 100);
+        const color = percentage < 50 ? '#e74c3c' : percentage < 80 ? '#f39c12' : '#27ae60';
+        
+        return `
+            <div class="nutrition-card" 
+                 style="background: white; padding: 15px; border-radius: 10px; border: 2px solid #ddd; cursor: pointer;"
+                 onclick="StatsPanel.showTip('${label}', '${tip}')"
+                 onmouseover="this.style.borderColor='${color}'"
+                 onmouseout="this.style.borderColor='#ddd'">
+                <div style="text-align: center;">
+                    <div style="font-size: 30px; margin-bottom: 5px;">${emoji}</div>
+                    <div style="font-size: 14px; font-weight: bold; color: #2c3e50;">${label}</div>
+                    <div style="font-size: 20px; font-weight: bold; color: ${color}; margin: 10px 0;">
+                        ${Math.round(current)} <span style="font-size: 14px; color: #7f8c8d;">/ ${target}</span>
                     </div>
-                </div>
-                <div style="width: 100%; height: 8px; background: rgba(0,0,0,0.1); border-radius: 10px; overflow: hidden;">
-                    <div style="width: ${Math.min(percentage, 100)}%; height: 100%; background: ${color.bar}; transition: width 0.3s;"></div>
-                </div>
-                <div style="position: absolute; top: 5px; right: 5px; font-size: 12px; color: ${color.text}; opacity: 0.7;">
-                    ℹ️ Click for tips
-                </div>
-            </div>
-        `;
-    },
-    
-    createNutritionCard(id, emoji, name, current, target, unit, tips) {
-        const percentage = (current / target) * 100;
-        const status = percentage < 50 ? 'critical' : percentage < 80 ? 'warning' : 'good';
-        
-        const colors = {
-            critical: { bg: '#fee', border: '#e74c3c', bar: '#e74c3c' },
-            warning: { bg: '#ffeaa7', border: '#f39c12', bar: '#f39c12' },
-            good: { bg: '#d5f4e6', border: '#27ae60', bar: '#27ae60' }
-        };
-        
-        const color = colors[status];
-        
-        return `
-            <div class="stat-card" data-stat="${id}" style="
-                background: ${color.bg};
-                border: 2px solid ${color.border};
-                border-radius: 10px;
-                padding: 12px;
-                cursor: pointer;
-                transition: all 0.3s;
-            " onmouseover="this.style.transform='scale(1.05)'" 
-               onmouseout="this.style.transform='scale(1)'"
-               onclick="StatsPanel.showTip('${name}', \`${tips}\`)">
-                <div style="font-size: 28px; text-align: center; margin-bottom: 5px;">${emoji}</div>
-                <div style="font-size: 18px; font-weight: bold; text-align: center; color: #2c3e50;">${Math.round(current)}</div>
-                <div style="font-size: 11px; text-align: center; color: #7f8c8d; margin-bottom: 5px;">${name} (${target}${unit})</div>
-                <div style="width: 100%; height: 6px; background: rgba(0,0,0,0.1); border-radius: 10px; overflow: hidden;">
-                    <div style="width: ${Math.min(percentage, 100)}%; height: 100%; background: ${color.bar};"></div>
-                </div>
-            </div>
-        `;
-    },
-    
-    createSkillCard(id, emoji, name, level, tips) {
-        const percentage = (level / 100) * 100;
-        
-        return `
-            <div class="stat-card" data-stat="${id}" style="
-                background: linear-gradient(135deg, #fff, #f8f9fa);
-                border: 2px solid #ddd;
-                border-radius: 10px;
-                padding: 15px;
-                cursor: pointer;
-                transition: all 0.3s;
-            " onmouseover="this.style.borderColor='#3498db'; this.style.boxShadow='0 4px 12px rgba(52,152,219,0.3)'" 
-               onmouseout="this.style.borderColor='#ddd'; this.style.boxShadow='none'"
-               onclick="StatsPanel.showTip('${name}', \`${tips}\`)">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                    <div style="font-size: 32px;">${emoji}</div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 22px; font-weight: bold; color: #3498db;">Lv ${level}</div>
-                        <div style="font-size: 11px; color: #7f8c8d;">${name}</div>
+                    <div style="background: #ecf0f1; border-radius: 10px; height: 8px; overflow: hidden;">
+                        <div style="background: ${color}; height: 100%; width: ${percentage}%;"></div>
                     </div>
-                </div>
-                <div style="width: 100%; height: 6px; background: #ecf0f1; border-radius: 10px; overflow: hidden;">
-                    <div style="width: ${percentage}%; height: 100%; background: linear-gradient(90deg, #3498db, #2980b9);"></div>
+                    <div style="font-size: 12px; color: #7f8c8d; margin-top: 5px;">${Math.round(percentage)}%</div>
                 </div>
             </div>
         `;
     },
     
-    showTip(statName, tipText) {
-        const tipOverlay = document.createElement('div');
-        tipOverlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10001;
-            animation: fadeIn 0.3s;
-        `;
+    // Create skill card
+    createSkillCard(id, emoji, label, value, tip) {
+        const level = Math.floor(value / 20);
+        const levelNames = ['Novice', 'Beginner', 'Intermediate', 'Advanced', 'Expert', 'Master'];
+        const levelName = levelNames[level] || 'Novice';
+        const percentage = Math.min(100, value);
         
-        tipOverlay.innerHTML = `
-            <div style="
-                background: white;
-                border-radius: 20px;
-                padding: 30px;
-                max-width: 500px;
-                box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-                animation: slideUp 0.3s;
-            ">
-                <h2 style="color: #2c3e50; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 40px;">💡</span>
-                    <span>How to Improve: ${statName}</span>
-                </h2>
-                <p style="font-size: 16px; line-height: 1.6; color: #555; margin-bottom: 20px;">
-                    ${tipText}
-                </p>
-                <button onclick="this.closest('div[style*=fixed]').remove()" style="
-                    width: 100%;
-                    padding: 12px;
-                    background: linear-gradient(135deg, #667eea, #764ba2);
-                    color: white;
-                    border: none;
-                    border-radius: 10px;
-                    font-size: 16px;
-                    font-weight: bold;
-                    cursor: pointer;
-                    transition: all 0.3s;
-                " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                    Got it! ✓
-                </button>
+        const color = value < 20 ? '#e74c3c' : 
+                      value < 40 ? '#f39c12' : 
+                      value < 60 ? '#f1c40f' : 
+                      value < 80 ? '#3498db' : '#27ae60';
+        
+        return `
+            <div class="skill-card" 
+                 style="background: white; padding: 15px; border-radius: 10px; border: 2px solid ${color}; cursor: pointer;"
+                 onclick="StatsPanel.showTip('${label}', '${tip}')"
+                 onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 5px 15px rgba(0,0,0,0.2)'"
+                 onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'"
+                 style="transition: all 0.2s;">
+                <div style="text-align: center;">
+                    <div style="font-size: 40px; margin-bottom: 5px;">${emoji}</div>
+                    <div style="font-size: 16px; font-weight: bold; color: #2c3e50; margin-bottom: 5px;">${label}</div>
+                    <div style="font-size: 14px; color: ${color}; font-weight: bold; margin-bottom: 10px;">${levelName}</div>
+                    <div style="background: #ecf0f1; border-radius: 10px; height: 12px; overflow: hidden; margin-bottom: 5px;">
+                        <div style="background: ${color}; height: 100%; width: ${percentage}%; transition: width 0.3s;"></div>
+                    </div>
+                    <div style="font-size: 18px; font-weight: bold; color: ${color};">${Math.round(value)}/100</div>
+                </div>
             </div>
         `;
-        
-        document.body.appendChild(tipOverlay);
-        
-        // Close on background click
-        tipOverlay.addEventListener('click', (e) => {
-            if (e.target === tipOverlay) {
-                tipOverlay.remove();
-            }
-        });
     },
     
+    // Show improvement tip
+    showTip(title, message) {
+        UI.showModal(
+            `💡 ${title} Tips`,
+            `<div style="font-size: 16px; line-height: 1.6; color: #2c3e50;">${message}</div>`,
+            [{ text: 'Got it!', class: 'btn-primary' }]
+        );
+    },
+    
+    // Close panel
     close() {
-        const overlay = document.getElementById('statsPanel');
-        if (overlay) {
-            overlay.remove();
+        const panel = document.getElementById('statsPanel');
+        if (panel) {
+            panel.remove();
         }
     }
 };
+
+console.log('✅ stats.js loaded');
