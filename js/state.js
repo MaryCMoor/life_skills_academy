@@ -89,7 +89,13 @@ const GameState = {
         hunger: 100,
         energy: 100,
         hygiene: 100,
-        happiness: 100
+        happiness: 100,
+        health: 100,
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fats: 0,
+        vitamins: 0
     },
     
     skills: {
@@ -127,6 +133,7 @@ const GameState = {
         hoursWorked: 0,
         homeworkCompleted: 0,
         choresCompleted: 0,
+        mealsCooked: 0,
         daysPlayed: 0
     },
     
@@ -158,6 +165,17 @@ const GameState = {
         this.money.cash -= amount;
         this.stats.moneySpent += amount;
         console.log(`-$${amount} for ${purpose}`);
+        return true;
+    },
+    
+    // ==================== NEEDS METHODS ====================
+    updateNeeds(changes) {
+        Object.keys(changes).forEach(need => {
+            if (this.needs.hasOwnProperty(need)) {
+                this.needs[need] = Math.max(0, Math.min(100, this.needs[need] + changes[need]));
+            }
+        });
+        console.log('Needs updated:', changes);
         return true;
     },
     
@@ -283,6 +301,14 @@ const GameState = {
         if (this.adult?.apartment) {
             this.adult.groceries = Math.max(0, this.adult.groceries - 15);
         }
+        
+        // Reset daily nutrition
+        this.needs.calories = 0;
+        this.needs.protein = 0;
+        this.needs.carbs = 0;
+        this.needs.fats = 0;
+        this.needs.vitamins = 0;
+        
         this.stats.daysPlayed++;
         
         console.log(`📅 New day: ${this.time.year}-${this.time.month}-${this.time.date}`);
@@ -304,6 +330,7 @@ const GameState = {
         else this.school.gpa = 1.0;
         
         this.school.gpa = parseFloat(this.school.gpa.toFixed(1));
+        return this.school.gpa;
     },
     
     completeHomework(subject) {
