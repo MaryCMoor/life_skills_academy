@@ -114,7 +114,7 @@ function renderApplications() {
     const currentGPA = parseFloat(GameState.school.gpa);
     
     let html = '<h3>📝 College Applications</h3>';
-    html += `<div class="alert alert-info">Your GPA: ${currentGPA}</div>`;
+    html += `<div class="alert alert-info">Your GPA: ${currentGPA.toFixed(1)}</div>`;
     
     html += '<div class="content-grid">';
     
@@ -124,9 +124,9 @@ function renderApplications() {
         
         html += `
             <div class="card">
-                <div class="card-title">${college.name}</div>
+                <div class="card-title">${Utils.escapeHtml(college.name)}</div>
                 <div class="card-content">
-                    <p>${college.desc}</p>
+                    <p>${Utils.escapeHtml(college.desc)}</p>
                     
                     <div class="mt-20">
                         <strong>Requirements:</strong>
@@ -146,14 +146,14 @@ function renderApplications() {
                     
                     <h4 class="mt-20">Features:</h4>
                     <ul>
-                        ${college.features.map(f => `<li>${f}</li>`).join('')}
+                        ${college.features.map(f => `<li>${Utils.escapeHtml(f)}</li>`).join('')}
                     </ul>
                     
                     ${!meetsGPA ? 
                         '<button class="btn" disabled>GPA Too Low</button>' :
                         !canAffordApp ?
                             '<button class="btn" disabled>Can\'t Afford App Fee</button>' :
-                            `<button class="btn btn-primary" onclick="applyCollege('${college.id}', '${college.name}', ${college.appFee}, ${college.tuition})">
+                            `<button class="btn btn-primary" onclick="applyCollege('${college.id}', '${Utils.escapeHtml(college.name)}', ${college.appFee}, ${college.tuition})">
                                 Apply ($${college.appFee})
                             </button>`
                     }
@@ -184,7 +184,7 @@ function applyCollege(id, name, fee, tuition) {
 
 function renderScholarships() {
     const scholarships = [
-        { name: 'Academic Excellence', amount: 5000, requirement: 'GPA 3.5+', eligible: GameState.school.gpa >= 3.5 },
+        { name: 'Academic Excellence', amount: 5000, requirement: 'GPA 3.5+', eligible: parseFloat(GameState.school.gpa) >= 3.5 },
         { name: 'Community Service', amount: 2500, requirement: '3+ extracurriculars', eligible: GameState.school.extracurriculars.length >= 3 },
         { name: 'Work Experience', amount: 3000, requirement: 'Work history', eligible: GameState.work.jobHistory.length > 0 },
         { name: 'First Generation', amount: 4000, requirement: 'Automatic', eligible: true }
@@ -200,12 +200,12 @@ function renderScholarships() {
             <div class="checklist-item ${scholarship.eligible ? '' : 'completed'}">
                 <div class="checklist-icon">${scholarship.eligible ? '✅' : '❌'}</div>
                 <div class="checklist-text">
-                    <strong>${scholarship.name}</strong>
+                    <strong>${Utils.escapeHtml(scholarship.name)}</strong>
                     <div class="desc">Award: $${scholarship.amount.toLocaleString()}</div>
-                    <div class="desc">Requirement: ${scholarship.requirement}</div>
+                    <div class="desc">Requirement: ${Utils.escapeHtml(scholarship.requirement)}</div>
                 </div>
                 ${scholarship.eligible ? 
-                    `<button class="btn btn-success" onclick="applyScholarship(${index}, '${scholarship.name}', ${scholarship.amount})">Apply</button>` :
+                    `<button class="btn btn-success" onclick="applyScholarship(${index}, '${Utils.escapeHtml(scholarship.name)}', ${scholarship.amount})">Apply</button>` :
                     '<span style="color: #95a5a6;">Not Eligible</span>'
                 }
             </div>
@@ -232,15 +232,17 @@ function renderScholarships() {
 
 function applyScholarship(index, name, amount) {
     UI.showNotification(`✅ Applied for ${name} scholarship!`, 'success');
-    UI.showNotification('🎉 Congratulations! You won the scholarship!', 'success', 3000);
-    
-    GameState.addMoney(amount, 'scholarship');
-    GameState.addAchievement('Scholarship Winner', 'Win a college scholarship', '🏆');
     
     setTimeout(() => {
-        loadCollege();
-        UI.updateStats();
-    }, 500);
+        UI.showNotification('🎉 Congratulations! You won the scholarship!', 'success', 3000);
+        GameState.addMoney(amount, 'scholarship');
+        GameState.addAchievement('Scholarship Winner', 'Win a college scholarship', '🏆');
+        
+        setTimeout(() => {
+            loadCollege();
+            UI.updateStats();
+        }, 500);
+    }, 1000);
 }
 
 function renderCollegeInfo() {
@@ -298,3 +300,5 @@ function renderCollegeInfo() {
         </div>
     `;
 }
+
+console.log('✅ college.js loaded');
