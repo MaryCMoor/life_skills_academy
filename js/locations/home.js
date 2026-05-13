@@ -1,132 +1,249 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Life Skills Academy</title>
+// ==================== HOME LOCATION ====================
+
+function loadHome() {
+    document.getElementById('locationTitle').textContent = '🏠 Home';
     
-    <!-- Three.js for 3D City -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    const content = `
+        <div class="tabs">
+            <div class="tab active" onclick="showHomeTab('chores')">Chores</div>
+            <div class="tab" onclick="showHomeTab('cook')">Cook</div>
+            <div class="tab" onclick="showHomeTab('sleep')">Sleep</div>
+        </div>
+        
+        <div id="home-chores" class="tab-content active">
+            ${renderChores()}
+        </div>
+        
+        <div id="home-cook" class="tab-content">
+            ${renderCooking()}
+        </div>
+        
+        <div id="home-sleep" class="tab-content">
+            ${renderSleep()}
+        </div>
+    `;
     
-    <!-- CSS Files -->
-    <link rel="stylesheet" href="css/main.css">
-    <link rel="stylesheet" href="css/city3d.css">
-    <link rel="stylesheet" href="css/locations.css">
-    <link rel="stylesheet" href="css/minigames.css">
-</head>
-<body>
-    <div id="app">
-        <!-- Top Status Bar -->
-        <div id="topBar">
-            <div class="time-section">
-                <div class="time-display" id="timeDisplay">Monday, Sep 1 - 7:00 AM</div>
-                <div class="time-controls">
-                    <button class="time-btn pause" id="pauseBtn" onclick="togglePause()">⏸</button>
-                    <button class="time-btn active" id="speed1" onclick="setSpeed(1)">1x</button>
-                    <button class="time-btn" id="speed3" onclick="setSpeed(3)">3x</button>
-                    <button class="time-btn" id="speed10" onclick="setSpeed(10)">10x</button>
-                </div>
+    document.getElementById('locationContent').innerHTML = content;
+}
+
+function showHomeTab(tab) {
+    document.querySelectorAll('#locationContent .tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('#locationContent .tab-content').forEach(t => t.classList.remove('active'));
+    
+    event.target.classList.add('active');
+    document.getElementById(`home-${tab}`).classList.add('active');
+}
+
+function renderChores() {
+    if (GameState.player.age >= 18) {
+        return `
+            <div class="alert alert-info">
+                ℹ️ You're an adult now! No assigned chores, but you're responsible for keeping your place clean.
             </div>
-            <div class="stats-section">
-                <div class="stat">👤 <span id="playerName">Alex</span></div>
-                <div class="stat">🎂 <span id="playerAge">14</span> yrs</div>
-                <div class="stat">💵 $<span id="cash">50</span></div>
-                <div class="stat">🏦 $<span id="bank">0</span></div>
-                <div class="stat">📚 GPA: <span id="gpa">0.0</span></div>
+        `;
+    }
+    
+    const chores = GameState.daily.chores;
+    
+    if (!chores || chores.length === 0) {
+        return `
+            <div class="alert alert-success">
+                ✅ No chores for today! Enjoy your free time!
+            </div>
+        `;
+    }
+    
+    let html = '<h3>📋 Today\'s Chores</h3>';
+    html += '<div class="checklist">';
+    
+    chores.forEach((chore, index) => {
+        const canDo = !GameState.isBusy() && !chore.done;
+        
+        html += `
+            <div class="checklist-item ${chore.done ? 'completed' : ''}">
+                <div class="checklist-icon">${chore.done ? '✅' : '⬜'}</div>
+                <div class="checklist-text">
+                    <strong>${Utils.escapeHtml(chore.name)}</strong>
+                    <div class="desc">Time: ${chore.time} minutes</div>
+                    <div class="reward">Reward: $${chore.reward}</div>
+                </div>
+                ${chore.done ? 
+                    '<span style="color: #27ae60; font-weight: bold;">DONE ✓</span>' :
+                    canDo ?
+                        `<button class="btn btn-success" onclick="doChore(${index})">Start</button>` :
+                        '<button class="btn" disabled>Busy</button>'
+                }
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    
+    const allDone = chores.every(c => c.done);
+    if (allDone && chores.length > 0) {
+        html += `
+            <div class="alert alert-success mt-20">
+                🎉 All chores complete! Great job!
+            </div>
+        `;
+    }
+    
+    return html;
+}
+
+function renderCooking() {
+    let html = '<h3>👨‍🍳 Cooking</h3>';
+    
+    const recipes = [
+        { id: 'sandwich', name: '🥪 Sandwich', time: 10, skill: 'Basic' },
+        { id: 'eggs', name: '🍳 Scrambled Eggs', time: 15, skill: 'Basic' },
+        { id: 'soup', name: '🍲 Canned Soup', time: 20, skill: 'Basic' },
+        { id: 'salad', name: '🥗 Fresh Salad', time: 15, skill: 'Basic' },
+        { id: 'pasta', name: '🍝 Pasta', time: 30, skill: 'Intermediate' }
+    ];
+    
+    html += '<div class="shop-grid">';
+    
+    recipes.forEach(recipe => {
+        const canCook = !GameState.isBusy();
+        
+        html += `
+            <div class="shop-item">
+                <div class="item-icon">${recipe.name.split(' ')[0]}</div>
+                <div class="item-name">${Utils.escapeHtml(recipe.name)}</div>
+                <div class="item-desc">Time: ${recipe.time} min</div>
+                <div class="item-desc">Level: ${recipe.skill}</div>
+                ${canCook ?
+                    `<button class="btn btn-primary" onclick="startCooking('${recipe.id}')">Cook</button>` :
+                    '<button class="btn" disabled>Busy</button>'
+                }
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    
+    html += `
+        <div class="info-box mt-20">
+            <h4>💡 Cooking Tips:</h4>
+            <ul>
+                <li>Always wash your hands first</li>
+                <li>Read the entire recipe before starting</li>
+                <li>Never leave the stove unattended</li>
+                <li>Clean up as you go</li>
+            </ul>
+        </div>
+    `;
+    
+    return html;
+}
+
+function renderSleep() {
+    const hour = GameState.time.hour;
+    const canSleep = hour >= 20 || hour < 6;
+    
+    return `
+        <h3>😴 Sleep</h3>
+        
+        <div class="card">
+            <div class="card-title">Rest and Recharge</div>
+            <div class="card-content">
+                <p>Sleep is important for your health and performance!</p>
+                
+                <div class="stats-display mt-20">
+                    <div class="stat-box">
+                        <div class="icon">⏰</div>
+                        <div class="label">Current Time</div>
+                        <div class="value">${hour > 12 ? hour - 12 : hour}:${GameState.time.minute.toString().padStart(2, '0')} ${hour >= 12 ? 'PM' : 'AM'}</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="icon">😴</div>
+                        <div class="label">Best Sleep Time</div>
+                        <div class="value">8:00 PM - 6:00 AM</div>
+                    </div>
+                </div>
+                
+                <div class="mt-20">
+                    ${canSleep ?
+                        '<button class="btn btn-primary btn-large" onclick="goToSleep()">💤 Go to Sleep</button>' :
+                        '<div class="alert alert-warning">⏰ It\'s too early to sleep! Try again after 8:00 PM.</div>'
+                    }
+                </div>
             </div>
         </div>
         
-        <!-- 3D City View -->
-        <div id="cityContainer">
-            <canvas id="cityCanvas"></canvas>
-            
-            <!-- City Controls -->
-            <div id="cityControls">
-                <button class="control-btn" id="rotateLeft">↻ Rotate</button>
-                <button class="control-btn" id="rotateRight">Rotate ↺</button>
-                <button class="control-btn" id="zoomIn">🔍+</button>
-                <button class="control-btn" id="zoomOut">🔍−</button>
-            </div>
-            
-            <!-- Building Tooltip -->
-            <div id="buildingTooltip" class="tooltip hidden">
-                <div class="tooltip-title"></div>
-                <div class="tooltip-desc"></div>
-                <div class="tooltip-hint">Click to enter</div>
-            </div>
+        <div class="info-box mt-20">
+            <h4>💡 Sleep Benefits:</h4>
+            <ul>
+                <li>Restores energy</li>
+                <li>Improves focus at school</li>
+                <li>Helps you perform better at work</li>
+                <li>Essential for good health</li>
+            </ul>
         </div>
-        
-        <!-- Location Screen -->
-        <div id="locationScreen" class="hidden">
-            <div class="location-header">
-                <h2 id="locationTitle">Location</h2>
-                <button class="btn-back" id="backBtn" onclick="backToCity()">← Back to City</button>
-            </div>
-            <div class="location-content" id="locationContent"></div>
-        </div>
-        
-        <!-- Onboarding -->
-        <div id="onboarding" class="modal-overlay active">
-            <div class="modal-content">
-                <h1>🎓 Life Skills Academy</h1>
-                <p class="subtitle">Learn Real Life Skills Through Simulation</p>
-                
-                <div class="info-box">
-                    <h3>Your Journey:</h3>
-                    <ul>
-                        <li><strong>Ages 14-17:</strong> Live as a teen - chores, school, jobs</li>
-                        <li><strong>Age 18+:</strong> Real world - rent, bills, credit cards</li>
-                        <li><strong>Learn:</strong> Cooking, banking, budgeting, and more!</li>
-                    </ul>
-                </div>
-                
-                <div class="form-group">
-                    <label>Your Name:</label>
-                    <input type="text" id="nameInput" value="Alex" maxlength="15">
-                </div>
-                
-                <div class="form-group">
-                    <label>Gender:</label>
-                    <select id="genderInput">
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                
-                <button class="btn-primary btn-large" onclick="startGame()">
-                    Begin Your Life Journey →
-                </button>
-            </div>
-        </div>
-    </div>
+    `;
+}
+
+function doChore(index) {
+    const chore = GameState.daily.chores[index];
     
-    <!-- Core Scripts - MUST LOAD IN THIS ORDER -->
-    <script src="js/state.js"></script>
-    <script src="js/utils/saveload.js"></script>
-    <script src="js/utils/time.js"></script>
-    <script src="js/utils/ui.js"></script>
+    if (!chore || chore.done) {
+        UI.showNotification('❌ Chore not available!', 'error');
+        return;
+    }
     
-    <!-- 3D City -->
-    <script src="js/city3d.js"></script>
+    if (GameState.isBusy()) {
+        UI.showNotification('⏳ You\'re busy with something else!', 'warning');
+        return;
+    }
     
-    <!-- Location Scripts -->
-    <script src="js/locations/home.js"></script>
-    <script src="js/locations/school.js"></script>
-    <script src="js/locations/store.js"></script>
-    <script src="js/locations/bank.js"></script>
-    <script src="js/locations/jobcenter.js"></script>
-    <script src="js/locations/postoffice.js"></script>
-    <script src="js/locations/apartments.js"></script>
-    <script src="js/locations/college.js"></script>
+    // Start interactive minigame
+    if (window.ChoreMinigames) {
+        ChoreMinigames.start(chore.id);
+    } else {
+        // Fallback: simple completion
+        GameState.setBusy(chore.time / 60, chore.name);
+        setTimeout(() => {
+            GameState.completeChore(chore.id);
+            GameState.addMoney(chore.reward, 'chore');
+            GameState.addSkill(chore.skill, 5);
+            GameState.clearBusy();
+            UI.showNotification(`✅ ${chore.name} complete! +$${chore.reward}`, 'success');
+            loadHome();
+            UI.updateStats();
+        }, 1000);
+    }
+}
+
+function startCooking(recipeId) {
+    if (GameState.isBusy()) {
+        UI.showNotification('⏳ You\'re busy with something else!', 'warning');
+        return;
+    }
     
-    <!-- Minigame Scripts -->
-    <script src="js/minigames/chores.js"></script>
-    <script src="js/minigames/cooking.js"></script>
-    <script src="js/minigames/laundry.js"></script>
-    <script src="js/minigames/checkwriting.js"></script>
+    if (window.CookingMinigame) {
+        CookingMinigame.start(recipeId);
+    } else {
+        UI.showNotification('👨‍🍳 Cooking minigame loading...', 'info');
+    }
+}
+
+function goToSleep() {
+    const hour = GameState.time.hour;
     
-    <!-- Main Game Logic - MUST LOAD LAST -->
-    <script src="js/game.js"></script>
-</body>
-</html>
+    if (hour < 20 && hour >= 6) {
+        UI.showNotification('⏰ It\'s too early to sleep!', 'warning');
+        return;
+    }
+    
+    // Sleep until 7 AM
+    GameState.time.hour = 7;
+    GameState.time.minute = 0;
+    GameState.advanceDay();
+    
+    UI.showNotification('😴 You slept well! Good morning!', 'success');
+    
+    TimeManager.updateDisplay();
+    loadHome();
+    UI.updateStats();
+}
