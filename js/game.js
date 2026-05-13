@@ -3,68 +3,85 @@
 let gameInitialized = false;
 
 function startGame() {
-    const name = document.getElementById('nameInput').value.trim();
-    const gender = document.getElementById('genderInput').value;
+    const nameInput = document.getElementById('nameInput');
+    const genderInput = document.getElementById('genderInput');
     
-    if (!name) {
-        alert('Please enter your name!');
+    if (!nameInput || !genderInput) {
+        console.error('Input elements not found');
         return;
     }
     
-    // Set player info
+    const name = Utils.sanitizeInput(nameInput.value.trim(), 15);
+    const gender = genderInput.value;
+    
+    if (!name || name.length < 2) {
+        UI.showNotification('Please enter a valid name (at least 2 characters)!', 'error');
+        return;
+    }
+    
     GameState.player.name = name;
     GameState.player.gender = gender;
+    GameState.player.birthday = { month: 1, day: 1 };
     
-    // Hide onboarding
-    document.getElementById('onboarding').classList.remove('active');
+    const onboarding = document.getElementById('onboarding');
+    if (onboarding) {
+        onboarding.classList.remove('active');
+    }
     
-    // Initialize game
     initializeGame();
 }
 
 function initializeGame() {
-    if (gameInitialized) return;
+    if (gameInitialized) {
+        console.warn('Game already initialized');
+        return;
+    }
     
     console.log('🎮 Initializing Life Skills Academy...');
     
-    // Try to load saved game
-    const hasSave = SaveSystem.hasSaveData();
-    if (hasSave) {
-        const loadSave = confirm('Found existing save game. Load it?');
-        if (loadSave) {
-            SaveSystem.load();
+    try {
+        // Try to load saved game
+        const hasSave = SaveSystem.hasSaveData();
+        if (hasSave) {
+            const saveInfo = SaveSystem.getSaveInfo();
+            if (saveInfo && confirm(`Load existing save? (${saveInfo.playerName}, Age ${saveInfo.age})`)) {
+                SaveSystem.load();
+            }
         }
-    }
-    
-    // Initialize systems
-    SaveSystem.init();
-    City3D.init();
-    TimeManager.start();
-    
-    // Generate first day's tasks
-    TimeManager.generateDailyTasks();
-    
-    // Calculate initial GPA
-    GameState.calculateGPA();
-    
-    // Update UI
-    UI.updateStats();
-    
-    // Show welcome message
-    setTimeout(() => {
-        UI.showNotification(`Welcome, ${GameState.player.name}! Your life journey begins.`, 'success', 5000);
-    }, 500);
-    
-    // First time tutorial
-    if (!GameState.tutorials.shown.welcome) {
+        
+        // Initialize systems
+        SaveSystem.init();
+        City3D.init();
+        TimeManager.start();
+        
+        // Generate daily content
+        GameState.generateDailyChores();
+        TimeManager.generateHomework();
+        GameState.calculateGPA();
+        
+        // Update UI
+        UI.updateStats();
+        
+        // Welcome message
         setTimeout(() => {
-            showWelcomeTutorial();
-            GameState.tutorials.shown.welcome = true;
-        }, 2000);
+            UI.showNotification(`Welcome, ${GameState.player.name}!`, 'success', 5000);
+        }, 500);
+        
+        // Tutorial
+        if (!GameState.tutorials.shown.welcome) {
+            setTimeout(() => {
+                showWelcomeTutorial();
+                GameState.tutorials.shown.welcome = true;
+            }, 2000);
+        }
+        
+        gameInitialized = true;
+        console.log('✓ Game initialized successfully');
+        
+    } catch (error) {
+        console.error('Failed to initialize game:', error);
+        UI.showNotification('Failed to start game. Please refresh the page.', 'error');
     }
-    
-    gameInitialized = true;
-    console.log('✓ Game initialized successfully');
 }
 
 function showWelcomeTutorial() {
@@ -98,22 +115,25 @@ function showWelcomeTutorial() {
                 <li>Manage all bills independently</li>
             </ul>
             
-            <p class="text-center mt-20"><strong>Good luck on your journey! 🌟</strong></p>
+            <p class="text-center mt-20"><strong>Good luck! 🌟</strong></p>
         </div>
     `;
     
     UI.showModal('🎓 How to Play', content, [
-        { text: 'Got it!', class: 'btn-primary', action: 'closeWelcomeTutorial()' }
+        { 
+            text: 'Got it!', 
+            class: 'btn-primary', 
+            action: () => {} 
+        }
     ]);
-}
-
-function closeWelcomeTutorial() {
-    const modals = document.querySelectorAll('.modal-overlay');
-    modals.forEach(m => m.remove());
 }
 
 // Time control functions
 function setSpeed(speed) {
+    if (![1, 3, 10].includes(speed)) {
+        console.error('Invalid speed:', speed);
+        return;
+    }
     TimeManager.setSpeed(speed);
 }
 
@@ -121,52 +141,63 @@ function togglePause() {
     TimeManager.togglePause();
 }
 
-// Update stats periodically
-setInterval(() => {
-    UI.updateStats();
-}, 5000);
+// Stats update interval
+let statsUpdateInterval = null;
+
+function startStatsUpdate() {
+    if (statsUpdateInterval) {
+        clearInterval(statsUpdateInterval);
+    }
+    statsUpdateInterval = setInterval(() => {
+        UI.updateStats();
+    }, 5000);
+}
 
 // Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
-    // Spacebar = pause
-    if (e.code === 'Space' && !e.target.matches('input, textarea')) {
-        e.preventDefault();
-        togglePause();
+    // Don't trigger if typing in input
+    if (e.target.matches('input, textarea')) {
+        return;
     }
     
-    // 1, 2, 3 = speed controls
-    if (e.code === 'Digit1') setSpeed(1);
-    if (e.code === 'Digit2') setSpeed(3);
-    if (e.code === 'Digit3') setSpeed(10);
-    
-    // ESC = back to city
-    if (e.code === 'Escape') {
-        const locationScreen = document.getElementById('locationScreen');
-        if (!locationScreen.classList.contains('hidden')) {
-            backToCity();
-        }
+    switch(e.code) {
+        case 'Space':
+            e.preventDefault();
+            togglePause();
+            break;
+        case 'Digit1':
+            setSpeed(1);
+            break;
+        case 'Digit2':
+            setSpeed(3);
+            break;
+        case 'Digit3':
+            setSpeed(10);
+            break;
+        case 'Escape':
+            const locationScreen = document.getElementById('locationScreen');
+            if (locationScreen && !locationScreen.classList.contains('hidden')) {
+                backToCity();
+            }
+            break;
     }
 });
 
-// Debug commands (remove in production)
-window.debugAddMoney = (amount) => {
-    GameState.addMoney(amount, 'debug');
-    UI.updateStats();
-    console.log(`Added $${amount}`);
-};
-
-window.debugSetAge = (age) => {
-    GameState.player.age = age;
-    UI.updateStats();
-    console.log(`Age set to ${age}`);
-};
-
-window.debugSkipTime = (hours) => {
-    for (let i = 0; i < hours * 60; i++) {
-        TimeManager.tick();
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    if (statsUpdateInterval) {
+        clearInterval(statsUpdateInterval);
     }
-    console.log(`Skipped ${hours} hours`);
-};
+    if (City3D) {
+        City3D.destroy();
+    }
+    if (TimeManager) {
+        TimeManager.stop();
+    }
+    SaveSystem.save(true);
+});
 
-console.log('🎮 Life Skills Academy loaded');
-console.log('Debug commands: debugAddMoney(amount), debugSetAge(age), debugSkipTime(hours)');
+// Start stats updates when game starts
+startStatsUpdate();
+
+console.log('✅ game.js loaded');
