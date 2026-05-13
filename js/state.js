@@ -3,12 +3,18 @@
 const GameState = {
     version: '2.0.0',
     
+    // Constants
+    ADULT_AGE: 18,
+    MAX_SKILL: 100,
+    MAX_GRADE: 100,
+    MIN_GRADE: 0,
+    
     player: {
         name: '',
         gender: '',
         age: 14,
         grade: 9,
-        birthday: '',
+        birthday: { month: 1, day: 1 },
         hasPhone: false,
         phoneNumber: ''
     },
@@ -16,7 +22,7 @@ const GameState = {
     time: {
         minute: 0,
         hour: 7,
-        day: 1, // 1=Monday, 7=Sunday
+        day: 1,
         date: 1,
         month: 1,
         year: 2024,
@@ -66,9 +72,7 @@ const GameState = {
         budgeting: 0,
         timeManagement: 0,
         checkWriting: 0,
-        creditManagement: 0,
-        bowling: 0,
-        skating: 0
+        creditManagement: 0
     },
     
     daily: {
@@ -79,29 +83,20 @@ const GameState = {
     adult: {
         apartment: null,
         bills: [],
-        groceries: 0,
+        groceries: 100,
         utilities: 0,
-        rent: 800
+        rent: 0
     },
     
-    phone: {
-        hasPhone: false,
-        model: null,
-        plan: null,
-        monthlyBill: 0,
-        lastBillDate: null,
-        apps: {
-            banking: false,
-            jobSearch: false,
-            schoolPortal: false,
-            social: false
+    inventory: [],
+    
+    tutorials: {
+        shown: {
+            welcome: false,
+            school: false,
+            work: false,
+            bank: false
         }
-    },
-    
-    entertainment: {
-        friendships: {},
-        socialEnergy: 100,
-        lastHangout: null
     },
     
     currentActivity: null,
@@ -112,24 +107,25 @@ const GameState = {
         choresCompleted: 0,
         homeworkCompleted: 0,
         daysPlayed: 0,
-        hoursWorked: 0,
-        gamesPlayed: 0
+        hoursWorked: 0
     },
     
     achievements: [],
     
-    // ==================== INITIALIZATION ====================
+    // ==================== VALIDATION ====================
     
-    init() {
-        console.log('🎮 GameState.init() called');
-        this.generateDailyChores();
-        
-        // Set initial groceries for underage players
-        if (this.player.age < 18) {
-            this.adult.groceries = 100;
+    validateNumber(value, min = -Infinity, max = Infinity) {
+        if (typeof value !== 'number' || !isFinite(value)) {
+            return false;
         }
-        
-        console.log('✅ GameState initialized successfully');
+        return value >= min && value <= max;
+    },
+    
+    validateString(value, maxLength = 100) {
+        if (typeof value !== 'string') {
+            return false;
+        }
+        return value.length <= maxLength;
     },
     
     // ==================== BUSY SYSTEM ====================
@@ -144,46 +140,72 @@ const GameState = {
     },
     
     setBusy(hours, activityName) {
+        if (!this.validateNumber(hours, 0, 24)) {
+            console.error('Invalid busy hours:', hours);
+            return false;
+        }
+        
         const totalMinutes = this.time.hour * 60 + this.time.minute + (hours * 60);
         this.time.busyUntil = {
             hour: Math.floor(totalMinutes / 60) % 24,
             minute: Math.floor(totalMinutes % 60)
         };
         this.currentActivity = activityName;
-        console.log(`🔒 Player busy with: ${activityName} until ${this.time.busyUntil.hour}:${this.time.busyUntil.minute.toString().padStart(2, '0')}`);
+        console.log(`🔒 Busy: ${activityName} until ${this.time.busyUntil.hour}:${String(this.time.busyUntil.minute).padStart(2, '0')}`);
+        return true;
     },
     
     clearBusy() {
         this.time.busyUntil = null;
         this.currentActivity = null;
-        console.log('✅ Player is now free');
     },
     
     // ==================== MONEY ====================
     
     addMoney(amount, source) {
+        if (!this.validateNumber(amount, 0)) {
+            console.error('Invalid money amount:', amount);
+            return false;
+        }
+        
         this.money.cash += amount;
         this.stats.totalMoneyEarned += amount;
-        console.log(`💰 +$${amount} from ${source}`);
+        console.log(`💰 +$${amount.toFixed(2)} from ${source}`);
+        return true;
     },
     
     spendMoney(amount, reason) {
+        if (!this.validateNumber(amount, 0)) {
+            console.error('Invalid spend amount:', amount);
+            return false;
+        }
+        
         if (this.money.cash >= amount) {
             this.money.cash -= amount;
             this.stats.totalMoneySpent += amount;
-            console.log(`💸 -$${amount} for ${reason}`);
+            console.log(`💸 -$${amount.toFixed(2)} for ${reason}`);
             return true;
         }
+        
         return false;
     },
     
     // ==================== SKILLS ====================
     
     addSkill(skillName, amount) {
-        if (this.skills[skillName] !== undefined) {
-            this.skills[skillName] = Math.min(100, this.skills[skillName] + amount);
-            console.log(`📈 ${skillName} +${amount} (now ${this.skills[skillName]})`);
+        if (!this.skills.hasOwnProperty(skillName)) {
+            console.warn('Unknown skill:', skillName);
+            return false;
         }
+        
+        if (!this.validateNumber(amount, 0)) {
+            console.error('Invalid skill amount:', amount);
+            return false;
+        }
+        
+        this.skills[skillName] = Math.min(this.MAX_SKILL, this.skills[skillName] + amount);
+        console.log(`📈 ${skillName} +${amount} (now ${this.skills[skillName]})`);
+        return true;
     },
     
     // ==================== CHORES ====================
@@ -193,32 +215,29 @@ const GameState = {
             { id: 'bed', name: 'Make Bed', time: 10, reward: 5, skill: 'cleaning' },
             { id: 'dishes', name: 'Wash Dishes', time: 20, reward: 8, skill: 'cleaning' },
             { id: 'vacuum', name: 'Vacuum Living Room', time: 30, reward: 10, skill: 'cleaning' },
-            { id: 'trash', name: 'Take Out Trash', time: 10, reward: 5, skill: 'cleaning' }
+            { id: 'trash', name: 'Take Out Trash', time: 10, reward: 5, skill: 'cleaning' },
+            { id: 'laundry', name: 'Do Laundry', time: 90, reward: 12, skill: 'laundry' }
         ];
         
-        // Only assign chores if underage
-        if (this.player.age < 18) {
-            // Select 3 random chores
-            const shuffled = allChores.sort(() => 0.5 - Math.random());
+        if (this.player.age < this.ADULT_AGE) {
+            const shuffled = [...allChores].sort(() => 0.5 - Math.random());
             this.daily.chores = shuffled.slice(0, 3).map(chore => ({
                 ...chore,
-                completed: false
+                done: false
             }));
         } else {
             this.daily.chores = [];
         }
         
         this.daily.completedToday = [];
-        console.log(`✅ Generated ${this.daily.chores.length} chores for today`);
     },
     
     completeChore(choreId) {
         const chore = this.daily.chores.find(c => c.id === choreId);
-        if (chore && !chore.completed) {
-            chore.completed = true;
+        if (chore && !chore.done) {
+            chore.done = true;
             this.daily.completedToday.push(choreId);
             this.stats.choresCompleted++;
-            console.log(`✅ Completed chore: ${chore.name}`);
             return true;
         }
         return false;
@@ -227,13 +246,16 @@ const GameState = {
     // ==================== SCHOOL ====================
     
     completeHomework(subject) {
-        const homework = this.school.homework.find(hw => hw.subject === subject);
-        if (homework && !homework.completed) {
-            homework.completed = true;
-            this.school.grades[subject] = Math.min(100, this.school.grades[subject] + 5);
+        const homework = this.school.homework.find(hw => hw.subject === subject && !hw.done);
+        if (homework) {
+            homework.done = true;
+            
+            if (this.school.grades[subject] !== undefined) {
+                this.school.grades[subject] = Math.min(this.MAX_GRADE, this.school.grades[subject] + 5);
+            }
+            
             this.stats.homeworkCompleted++;
             this.calculateGPA();
-            console.log(`📚 Completed ${subject} homework`);
             return true;
         }
         return false;
@@ -241,22 +263,30 @@ const GameState = {
     
     calculateGPA() {
         const grades = Object.values(this.school.grades);
+        if (grades.length === 0) return;
+        
         const average = grades.reduce((a, b) => a + b, 0) / grades.length;
         
-        // Convert to 4.0 scale
-        if (average >= 93) this.school.gpa = 4.0;
-        else if (average >= 90) this.school.gpa = 3.7;
-        else if (average >= 87) this.school.gpa = 3.3;
-        else if (average >= 83) this.school.gpa = 3.0;
-        else if (average >= 80) this.school.gpa = 2.7;
-        else if (average >= 77) this.school.gpa = 2.3;
-        else if (average >= 73) this.school.gpa = 2.0;
-        else if (average >= 70) this.school.gpa = 1.7;
-        else if (average >= 67) this.school.gpa = 1.3;
-        else if (average >= 65) this.school.gpa = 1.0;
-        else this.school.gpa = 0.0;
+        const GPA_SCALE = [
+            { min: 93, gpa: 4.0 },
+            { min: 90, gpa: 3.7 },
+            { min: 87, gpa: 3.3 },
+            { min: 83, gpa: 3.0 },
+            { min: 80, gpa: 2.7 },
+            { min: 77, gpa: 2.3 },
+            { min: 73, gpa: 2.0 },
+            { min: 70, gpa: 1.7 },
+            { min: 67, gpa: 1.3 },
+            { min: 65, gpa: 1.0 },
+            { min: 0, gpa: 0.0 }
+        ];
         
-        console.log(`📊 GPA updated: ${this.school.gpa.toFixed(2)}`);
+        for (const scale of GPA_SCALE) {
+            if (average >= scale.min) {
+                this.school.gpa = scale.gpa.toFixed(1);
+                break;
+            }
+        }
     },
     
     isWeekday() {
@@ -271,23 +301,17 @@ const GameState = {
         if (!this.isSchoolTime()) return null;
         
         const periods = [
-            { start: 8, end: 8.83, name: 'Math' },
-            { start: 9, end: 9.83, name: 'English' },
-            { start: 10, end: 10.83, name: 'Science' },
-            { start: 11, end: 11.5, name: 'Lunch' },
+            { start: 8.0, end: 8.83, name: 'Math' },
+            { start: 9.0, end: 9.83, name: 'English' },
+            { start: 10.0, end: 10.83, name: 'Science' },
+            { start: 11.0, end: 11.5, name: 'Lunch' },
             { start: 11.5, end: 12.33, name: 'History' },
             { start: 12.5, end: 13.33, name: 'PE' }
         ];
         
         const currentTime = this.time.hour + (this.time.minute / 60);
         
-        for (const period of periods) {
-            if (currentTime >= period.start && currentTime < period.end) {
-                return period;
-            }
-        }
-        
-        return null;
+        return periods.find(p => currentTime >= p.start && currentTime < p.end) || null;
     },
     
     // ==================== TIME ====================
@@ -301,8 +325,7 @@ const GameState = {
         this.time.date++;
         const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
         
-        // Check for leap year
-        if (this.time.month === 2 && this.time.year % 4 === 0) {
+        if (this.time.month === 2 && this.time.year % 4 === 0 && (this.time.year % 100 !== 0 || this.time.year % 400 === 0)) {
             daysInMonth[1] = 29;
         }
         
@@ -313,34 +336,48 @@ const GameState = {
             if (this.time.month > 12) {
                 this.time.month = 1;
                 this.time.year++;
-                
-                // Birthday check
-                const birthday = new Date(this.player.birthday);
-                if (birthday.getMonth() + 1 === this.time.month && birthday.getDate() === this.time.date) {
-                    this.player.age++;
-                    console.log(`🎂 Happy Birthday! You are now ${this.player.age} years old!`);
-                }
             }
+        }
+        
+        // Birthday check
+        if (this.player.birthday && 
+            this.time.month === this.player.birthday.month && 
+            this.time.date === this.player.birthday.day) {
+            this.player.age++;
+            console.log(`🎂 Happy Birthday! Now ${this.player.age} years old`);
         }
         
         this.stats.daysPlayed++;
         this.generateDailyChores();
-        
-        console.log(`📅 Advanced to day ${this.time.day}, ${this.time.month}/${this.time.date}/${this.time.year}`);
     },
     
     // ==================== ACHIEVEMENTS ====================
     
     addAchievement(name, description, icon) {
+        if (!this.validateString(name, 50) || !this.validateString(description, 200)) {
+            console.error('Invalid achievement data');
+            return false;
+        }
+        
         if (!this.achievements.find(a => a.name === name)) {
-            this.achievements.push({ name, description, icon, date: new Date() });
-            console.log(`🏆 Achievement unlocked: ${icon} ${name}`);
+            this.achievements.push({ 
+                name, 
+                description, 
+                icon, 
+                date: new Date().toISOString() 
+            });
+            
+            console.log(`🏆 Achievement: ${icon} ${name}`);
             
             if (typeof UI !== 'undefined' && UI.showNotification) {
-                UI.showNotification(`🏆 Achievement: ${icon} ${name}`, 'success');
+                UI.showNotification(`🏆 ${name}`, 'success');
             }
+            
+            return true;
         }
+        
+        return false;
     }
 };
 
-console.log('✅ state.js loaded - GameState ready');
+console.log('✅ state.js loaded');
