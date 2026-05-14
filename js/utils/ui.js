@@ -1,182 +1,25 @@
-// ==================== UI UTILITIES ====================
+// ==================== UTILITY FUNCTIONS ====================
 
-const UI = {
+const Utils = {
     /**
-     * Update all stats in the top bar
+     * Escape HTML to prevent XSS
      */
-    updateStats() {
-        // Time
-        const hour = String(GameState.time.hour).padStart(2, '0');
-        const minute = String(GameState.time.minute).padStart(2, '0');
-        document.getElementById('statTime').textContent = `${hour}:${minute}`;
-        
-        // Day
-        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const dayName = days[GameState.time.day];
-        document.getElementById('statDay').textContent = dayName;
-        
-        // Money
-        document.getElementById('statMoney').textContent = `$${GameState.money.toFixed(2)}`;
-        
-        // Needs
-        this.updateNeedStat('Energy', GameState.needs.energy);
-        this.updateNeedStat('Hunger', GameState.needs.hunger);
-        this.updateNeedStat('Health', GameState.needs.health);
-        this.updateNeedStat('Happiness', GameState.needs.happiness);
-        this.updateNeedStat('Stress', GameState.needs.stress);
-        
-        // Update current activity status
-        const activityElement = document.getElementById('currentActivity');
-        const activityNameElement = document.getElementById('activityName');
-        const activityTimeElement = document.getElementById('activityTime');
-        const activityIconElement = document.querySelector('#currentActivity .activity-icon');
-        
-        if (GameState.busyWith) {
-            // Show activity status
-            activityElement.classList.add('active');
-            
-            // Set activity name
-            activityNameElement.textContent = GameState.busyWith;
-            
-            // Set icon based on activity type
-            const activityIcons = {
-                'homework': '📚',
-                'working': '💼',
-                'sleeping': '😴',
-                'studying': '📖',
-                'eating': '🍽️',
-                'exercising': '💪',
-                'cooking': '🍳',
-                'chore': '🧹',
-                'dishes': '🍽️',
-                'laundry': '🧺',
-                'vacuum': '🧹',
-                'bed': '🛏️',
-                'trash': '🗑️',
-                'default': '⏳'
-            };
-            
-            let icon = activityIcons.default;
-            const activityLower = GameState.busyWith.toLowerCase();
-            
-            for (const [key, emoji] of Object.entries(activityIcons)) {
-                if (activityLower.includes(key)) {
-                    icon = emoji;
-                    break;
-                }
-            }
-            
-            activityIconElement.textContent = icon;
-            
-            // Show time remaining
-            if (GameState.busyUntil) {
-                const minutesLeft = GameState.busyUntil;
-                if (minutesLeft > 60) {
-                    const hours = Math.floor(minutesLeft / 60);
-                    const mins = minutesLeft % 60;
-                    activityTimeElement.textContent = `Time: ${hours}h ${mins > 0 ? mins + 'm' : ''}`;
-                } else {
-                    activityTimeElement.textContent = `Time: ${minutesLeft} minutes`;
-                }
-            } else {
-                activityTimeElement.textContent = '';
-            }
-        } else {
-            // Hide activity status when not busy
-            activityElement.classList.remove('active');
-        }
+    escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
     },
     
     /**
-     * Update a single need stat with value and progress bar
+     * Format currency
      */
-    updateNeedStat(name, value) {
-        const roundedValue = Math.round(value);
-        document.getElementById(`stat${name}`).textContent = roundedValue;
-        
-        const bar = document.getElementById(`bar${name}`);
-        if (bar) {
-            bar.style.width = `${roundedValue}%`;
-            
-            // Update color class based on value
-            bar.classList.remove('low', 'medium', 'high');
-            
-            // For stress, inverted logic (low stress is good)
-            if (name === 'Stress') {
-                if (value > 70) {
-                    bar.classList.add('low'); // Red
-                } else if (value > 40) {
-                    bar.classList.add('medium'); // Yellow
-                } else {
-                    bar.classList.add('high'); // Green
-                }
-            } else {
-                // For other needs (higher is better)
-                if (value < 30) {
-                    bar.classList.add('low'); // Red
-                } else if (value < 60) {
-                    bar.classList.add('medium'); // Yellow
-                } else {
-                    bar.classList.add('high'); // Green
-                }
-            }
-        }
-    },
-    
-    /**
-     * Show a notification message
-     */
-    showNotification(message, type = 'info', duration = 3000) {
-        const container = document.getElementById('notificationContainer');
-        
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.textContent = message;
-        
-        container.appendChild(notification);
-        
-        // Trigger animation
-        setTimeout(() => {
-            notification.classList.add('show');
-        }, 10);
-        
-        // Remove after duration
-        setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => {
-                container.removeChild(notification);
-            }, 300);
-        }, duration);
-    },
-    
-    /**
-     * Show a modal dialog
-     */
-    showModal(title, content) {
-        document.getElementById('modalTitle').textContent = title;
-        document.getElementById('modalBody').innerHTML = content;
-        document.getElementById('modalContainer').classList.remove('hidden');
-    },
-    
-    /**
-     * Close the modal dialog
-     */
-    closeModal() {
-        document.getElementById('modalContainer').classList.add('hidden');
-    },
-    
-    /**
-     * Show a confirmation dialog
-     */
-    confirm(title, message, onConfirm, onCancel) {
-        const content = `
-            <p>${message}</p>
-            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-                <button class="btn btn-secondary" onclick="UI.closeModal(); ${onCancel ? '(' + onCancel + ')()' : ''}">Cancel</button>
-                <button class="btn btn-primary" onclick="UI.closeModal(); (${onConfirm})()">Confirm</button>
-            </div>
-        `;
-        this.showModal(title, content);
+    formatMoney(amount) {
+        return `$${amount.toFixed(2)}`;
     },
     
     /**
@@ -187,7 +30,47 @@ const UI = {
     },
     
     /**
-     * Get day name from day number
+     * Get random integer between min and max (inclusive)
+     */
+    randomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    },
+    
+    /**
+     * Get random element from array
+     */
+    randomChoice(array) {
+        return array[Math.floor(Math.random() * array.length)];
+    },
+    
+    /**
+     * Shuffle array
+     */
+    shuffle(array) {
+        const shuffled = [...array];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+    },
+    
+    /**
+     * Clamp value between min and max
+     */
+    clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+    },
+    
+    /**
+     * Linear interpolation
+     */
+    lerp(start, end, t) {
+        return start + (end - start) * t;
+    },
+    
+    /**
+     * Get day name from number
      */
     getDayName(dayNum) {
         const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -195,16 +78,85 @@ const UI = {
     },
     
     /**
-     * Format money with dollar sign
+     * Get month name from number
      */
-    formatMoney(amount) {
-        return `$${amount.toFixed(2)}`;
+    getMonthName(monthNum) {
+        const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                       'July', 'August', 'September', 'October', 'November', 'December'];
+        return months[monthNum - 1];
     },
     
     /**
-     * Get color for a need value
+     * Format date as string
      */
-    getNeedColor(value, inverted = false) {
+    formatDate(month, date, year) {
+        return `${this.getMonthName(month)} ${date}, ${year}`;
+    },
+    
+    /**
+     * Check if weekday
+     */
+    isWeekday(dayNum) {
+        return dayNum >= 1 && dayNum <= 5;
+    },
+    
+    /**
+     * Check if weekend
+     */
+    isWeekend(dayNum) {
+        return dayNum === 0 || dayNum === 6;
+    },
+    
+    /**
+     * Get ordinal suffix for numbers (1st, 2nd, 3rd, etc.)
+     */
+    getOrdinal(num) {
+        const s = ['th', 'st', 'nd', 'rd'];
+        const v = num % 100;
+        return num + (s[(v - 20) % 10] || s[v] || s[0]);
+    },
+    
+    /**
+     * Deep clone object
+     */
+    deepClone(obj) {
+        return JSON.parse(JSON.stringify(obj));
+    },
+    
+    /**
+     * Capitalize first letter
+     */
+    capitalize(str) {
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    },
+    
+    /**
+     * Generate UUID
+     */
+    generateId() {
+        return 'xxxx-xxxx-xxxx-xxxx'.replace(/x/g, () => {
+            return Math.floor(Math.random() * 16).toString(16);
+        });
+    },
+    
+    /**
+     * Calculate percentage
+     */
+    percentage(value, max) {
+        return Math.round((value / max) * 100);
+    },
+    
+    /**
+     * Format large numbers with commas
+     */
+    formatNumber(num) {
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    },
+    
+    /**
+     * Get color based on value (for progress bars, etc.)
+     */
+    getColor(value, inverted = false) {
         if (inverted) {
             // For stress (lower is better)
             if (value > 70) return '#e74c3c';
@@ -219,125 +171,115 @@ const UI = {
     },
     
     /**
-     * Create a progress bar HTML
+     * Play sound effect (if audio is implemented)
      */
-    createProgressBar(value, max = 100, label = '') {
-        const percentage = (value / max) * 100;
-        const color = this.getNeedColor(percentage);
-        
-        return `
-            <div class="progress-bar-container">
-                ${label ? `<div class="progress-label">${label}</div>` : ''}
-                <div class="progress-bar-bg">
-                    <div class="progress-bar-fill" style="width: ${percentage}%; background-color: ${color};"></div>
-                </div>
-                <div class="progress-value">${Math.round(value)}/${max}</div>
-            </div>
-        `;
+    playSound(soundName) {
+        // Placeholder for future audio implementation
+        console.log(`🔊 Sound: ${soundName}`);
     },
     
     /**
-     * Show a loading indicator
+     * Vibrate device (mobile)
      */
-    showLoading(message = 'Loading...') {
-        const content = `
-            <div style="text-align: center; padding: 20px;">
-                <div class="spinner"></div>
-                <p style="margin-top: 20px;">${message}</p>
-            </div>
-        `;
-        this.showModal('Loading', content);
+    vibrate(duration = 100) {
+        if ('vibrate' in navigator) {
+            navigator.vibrate(duration);
+        }
     },
     
     /**
-     * Hide loading indicator
+     * Check if mobile device
      */
-    hideLoading() {
-        this.closeModal();
+    isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     },
     
     /**
-     * Animate a number change
+     * Get browser name
      */
-    animateNumber(elementId, from, to, duration = 500) {
-        const element = document.getElementById(elementId);
-        if (!element) return;
-        
-        const startTime = performance.now();
-        const difference = to - from;
-        
-        const animate = (currentTime) => {
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            
-            const current = from + (difference * progress);
-            element.textContent = Math.round(current);
-            
-            if (progress < 1) {
-                requestAnimationFrame(animate);
+    getBrowser() {
+        const userAgent = navigator.userAgent;
+        if (userAgent.includes('Firefox')) return 'Firefox';
+        if (userAgent.includes('Chrome')) return 'Chrome';
+        if (userAgent.includes('Safari')) return 'Safari';
+        if (userAgent.includes('Edge')) return 'Edge';
+        return 'Unknown';
+    },
+    
+    /**
+     * Store data in localStorage
+     */
+    saveToStorage(key, data) {
+        try {
+            localStorage.setItem(key, JSON.stringify(data));
+            return true;
+        } catch (error) {
+            console.error('Failed to save to localStorage:', error);
+            return false;
+        }
+    },
+    
+    /**
+     * Load data from localStorage
+     */
+    loadFromStorage(key) {
+        try {
+            const data = localStorage.getItem(key);
+            return data ? JSON.parse(data) : null;
+        } catch (error) {
+            console.error('Failed to load from localStorage:', error);
+            return null;
+        }
+    },
+    
+    /**
+     * Remove data from localStorage
+     */
+    removeFromStorage(key) {
+        try {
+            localStorage.removeItem(key);
+            return true;
+        } catch (error) {
+            console.error('Failed to remove from localStorage:', error);
+            return false;
+        }
+    },
+    
+    /**
+     * Wait for milliseconds (async)
+     */
+    async wait(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    },
+    
+    /**
+     * Debounce function
+     */
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    },
+    
+    /**
+     * Throttle function
+     */
+    throttle(func, limit) {
+        let inThrottle;
+        return function(...args) {
+            if (!inThrottle) {
+                func.apply(this, args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
             }
         };
-        
-        requestAnimationFrame(animate);
-    },
-    
-    /**
-     * Flash an element to draw attention
-     */
-    flashElement(elementId, color = '#f39c12', duration = 500) {
-        const element = document.getElementById(elementId);
-        if (!element) return;
-        
-        const originalBackground = element.style.backgroundColor;
-        element.style.backgroundColor = color;
-        element.style.transition = `background-color ${duration}ms`;
-        
-        setTimeout(() => {
-            element.style.backgroundColor = originalBackground;
-        }, duration);
-    },
-    
-    /**
-     * Shake an element (for errors or warnings)
-     */
-    shakeElement(elementId) {
-        const element = document.getElementById(elementId);
-        if (!element) return;
-        
-        element.classList.add('shake');
-        setTimeout(() => {
-            element.classList.remove('shake');
-        }, 500);
-    },
-    
-    /**
-     * Show a tooltip
-     */
-    showTooltip(text, x, y) {
-        let tooltip = document.getElementById('customTooltip');
-        
-        if (!tooltip) {
-            tooltip = document.createElement('div');
-            tooltip.id = 'customTooltip';
-            tooltip.className = 'custom-tooltip';
-            document.body.appendChild(tooltip);
-        }
-        
-        tooltip.textContent = text;
-        tooltip.style.left = x + 'px';
-        tooltip.style.top = y + 'px';
-        tooltip.classList.add('show');
-    },
-    
-    /**
-     * Hide tooltip
-     */
-    hideTooltip() {
-        const tooltip = document.getElementById('customTooltip');
-        if (tooltip) {
-            tooltip.classList.remove('show');
-        }
     }
 };
 
-console.log('✅ ui.js loaded');
+console.log('✅ utils.js loaded');
