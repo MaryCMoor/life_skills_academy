@@ -485,31 +485,36 @@ function goToSleep(hours, energyRestore, stressReduction) {
         return;
     }
     
-    GameState.setBusy('sleeping', hours * 3);
+    const minutes = hours * 60;
+    
     UI.showNotification(`😴 Sleeping for ${hours} hour${hours > 1 ? 's' : ''}...`, 'info');
     
-    setTimeout(() => {
-        for (let i = 0; i < hours; i++) {
-            if (typeof TimeManager !== 'undefined') {
-                TimeManager.advanceTime(60);
-            }
-        }
-        
-        GameState.needs.energy = Math.min(100, GameState.needs.energy + energyRestore);
-        GameState.needs.stress = Math.max(0, GameState.needs.stress - stressReduction);
-        
-        GameState.clearBusy();
-        
-        let message = `😊 You feel refreshed! Energy: ${GameState.needs.energy}`;
-        if (stressReduction > 0) {
-            message += `, Stress: ${Math.round(GameState.needs.stress)}`;
-        }
-        
-        UI.showNotification(message, 'success');
-        
-        loadHome();
-        UI.updateStats();
-    }, hours * 3000);
+    // Set busy
+    GameState.setBusy('sleeping', minutes);
+    
+    // Advance time
+    if (typeof TimeManager !== 'undefined' && TimeManager.advanceTime) {
+        TimeManager.advanceTime(minutes);
+    }
+    
+    // Apply sleep benefits
+    GameState.needs.energy = Math.min(100, GameState.needs.energy + energyRestore);
+    GameState.needs.stress = Math.max(0, GameState.needs.stress - stressReduction);
+    GameState.needs.health = Math.min(100, GameState.needs.health + (hours * 2));
+    
+    // Clear busy
+    GameState.clearBusy();
+    
+    let message = `😊 You feel refreshed! Energy: ${Math.round(GameState.needs.energy)}`;
+    if (stressReduction > 0) {
+        message += `, Stress: ${Math.round(GameState.needs.stress)}`;
+    }
+    
+    UI.showNotification(message, 'success');
+    
+    loadHome();
+    UI.updateStats();
 }
+
 
 console.log('✅ home.js loaded');
