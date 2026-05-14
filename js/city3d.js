@@ -856,4 +856,23 @@ function parkRelax() {
     UI.updateStats();
 }
 
+// Wrapper function for compatibility
+function loadCity3D() {
+    City3D.init();
+}
+
+// Make globally available
+window.City3D = City3D;
+window.loadCity3D = loadCity3D;
+window.backToCity = backToCity;
+window.loadWorkplace = loadWorkplace;
+window.loadGym = loadGym;
+window.loadPark = loadPark;
+window.exerciseCardio = exerciseCardio;
+window.exerciseStrength = exerciseStrength;
+window.exerciseYoga = exerciseYoga;
+window.parkWalk = parkWalk;
+window.parkRead = parkRead;
+window.parkRelax = parkRelax;
+
 console.log('✅ city3d.js loaded');
