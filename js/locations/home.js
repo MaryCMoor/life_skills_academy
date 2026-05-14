@@ -322,9 +322,9 @@ function renderSleep() {
     html += '<p>Rest to restore your energy and reduce stress.</p>';
     
     const sleepOptions = [
-        { name: 'Quick Nap', hours: 1, energy: 20, stress: 5, icon: '💤' },
-        { name: 'Short Sleep', hours: 4, energy: 50, stress: 15, icon: '😴' },
-        { name: 'Full Night Sleep', hours: 8, energy: 100, stress: 40, icon: '🌙' }
+        { name: 'Quick Nap', hours: 1, energy: 20, stress: 8, icon: '💤' },
+        { name: 'Short Sleep', hours: 4, energy: 50, stress: 32, icon: '😴' },
+        { name: 'Full Night Sleep', hours: 8, energy: 100, stress: 64, icon: '🌙' }
     ];
     
     html += '<div class="content-grid">';
@@ -398,7 +398,6 @@ function doChore(choreId, hasMinigame) {
         return;
     }
     
-    // Launch appropriate minigame
     if (hasMinigame) {
         switch(choreId) {
             case 'bed':
@@ -443,7 +442,6 @@ function completeChoreSimple(choreId) {
         GameState.clearBusy();
         GameState.stats.choresCompleted++;
         
-        // Small stress reduction from accomplishing tasks
         GameState.needs.stress = Math.max(0, GameState.needs.stress - 2);
         
         UI.showNotification(`✅ ${chore.name} complete! +$${chore.reward}`, 'success');
@@ -481,17 +479,13 @@ function goToSleep(hours, energyRestore, stressReduction) {
     UI.showNotification(`😴 Sleeping for ${hours} hour${hours > 1 ? 's' : ''}...`, 'info');
     
     setTimeout(() => {
-        // Advance time
         for (let i = 0; i < hours; i++) {
             if (typeof TimeManager !== 'undefined') {
-                TimeManager.advanceTime(60); // Advance by 60 minutes
+                TimeManager.advanceTime(60);
             }
         }
         
-        // Restore energy
         GameState.needs.energy = Math.min(100, GameState.needs.energy + energyRestore);
-        
-        // Sleep reduces stress significantly
         GameState.needs.stress = Math.max(0, GameState.needs.stress - stressReduction);
         
         GameState.clearBusy();
