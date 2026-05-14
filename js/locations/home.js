@@ -32,11 +32,20 @@ function loadHome() {
 }
 
 function showHomeTab(tab) {
+    // Remove active class from all tabs and content
     document.querySelectorAll('#locationContent .tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('#locationContent .tab-content').forEach(t => t.classList.remove('active'));
     
-    event.target.classList.add('active');
-    document.getElementById(`home-${tab}`).classList.add('active');
+    // Add active class to clicked tab
+    if (event && event.target) {
+        event.target.classList.add('active');
+    }
+    
+    // Show selected content
+    const contentEl = document.getElementById(`home-${tab}`);
+    if (contentEl) {
+        contentEl.classList.add('active');
+    }
 }
 
 function renderChores() {
