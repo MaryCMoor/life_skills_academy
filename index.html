@@ -188,40 +188,6 @@
         </div>
     </div>
 
-    <!-- UTILS - Load First -->
-    <script>
-        // ==================== UTILITY FUNCTIONS ====================
-        const Utils = {
-            escapeHtml(text) {
-                const map = {
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    '"': '&quot;',
-                    "'": '&#039;'
-                };
-                return text.replace(/[&<>"']/g, m => map[m]);
-            },
-            
-            formatMoney(amount) {
-                return `$${amount.toFixed(2)}`;
-            },
-            
-            formatTime(hour, minute) {
-                return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-            },
-            
-            randomInt(min, max) {
-                return Math.floor(Math.random() * (max - min + 1)) + min;
-            },
-            
-            clamp(value, min, max) {
-                return Math.min(Math.max(value, min), max);
-            }
-        };
-        console.log('✅ Utils loaded');
-    </script>
-
     <!-- Core Game Scripts -->
     <script src="js/utils/ui.js"></script>
     <script src="js/utils/time.js"></script>
