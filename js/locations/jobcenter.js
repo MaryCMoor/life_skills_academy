@@ -273,38 +273,46 @@ function workShift() {
     if (!job) return;
     
     const shiftHours = 4;
+    const shiftMinutes = shiftHours * 60;
     const earnings = job.wage * shiftHours;
-    
-    GameState.setBusy('working', shiftHours * 3);
     
     UI.showNotification(`💼 Working ${shiftHours} hour shift...`, 'info');
     
-    setTimeout(() => {
-        GameState.addMoney(earnings, job.title);
-        GameState.stats.hoursWorked += shiftHours;
-        GameState.addSkill('communication', 3);
-        GameState.addSkill('timeManagement', 2);
-        
-        job.shiftsWorked++;
-        
-        let stressGain = 15;
-        if (GameState.player.age < 18 && GameState.isWeekday()) {
-            stressGain += 10;
-            UI.showNotification('😓 Balancing school and work is stressful!', 'warning', 3000);
-        }
-        GameState.needs.stress = Math.min(100, GameState.needs.stress + stressGain);
-        
-        GameState.needs.energy = Math.max(0, GameState.needs.energy - 20);
-        GameState.needs.hunger = Math.max(0, GameState.needs.hunger - 15);
-        
-        GameState.clearBusy();
-        
-        UI.showNotification(`✅ Shift complete! Earned $${earnings.toFixed(2)}`, 'success');
-        
-        loadJobCenter();
-        UI.updateStats();
-    }, shiftHours * 3000);
+    // Set busy
+    GameState.setBusy('working', shiftMinutes);
+    
+    // Advance time
+    if (typeof TimeManager !== 'undefined' && TimeManager.advanceTime) {
+        TimeManager.advanceTime(shiftMinutes);
+    }
+    
+    // Apply effects
+    GameState.addMoney(earnings, job.title);
+    GameState.stats.hoursWorked += shiftHours;
+    GameState.addSkill('communication', 3);
+    GameState.addSkill('timeManagement', 2);
+    
+    job.shiftsWorked++;
+    
+    // Stress calculation
+    let stressGain = 15;
+    if (GameState.player.age < 18 && GameState.isWeekday()) {
+        stressGain += 10;
+        UI.showNotification('😓 Balancing school and work is stressful!', 'warning', 3000);
+    }
+    GameState.needs.stress = Math.min(100, GameState.needs.stress + stressGain);
+    GameState.needs.energy = Math.max(0, GameState.needs.energy - 20);
+    GameState.needs.hunger = Math.max(0, GameState.needs.hunger - 15);
+    
+    // Clear busy
+    GameState.clearBusy();
+    
+    UI.showNotification(`✅ Shift complete! Earned $${earnings.toFixed(2)}`, 'success');
+    
+    loadJobCenter();
+    UI.updateStats();
 }
+
 
 function quitJob() {
     if (!GameState.work.currentJob) return;
