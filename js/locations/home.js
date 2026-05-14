@@ -37,10 +37,13 @@ function showHomeTab(tab) {
     document.querySelectorAll('#locationContent .tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('#locationContent .tab-content').forEach(t => t.classList.remove('active'));
     
-    // Add active class to clicked tab
-    if (event && event.target) {
-        event.target.classList.add('active');
-    }
+    // Find and activate the clicked tab
+    const tabs = document.querySelectorAll('#locationContent .tab');
+    tabs.forEach(t => {
+        if (t.onclick && t.onclick.toString().includes(`'${tab}'`)) {
+            t.classList.add('active');
+        }
+    });
     
     // Show selected content
     const contentEl = document.getElementById(`home-${tab}`);
