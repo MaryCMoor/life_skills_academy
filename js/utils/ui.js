@@ -1,4 +1,5 @@
-// ==================== UTILITY FUNCTIONS ====================
+// ==================== UI UTILITIES ====================
+
 const Utils = {
     escapeHtml(text) {
         const map = {
@@ -8,167 +9,182 @@ const Utils = {
             '"': '&quot;',
             "'": '&#039;'
         };
-        return text.replace(/[&<>"']/g, m => map[m]);
+        return String(text).replace(/[&<>"']/g, m => map[m]);
     },
     
     formatMoney(amount) {
-        return `$${amount.toFixed(2)}`;
+        return '$' + amount.toFixed(2);
     },
     
     formatTime(hour, minute) {
-        return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+        const period = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour % 12 || 12;
+        const displayMinute = minute.toString().padStart(2, '0');
+        return `${displayHour}:${displayMinute} ${period}`;
     },
     
-    randomInt(min, max) {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
+    formatDate(day, month, year) {
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `${monthNames[month]} ${day}, ${year}`;
     },
     
-    clamp(value, min, max) {
-        return Math.min(Math.max(value, min), max);
+    getDayOfWeek(day) {
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        return days[day % 7];
     }
 };
 
-// ==================== UI MANAGER ====================
 const UI = {
-    updateStats() {
-        if (!GameState) return;
-        
-        // Time
-        const timeEl = document.getElementById('statTime');
-        if (timeEl) {
-            timeEl.textContent = Utils.formatTime(GameState.time.hour, GameState.time.minute);
-        }
-        
-        // Day
-        const dayEl = document.getElementById('statDay');
-        if (dayEl) {
-            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            dayEl.textContent = `${days[GameState.time.day]} ${GameState.time.month}/${GameState.time.date}`;
-        }
-        
-        // Money
-        const moneyEl = document.getElementById('statMoney');
-        if (moneyEl) {
-            moneyEl.textContent = Utils.formatMoney(GameState.money.cash);
-        }
-        
-        // Energy
-        this.updateStatBar('Energy', GameState.needs.energy);
-        
-        // Hunger
-        this.updateStatBar('Hunger', GameState.needs.hunger);
-        
-        // Health
-        this.updateStatBar('Health', GameState.needs.health);
-        
-        // Happiness
-        this.updateStatBar('Happiness', GameState.needs.happiness);
-        
-        // Stress
-        this.updateStatBar('Stress', GameState.needs.stress);
-    },
-    
-    updateStatBar(statName, value) {
-        const statEl = document.getElementById('stat' + statName);
-        const barEl = document.getElementById('bar' + statName);
-        
-        if (statEl) {
-            statEl.textContent = Math.round(value);
-        }
-        
-        if (barEl) {
-            barEl.style.width = value + '%';
-            
-            // Color coding
-            barEl.classList.remove('high', 'medium', 'low');
-            if (statName === 'Stress') {
-                // Stress: higher is worse
-                if (value >= 70) barEl.classList.add('low');
-                else if (value >= 40) barEl.classList.add('medium');
-                else barEl.classList.add('high');
-            } else {
-                // Other stats: higher is better
-                if (value >= 70) barEl.classList.add('high');
-                else if (value >= 40) barEl.classList.add('medium');
-                else barEl.classList.add('low');
-            }
-        }
-    },
+    notificationQueue: [],
+    isShowingNotification: false,
     
     showNotification(message, type = 'info', duration = 3000) {
-        const container = document.getElementById('notificationContainer');
-        if (!container) return;
+        this.notificationQueue.push({ message, type, duration });
+        
+        if (!this.isShowingNotification) {
+            this.processNotificationQueue();
+        }
+    },
+    
+    processNotificationQueue() {
+        if (this.notificationQueue.length === 0) {
+            this.isShowingNotification = false;
+            return;
+        }
+        
+        this.isShowingNotification = true;
+        const { message, type, duration } = this.notificationQueue.shift();
+        
+        // Remove any existing notification
+        const existing = document.getElementById('notification');
+        if (existing) {
+            existing.remove();
+        }
         
         const notification = document.createElement('div');
+        notification.id = 'notification';
         notification.className = `notification notification-${type}`;
-        notification.textContent = message;
+        notification.innerHTML = message;
         
-        container.appendChild(notification);
+        document.body.appendChild(notification);
         
         // Trigger animation
-        setTimeout(() => notification.classList.add('show'), 10);
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 10);
         
-        // Auto-remove
+        // Hide and remove
         setTimeout(() => {
             notification.classList.remove('show');
-            setTimeout(() => notification.remove(), 300);
+            setTimeout(() => {
+                notification.remove();
+                this.processNotificationQueue();
+            }, 300);
         }, duration);
     },
     
-    showModal(title, content) {
-        const modal = document.getElementById('modalContainer');
-        const modalTitle = document.getElementById('modalTitle');
-        const modalBody = document.getElementById('modalBody');
+    updateStats() {
+        // Update top bar stats
+        document.getElementById('statCash').textContent = Utils.formatMoney(GameState.player.cash);
+        document.getElementById('statEnergy').textContent = Math.round(GameState.needs.energy);
+        document.getElementById('statHunger').textContent = Math.round(GameState.needs.hunger);
+        document.getElementById('statHappiness').textContent = Math.round(GameState.needs.happiness);
+        document.getElementById('statStress').textContent = Math.round(GameState.needs.stress);
         
-        if (!modal || !modalTitle || !modalBody) return;
+        // Update date/time
+        const { day, month, year, hour, minute } = GameState.time;
+        const dayOfWeek = Utils.getDayOfWeek(GameState.time.dayOfWeek);
         
-        modalTitle.textContent = title;
-        modalBody.innerHTML = content;
-        modal.classList.remove('hidden');
+        document.getElementById('gameDate').textContent = `${dayOfWeek}, ${Utils.formatDate(day, month, year)}`;
+        document.getElementById('gameTime').textContent = Utils.formatTime(hour, minute);
+        
+        // Check critical needs
+        if (GameState.needs.energy <= 10) {
+            this.showNotification('⚠️ You\'re exhausted! Rest soon!', 'warning', 5000);
+        }
+        
+        if (GameState.needs.hunger <= 10) {
+            this.showNotification('⚠️ You\'re starving! Eat something!', 'warning', 5000);
+        }
+        
+        if (GameState.needs.stress >= 90) {
+            this.showNotification('😰 Your stress is critical! Sleep or relax!', 'error', 5000);
+        }
+        
+        if (GameState.needs.happiness <= 10) {
+            this.showNotification('😢 You\'re very unhappy. Do something fun!', 'warning', 5000);
+        }
+    },
+    
+    showModal(title, content, buttons = []) {
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        
+        let buttonsHtml = '';
+        if (buttons.length === 0) {
+            buttonsHtml = '<button class="btn btn-primary" onclick="this.closest(\'.modal-overlay\').remove()">OK</button>';
+        } else {
+            buttonsHtml = buttons.map(btn => {
+                return `<button class="btn ${btn.class || 'btn-primary'}" onclick="${btn.onclick}">${btn.text}</button>`;
+            }).join('');
+        }
+        
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>${title}</h2>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✖</button>
+                </div>
+                <div class="modal-body">
+                    ${content}
+                </div>
+                <div class="modal-footer">
+                    ${buttonsHtml}
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        return modal;
     },
     
     closeModal() {
-        const modal = document.getElementById('modalContainer');
+        const modal = document.querySelector('.modal-overlay');
         if (modal) {
-            modal.classList.add('hidden');
+            modal.remove();
         }
     },
     
-    showLocation(locationName, contentHTML) {
-        const cityContainer = document.getElementById('cityContainer');
-        const locationScreen = document.getElementById('locationScreen');
-        const locationTitle = document.getElementById('locationTitle');
-        const locationContent = document.getElementById('locationContent');
+    showAchievement(achievement) {
+        const achievementEl = document.createElement('div');
+        achievementEl.className = 'achievement-popup';
+        achievementEl.innerHTML = `
+            <div class="achievement-icon">${achievement.icon}</div>
+            <div class="achievement-text">
+                <div class="achievement-title">Achievement Unlocked!</div>
+                <div class="achievement-name">${achievement.name}</div>
+                <div class="achievement-description">${achievement.description}</div>
+            </div>
+        `;
         
-        if (!cityContainer || !locationScreen || !locationTitle || !locationContent) return;
+        document.body.appendChild(achievementEl);
         
-        cityContainer.classList.add('hidden');
-        locationScreen.classList.remove('hidden');
-        locationTitle.textContent = locationName;
-        locationContent.innerHTML = contentHTML;
+        setTimeout(() => {
+            achievementEl.classList.add('show');
+        }, 10);
         
-        GameState.status.currentLocation = locationName.toLowerCase();
-    },
-    
-    updateActivityDisplay(activityName, timeRemaining) {
-        const activityDiv = document.getElementById('currentActivity');
-        const activityNameEl = document.getElementById('activityName');
-        const activityTimeEl = document.getElementById('activityTime');
-        
-        if (!activityDiv || !activityNameEl || !activityTimeEl) return;
-        
-        if (activityName && timeRemaining) {
-            activityDiv.style.display = 'flex';
-            activityNameEl.textContent = activityName;
-            activityTimeEl.textContent = timeRemaining;
-        } else {
-            activityDiv.style.display = 'none';
-        }
-    },
-    
-    clearActivityDisplay() {
-        this.updateActivityDisplay(null, null);
+        setTimeout(() => {
+            achievementEl.classList.remove('show');
+            setTimeout(() => {
+                achievementEl.remove();
+            }, 500);
+        }, 5000);
     }
 };
+
+// FIXED: Make globally available
+window.Utils = Utils;
+window.UI = UI;
 
 console.log('✅ ui.js loaded');
