@@ -10,6 +10,7 @@ function loadHome() {
             <div class="tab" onclick="showHomeTab('fridge')">Fridge (${GameState.fridge.length})</div>
             <div class="tab" onclick="showHomeTab('sleep')">Rest</div>
         </div>
+
         
         <div id="home-chores" class="tab-content active">
             ${renderChores()}
