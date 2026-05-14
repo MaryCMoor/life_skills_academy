@@ -78,6 +78,17 @@ const TimeManager = {
         GameState.needs.energy = Math.max(0, GameState.needs.energy - 1);
         GameState.needs.hygiene = Math.max(0, GameState.needs.hygiene - 0.5);
         GameState.needs.happiness = Math.max(0, GameState.needs.happiness - 0.5);
+        
+        if (!GameState.status.busy) {
+            GameState.needs.stress = Math.max(0, GameState.needs.stress - 0.5);
+        }
+        
+        if (GameState.needs.stress > 70) {
+            GameState.needs.health = Math.max(0, GameState.needs.health - 0.3);
+            GameState.needs.happiness = Math.max(0, GameState.needs.happiness - 0.5);
+        }
+        
+        GameState.checkStressLevel();
     },
     
     checkEvents() {
@@ -105,7 +116,6 @@ const TimeManager = {
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         
-        // Update time display
         const timeStr = `${String(time.hour).padStart(2, '0')}:${String(time.minute).padStart(2, '0')}`;
         const dateStr = `${days[time.day]} ${months[time.month - 1]} ${time.date}, ${time.year}`;
         
@@ -115,8 +125,7 @@ const TimeManager = {
         if (timeEl) timeEl.textContent = timeStr;
         if (dateEl) dateEl.textContent = dateStr;
         
-        // Update needs bars AND values
-        const needsList = ['hunger', 'energy', 'hygiene', 'happiness', 'health'];
+        const needsList = ['hunger', 'energy', 'hygiene', 'happiness', 'health', 'stress'];
         needsList.forEach(need => {
             const bar = document.getElementById(`${need}Bar`);
             const valueDisplay = document.getElementById(`${need}Value`);
@@ -125,36 +134,43 @@ const TimeManager = {
                 const value = Math.max(0, Math.min(100, GameState.needs[need]));
                 bar.style.width = value + '%';
                 
-                // Color coding
-                if (value < 30) bar.style.background = '#e74c3c';
-                else if (value < 70) bar.style.background = '#f39c12';
-                else bar.style.background = '#27ae60';
+                if (need === 'stress') {
+                    if (value > 70) bar.style.background = '#e74c3c';
+                    else if (value > 40) bar.style.background = '#f39c12';
+                    else bar.style.background = '#27ae60';
+                } else {
+                    if (value < 30) bar.style.background = '#e74c3c';
+                    else if (value < 70) bar.style.background = '#f39c12';
+                    else bar.style.background = '#27ae60';
+                }
             }
             
             if (valueDisplay) {
                 const value = Math.round(GameState.needs[need]);
                 valueDisplay.textContent = value;
                 
-                // Color code the value text too
-                if (value < 30) valueDisplay.style.color = '#e74c3c';
-                else if (value < 70) valueDisplay.style.color = '#f39c12';
-                else valueDisplay.style.color = '#27ae60';
+                if (need === 'stress') {
+                    if (value > 70) valueDisplay.style.color = '#e74c3c';
+                    else if (value > 40) valueDisplay.style.color = '#f39c12';
+                    else valueDisplay.style.color = '#27ae60';
+                } else {
+                    if (value < 30) valueDisplay.style.color = '#e74c3c';
+                    else if (value < 70) valueDisplay.style.color = '#f39c12';
+                    else valueDisplay.style.color = '#27ae60';
+                }
             }
         });
         
-        // Update money display
         const cashEl = document.getElementById('playerCash');
         if (cashEl) {
             cashEl.textContent = Math.floor(GameState.money.cash);
         }
         
-        // Update age display
         const ageEl = document.getElementById('playerAge');
         if (ageEl) {
             ageEl.textContent = GameState.player.age;
         }
         
-        // Update GPA display
         const gpaEl = document.getElementById('playerGpa');
         if (gpaEl) {
             gpaEl.textContent = GameState.school.gpa.toFixed(1);
