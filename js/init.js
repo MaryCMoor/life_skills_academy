@@ -33,11 +33,20 @@ function startGame() {
     // Show main game
     document.getElementById('gameContainer').style.display = 'flex';
     
-    // Load city view
-    loadCity3D();
+    // FIXED: Check if loadCity3D exists before calling
+    if (typeof loadCity3D === 'function') {
+        loadCity3D();
+    } else if (typeof City3D !== 'undefined' && typeof City3D.init === 'function') {
+        City3D.init();
+    } else {
+        console.error('City3D not available, loading home instead');
+        loadHome();
+    }
     
     // Start time manager
-    TimeManager.start();
+    if (typeof TimeManager !== 'undefined' && typeof TimeManager.start === 'function') {
+        TimeManager.start();
+    }
     
     // Update UI
     UI.updateStats();
@@ -49,7 +58,28 @@ function startGame() {
 
 function loadGame() {
     if (typeof SaveLoad !== 'undefined' && SaveLoad.loadGame) {
-        SaveLoad.loadGame();
+        const success = SaveLoad.loadGame();
+        if (success) {
+            // Game loaded, now show the game
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'flex';
+            
+            // Load city view
+            if (typeof loadCity3D === 'function') {
+                loadCity3D();
+            } else if (typeof City3D !== 'undefined' && typeof City3D.init === 'function') {
+                City3D.init();
+            } else {
+                loadHome();
+            }
+            
+            // Start time manager if not already running
+            if (typeof TimeManager !== 'undefined' && typeof TimeManager.start === 'function') {
+                TimeManager.start();
+            }
+            
+            UI.updateStats();
+        }
     } else {
         console.error('SaveLoad not available');
         UI.showNotification('❌ Unable to load game', 'error');
@@ -77,9 +107,19 @@ function quitGame() {
 window.addEventListener('DOMContentLoaded', () => {
     console.log('🎮 Life Skills Academy initializing...');
     
-    // Verify Utils loaded
-    if (typeof Utils === 'undefined') {
-        console.error('❌ Utils not loaded!');
+    // Verify required modules loaded
+    const requiredModules = {
+        'Utils': typeof Utils !== 'undefined',
+        'UI': typeof UI !== 'undefined',
+        'GameState': typeof GameState !== 'undefined',
+        'TimeManager': typeof TimeManager !== 'undefined'
+    };
+    
+    const missingModules = Object.keys(requiredModules).filter(mod => !requiredModules[mod]);
+    
+    if (missingModules.length > 0) {
+        console.error('❌ Missing required modules:', missingModules.join(', '));
+        alert('Game failed to load properly. Please refresh the page.');
         return;
     }
     
@@ -107,6 +147,11 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     
     console.log('✅ Game ready!');
+    console.log('Available functions:', {
+        loadCity3D: typeof loadCity3D,
+        City3D: typeof City3D,
+        loadHome: typeof loadHome
+    });
 });
 
 // Handle window before unload
