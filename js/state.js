@@ -91,6 +91,7 @@ const GameState = {
         hygiene: 100,
         happiness: 100,
         health: 100,
+        stress: 0, // 0 = relaxed, 100 = burnout
         calories: 0,
         protein: 0,
         carbs: 0,
@@ -123,6 +124,8 @@ const GameState = {
         bills: []
     },
     
+    fridge: [], // NEW: Stores cooked meals with expiration dates
+    
     inventory: [],
     achievements: [],
     tutorials: {},
@@ -143,6 +146,8 @@ const GameState = {
         busyUntil: null,
         busyActivity: null
     },
+    
+    stressWarningShown: false,
     
     // ==================== MONEY METHODS ====================
     addMoney(amount, source = 'unknown') {
@@ -206,6 +211,127 @@ const GameState = {
     
     generateDailyChores() {
         this.daily.chores.forEach(c => c.done = false);
+    },
+    
+    // ==================== FRIDGE METHODS ====================
+    addMealToFridge(mealName, nutrition) {
+        const meal = {
+            id: Date.now(),
+            name: mealName,
+            cookedDate: {
+                year: this.time.year,
+                month: this.time.month,
+                date: this.time.date
+            },
+            expiryDate: this.calculateExpiryDate(3), // 3 days from now
+            nutrition: nutrition || {
+                calories: 500,
+                protein: 20,
+                carbs: 60,
+                fats: 15,
+                vitamins: 30,
+                hunger: 40
+            }
+        };
+        
+        this.fridge.push(meal);
+        console.log(`🍽️ Added ${mealName} to fridge (expires in 3 days)`);
+        return meal;
+    },
+    
+    calculateExpiryDate(daysFromNow) {
+        const currentDays = this.time.year * 365 + this.time.month * 30 + this.time.date;
+        const expiryDays = currentDays + daysFromNow;
+        
+        return {
+            year: Math.floor(expiryDays / 365),
+            month: Math.floor((expiryDays % 365) / 30) + 1,
+            date: (expiryDays % 30) || 1
+        };
+    },
+    
+    getDaysUntilExpiry(expiryDate) {
+        const currentDays = this.time.year * 365 + this.time.month * 30 + this.time.date;
+        const expiryDays = expiryDate.year * 365 + expiryDate.month * 30 + expiryDate.date;
+        return expiryDays - currentDays;
+    },
+    
+    checkFridgeExpiration() {
+        const before = this.fridge.length;
+        this.fridge = this.fridge.filter(meal => {
+            const daysLeft = this.getDaysUntilExpiry(meal.expiryDate);
+            if (daysLeft < 0) {
+                console.log(`🗑️ ${meal.name} expired and was thrown out`);
+                return false;
+            }
+            return true;
+        });
+        
+        const expired = before - this.fridge.length;
+        if (expired > 0 && typeof UI !== 'undefined') {
+            UI.showNotification(`🗑️ ${expired} meal(s) expired in the fridge!`, 'warning');
+        }
+    },
+    
+    eatMeal(mealId) {
+        const mealIndex = this.fridge.findIndex(m => m.id === mealId);
+        if (mealIndex === -1) {
+            console.error('Meal not found in fridge');
+            return false;
+        }
+        
+        const meal = this.fridge[mealIndex];
+        const daysLeft = this.getDaysUntilExpiry(meal.expiryDate);
+        
+        if (daysLeft < 0) {
+            if (typeof UI !== 'undefined') {
+                UI.showNotification('❌ This meal has expired!', 'error');
+            }
+            this.fridge.splice(mealIndex, 1);
+            return false;
+        }
+        
+        // Apply nutrition
+        this.needs.hunger = Math.min(100, this.needs.hunger + meal.nutrition.hunger);
+        this.needs.calories += meal.nutrition.calories;
+        this.needs.protein += meal.nutrition.protein;
+        this.needs.carbs += meal.nutrition.carbs;
+        this.needs.fats += meal.nutrition.fats;
+        this.needs.vitamins += meal.nutrition.vitamins;
+        this.needs.happiness = Math.min(100, this.needs.happiness + 10);
+        this.needs.energy = Math.min(100, this.needs.energy + 5);
+        
+        // Remove from fridge
+        this.fridge.splice(mealIndex, 1);
+        
+        if (typeof UI !== 'undefined') {
+            UI.showNotification(`🍽️ Ate ${meal.name}! +${meal.nutrition.hunger} Hunger`, 'success');
+        }
+        
+        console.log(`Ate ${meal.name}`);
+        return true;
+    },
+    
+    // ==================== STRESS METHODS ====================
+    checkStressLevel() {
+        if (this.needs.stress > 80 && !this.stressWarningShown) {
+            if (typeof UI !== 'undefined') {
+                UI.showNotification('🚨 BURNOUT WARNING! You\'re extremely stressed! Rest is needed!', 'error', 7000);
+            }
+            this.stressWarningShown = true;
+        } else if (this.needs.stress < 60) {
+            this.stressWarningShown = false;
+        }
+        
+        // High stress consequences
+        if (this.needs.stress > 70) {
+            // Reduce grade gains slightly
+            if (Math.random() < 0.3) {
+                Object.keys(this.school.grades).forEach(subject => {
+                    this.school.grades[subject] = Math.max(0, this.school.grades[subject] - 0.5);
+                });
+            }
+        }
     },
     
     // ==================== BUSY STATUS ====================
@@ -308,6 +434,9 @@ const GameState = {
         this.needs.carbs = 0;
         this.needs.fats = 0;
         this.needs.vitamins = 0;
+        
+        // Check fridge for expired meals
+        this.checkFridgeExpiration();
         
         this.stats.daysPlayed++;
         
