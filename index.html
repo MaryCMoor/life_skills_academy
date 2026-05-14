@@ -5,188 +5,196 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Life Skills Academy</title>
     
-    <!-- CSS -->
+    <!-- Styles -->
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/city3d.css">
-    <link rel="stylesheet" href="css/locations.css">
-    <link rel="stylesheet" href="css/minigames.css">
+    
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
-    <!-- Top Bar -->
+    <!-- Top Bar with Stats -->
     <div id="topBar">
-    <!-- Current Activity Status (hidden by default) -->
-    <div id="currentActivity">
-        <div class="activity-text">
-            <span class="activity-icon">⏳</span>
-            <span id="activityName">Idle</span>
+        <!-- Current Activity Status (hidden by default) -->
+        <div id="currentActivity">
+            <div class="activity-text">
+                <span class="activity-icon">⏳</span>
+                <span id="activityName">Idle</span>
+            </div>
+            <div class="activity-time" id="activityTime"></div>
         </div>
-        <div class="activity-time" id="activityTime"></div>
-    </div>
-    
-    <!-- Regular Stats -->
-    <div class="stat-item">
-        <div class="stat-label">Time</div>
-        <div class="stat-value time" id="statTime">--:--</div>
-    </div>
-    <div class="stat-item">
-        <div class="stat-label">Day</div>
-        <div class="stat-value" id="statDay">---</div>
-    </div>
-    <div class="stat-item">
-        <div class="stat-label">Money</div>
-        <div class="stat-value money" id="statMoney">$0</div>
-    </div>
-    <div class="stat-item">
-        <div class="stat-label">Energy</div>
-        <div class="stat-value" id="statEnergy">100</div>
-        <div class="progress-container">
-            <div class="progress-bar high" id="barEnergy" style="width: 100%"></div>
+        
+        <!-- Regular Stats -->
+        <div class="stat-item">
+            <div class="stat-label">Time</div>
+            <div class="stat-value time" id="statTime">--:--</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Day</div>
+            <div class="stat-value" id="statDay">---</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Money</div>
+            <div class="stat-value money" id="statMoney">$0</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Energy</div>
+            <div class="stat-value" id="statEnergy">100</div>
+            <div class="progress-container">
+                <div class="progress-bar high" id="barEnergy" style="width: 100%"></div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Hunger</div>
+            <div class="stat-value" id="statHunger">100</div>
+            <div class="progress-container">
+                <div class="progress-bar high" id="barHunger" style="width: 100%"></div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Health</div>
+            <div class="stat-value" id="statHealth">100</div>
+            <div class="progress-container">
+                <div class="progress-bar high" id="barHealth" style="width: 100%"></div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Happiness</div>
+            <div class="stat-value" id="statHappiness">100</div>
+            <div class="progress-container">
+                <div class="progress-bar high" id="barHappiness" style="width: 100%"></div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Stress</div>
+            <div class="stat-value" id="statStress">0</div>
+            <div class="progress-container">
+                <div class="progress-bar high" id="barStress" style="width: 0%"></div>
+            </div>
         </div>
     </div>
-    <div class="stat-item">
-        <div class="stat-label">Hunger</div>
-        <div class="stat-value" id="statHunger">100</div>
-        <div class="progress-container">
-            <div class="progress-bar high" id="barHunger" style="width: 100%"></div>
-        </div>
-    </div>
-    <div class="stat-item">
-        <div class="stat-label">Health</div>
-        <div class="stat-value" id="statHealth">100</div>
-        <div class="progress-container">
-            <div class="progress-bar high" id="barHealth" style="width: 100%"></div>
-        </div>
-    </div>
-    <div class="stat-item">
-        <div class="stat-label">Happiness</div>
-        <div class="stat-value" id="statHappiness">100</div>
-        <div class="progress-container">
-            <div class="progress-bar high" id="barHappiness" style="width: 100%"></div>
-        </div>
-    </div>
-    <div class="stat-item">
-        <div class="stat-label">Stress</div>
-        <div class="stat-value" id="statStress">0</div>
-        <div class="progress-container">
-            <div class="progress-bar high" id="barStress" style="width: 0%"></div>
-        </div>
-    </div>
-</div>
 
-    
-    <!-- Needs Panel (Side) -->
-    <div id="needsPanel">
-        <h3>Basic Needs</h3>
-        
-        <div class="need-item">
-            <div>
-                <span>🍔 Hunger</span>
-                <span id="hungerValue" style="font-weight: bold;">100</span>
-            </div>
-            <div>
-                <div id="hungerBar" style="width: 100%; background: #27ae60;"></div>
-            </div>
-        </div>
-        
-        <div class="need-item">
-            <div>
-                <span>⚡ Energy</span>
-                <span id="energyValue" style="font-weight: bold;">100</span>
-            </div>
-            <div>
-                <div id="energyBar" style="width: 100%; background: #27ae60;"></div>
-            </div>
-        </div>
-        
-        <div class="need-item">
-            <div>
-                <span>🚿 Hygiene</span>
-                <span id="hygieneValue" style="font-weight: bold;">100</span>
-            </div>
-            <div>
-                <div id="hygieneBar" style="width: 100%; background: #27ae60;"></div>
-            </div>
-        </div>
-        
-        <div class="need-item">
-            <div>
-                <span>😊 Happiness</span>
-                <span id="happinessValue" style="font-weight: bold;">100</span>
-            </div>
-            <div>
-                <div id="happinessBar" style="width: 100%; background: #27ae60;"></div>
-            </div>
-        </div>
-        
-        <div class="need-item">
-            <div>
-                <span>❤️ Health</span>
-                <span id="healthValue" style="font-weight: bold;">100</span>
-            </div>
-            <div>
-                <div id="healthBar" style="width: 100%; background: #27ae60;"></div>
+    <!-- Main Game Container -->
+    <div id="gameContainer">
+        <!-- Start Screen -->
+        <div id="startScreen" class="screen">
+            <div class="welcome-box">
+                <h1>🎮 Life Skills Academy</h1>
+                <p class="subtitle">Learn real-life skills through gameplay</p>
+                
+                <div class="welcome-content">
+                    <h2>Welcome to your life simulation!</h2>
+                    <p>In this game, you'll learn essential life skills like:</p>
+                    <ul>
+                        <li>💰 Money management and budgeting</li>
+                        <li>⏰ Time management</li>
+                        <li>🍳 Cooking and meal planning</li>
+                        <li>🧺 Household chores</li>
+                        <li>📚 Education and career planning</li>
+                        <li>🏋️ Health and fitness</li>
+                        <li>😊 Stress and happiness management</li>
+                    </ul>
+                    
+                    <div class="character-creation">
+                        <h3>Create Your Character</h3>
+                        
+                        <div class="input-group">
+                            <label for="playerName">Your Name:</label>
+                            <input type="text" id="playerName" placeholder="Enter your name" maxlength="20">
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="playerAge">Starting Age:</label>
+                            <select id="playerAge">
+                                <option value="13">13 years old (Grade 7)</option>
+                                <option value="14">14 years old (Grade 8)</option>
+                                <option value="15">15 years old (Grade 9)</option>
+                                <option value="16" selected>16 years old (Grade 10)</option>
+                                <option value="17">17 years old (Grade 11)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary btn-large" onclick="startGame()">
+                        🚀 Start Your Journey
+                    </button>
+                </div>
             </div>
         </div>
-        
-        <div class="need-item">
-            <div>
-                <span>😰 Stress</span>
-                <span id="stressValue" style="font-weight: bold;">0</span>
+
+        <!-- City 3D View -->
+        <div id="cityContainer" class="hidden">
+            <canvas id="cityCanvas"></canvas>
+            
+            <!-- Building Tooltip -->
+            <div id="buildingTooltip" class="hidden">
+                <div class="tooltip-title"></div>
+                <div class="tooltip-desc"></div>
             </div>
-            <div>
-                <div id="stressBar" style="width: 0%; background: #27ae60;"></div>
+            
+            <!-- City Instructions -->
+            <div class="city-instructions">
+                <h3>🏙️ City Map</h3>
+                <p><strong>Click</strong> on buildings to visit them</p>
+                <p>Use camera controls to look around</p>
+            </div>
+            
+            <!-- Camera Controls -->
+            <div id="cameraControls">
+                <div class="control-group">
+                    <div class="control-label">Rotate</div>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="rotateLeft" class="control-btn" title="Rotate Left">⬅️</button>
+                        <button id="rotateRight" class="control-btn" title="Rotate Right">➡️</button>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <div class="control-label">Zoom</div>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="zoomIn" class="control-btn" title="Zoom In">🔍+</button>
+                        <button id="zoomOut" class="control-btn" title="Zoom Out">🔍-</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Location Screen -->
+        <div id="locationScreen" class="screen hidden">
+            <div class="location-header">
+                <button class="btn btn-back" onclick="backToCity()">⬅️ Back to City</button>
+                <h2 id="locationTitle"></h2>
+            </div>
+            <div id="locationContent" class="location-content">
+                <!-- Dynamic content loaded here -->
             </div>
         </div>
     </div>
-    
-    <!-- City 3D View -->
-    <div id="cityContainer">
-        <canvas id="cityCanvas"></canvas>
-        
-        <!-- City Controls -->
-        <div id="cityControls">
-            <button class="control-btn" id="rotateLeft">← Rotate</button>
-            <button class="control-btn" id="zoomIn">+ Zoom</button>
-            <button class="control-btn" id="zoomOut">- Zoom</button>
-            <button class="control-btn" id="rotateRight">Rotate →</button>
-        </div>
-        
-        <!-- Building Tooltip -->
-        <div id="buildingTooltip" class="tooltip hidden">
-            <div class="tooltip-title">Building Name</div>
-            <div class="tooltip-desc">Description</div>
-            <div class="tooltip-hint">Click to enter</div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer"></div>
+
+    <!-- Modal Container -->
+    <div id="modalContainer" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle"></h3>
+                <button class="modal-close" onclick="UI.closeModal()">✖</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Dynamic content -->
+            </div>
         </div>
     </div>
-    
-    <!-- Location Detail View -->
-    <div id="locationScreen" class="hidden">
-        <div class="location-header">
-            <h2 id="locationTitle">Location</h2>
-            <button class="btn-back" onclick="backToCity()">← Back to City</button>
-        </div>
-        <div class="location-content" id="locationContent">
-            <!-- Dynamic content loaded here -->
-        </div>
-    </div>
-    
-    <!-- Core Scripts -->
-    <script src="js/state.js"></script>
-    <script src="js/game.js"></script>
-    
-    <!-- Utility Scripts -->
+
+    <!-- Core Game Scripts -->
+    <script src="js/utils/utils.js"></script>
     <script src="js/utils/ui.js"></script>
-    <script src="js/utils/stats.js"></script>
     <script src="js/utils/time.js"></script>
-    <script src="js/utils/saveload.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/main.js"></script>
     
-    <!-- City 3D -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- 3D City -->
     <script src="js/city3d.js"></script>
-    
-    <!-- Finance Scripts -->
-    <script src="js/finance/taxes.js"></script>
-    <script src="js/finance/stocks.js"></script>
     
     <!-- Location Scripts -->
     <script src="js/locations/home.js"></script>
@@ -200,8 +208,12 @@
     
     <!-- Minigame Scripts -->
     <script src="js/minigames/chores.js"></script>
-    <script src="js/minigames/cooking.js"></script>
     <script src="js/minigames/laundry.js"></script>
-    <script src="js/minigames/checkwriting.js"></script>
+    <script src="js/minigames/cooking.js"></script>
+
+    <script>
+        console.log('✅ Life Skills Academy loaded');
+        console.log('Version: 1.0.0');
+    </script>
 </body>
 </html>
