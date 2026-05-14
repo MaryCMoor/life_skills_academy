@@ -186,8 +186,41 @@
         </div>
     </div>
 
+    <!-- UTILS - Load First -->
+    <script>
+        // ==================== UTILITY FUNCTIONS ====================
+        const Utils = {
+            escapeHtml(text) {
+                const map = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                };
+                return text.replace(/[&<>"']/g, m => map[m]);
+            },
+            
+            formatMoney(amount) {
+                return `$${amount.toFixed(2)}`;
+            },
+            
+            formatTime(hour, minute) {
+                return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+            },
+            
+            randomInt(min, max) {
+                return Math.floor(Math.random() * (max - min + 1)) + min;
+            },
+            
+            clamp(value, min, max) {
+                return Math.min(Math.max(value, min), max);
+            }
+        };
+        console.log('✅ Utils loaded');
+    </script>
+
     <!-- Core Game Scripts -->
-    <script src="js/utils/utils.js"></script>
     <script src="js/utils/ui.js"></script>
     <script src="js/utils/time.js"></script>
     <script src="js/state.js"></script>
@@ -210,7 +243,7 @@
     <script src="js/minigames/laundry.js"></script>
     <script src="js/minigames/cooking.js"></script>
 
-    <!-- Game Initialization Script -->
+    <!-- Game Initialization Script - MUST BE LAST -->
     <script>
         // ==================== GAME INITIALIZATION ====================
         
@@ -233,9 +266,9 @@
             // Initialize game state
             GameState.player.name = playerName;
             GameState.player.age = playerAge;
-            GameState.player.grade = playerAge - 6; // 13 -> Grade 7, 16 -> Grade 10, etc.
+            GameState.player.grade = playerAge - 6;
             
-            // Set initial time based on age (start on a Monday morning)
+            // Set initial time
             GameState.time.day = 1; // Monday
             GameState.time.hour = 7;
             GameState.time.minute = 0;
@@ -249,7 +282,7 @@
                 stress: 20
             };
             
-            GameState.money = 50; // Starting money
+            GameState.money = 50;
             
             // Save initial state
             GameState.save();
@@ -289,11 +322,7 @@
             if (!confirm('Are you sure you want to reset your game? All progress will be lost!')) {
                 return;
             }
-            
-            // Clear saved data
             localStorage.removeItem('lifeSkillsGameState');
-            
-            // Reload page
             location.reload();
         }
 
@@ -315,7 +344,6 @@
                 UI.showNotification('📂 Game loaded!', 'success');
                 UI.updateStats();
                 
-                // Return to city if not on start screen
                 if (!document.getElementById('startScreen').classList.contains('hidden')) {
                     document.getElementById('startScreen').classList.add('hidden');
                     document.getElementById('cityContainer').classList.remove('hidden');
@@ -338,11 +366,9 @@
         window.addEventListener('load', () => {
             console.log('🎮 Life Skills Academy initializing...');
             
-            // Check if there's a saved game
             const hasSavedGame = localStorage.getItem('lifeSkillsGameState');
             
             if (hasSavedGame) {
-                // Show option to continue
                 const startScreen = document.getElementById('startScreen');
                 const welcomeBox = startScreen.querySelector('.welcome-box');
                 
@@ -360,126 +386,41 @@
             console.log('✅ Game ready!');
         });
 
-        /**
-         * Auto-save every 2 minutes
-         */
+        // Auto-save every 2 minutes
         setInterval(() => {
             if (GameState.player.name) {
                 GameState.save();
-                console.log('💾 Auto-saved game state');
+                console.log('💾 Auto-saved');
             }
-        }, 120000); // 2 minutes
+        }, 120000);
 
-        /**
-         * Save before page unload
-         */
+        // Save before page unload
         window.addEventListener('beforeunload', () => {
             if (GameState.player.name) {
                 GameState.save();
             }
         });
 
-        /**
-         * Handle visibility change (tab switching)
-         */
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                // Tab is hidden, save game
-                if (GameState.player.name) {
-                    GameState.save();
-                }
-            } else {
-                // Tab is visible again, update UI
-                if (GameState.player.name) {
-                    UI.updateStats();
-                }
-            }
-        });
-
-        /**
-         * Keyboard shortcuts
-         */
+        // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-            // Ctrl/Cmd + S to save
             if ((e.ctrlKey || e.metaKey) && e.key === 's') {
                 e.preventDefault();
                 saveGame();
             }
-            
-            // ESC to close modal
             if (e.key === 'Escape') {
                 UI.closeModal();
             }
         });
 
-        /**
-         * Handle window resize
-         */
+        // Handle window resize
         window.addEventListener('resize', () => {
-            // Update 3D city renderer if it exists
             if (City3D.renderer && City3D.camera) {
                 City3D.onWindowResize();
             }
         });
 
-        /**
-         * Debug commands (only in development)
-         */
-        window.LifeSkillsDebug = {
-            addMoney(amount) {
-                GameState.addMoney(amount, 'debug');
-                UI.showNotification(`Added $${amount}`, 'info');
-            },
-            
-            setNeed(need, value) {
-                if (GameState.needs.hasOwnProperty(need)) {
-                    GameState.needs[need] = Math.max(0, Math.min(100, value));
-                    UI.updateStats();
-                    UI.showNotification(`${need} set to ${value}`, 'info');
-                }
-            },
-            
-            advanceTime(hours) {
-                TimeManager.advanceTime(hours * 60);
-                UI.showNotification(`Advanced ${hours} hours`, 'info');
-            },
-            
-            setGrade(grade) {
-                GameState.player.grade = grade;
-                GameState.player.age = grade + 6;
-                UI.showNotification(`Grade set to ${grade}`, 'info');
-            },
-            
-            completeAllHomework() {
-                GameState.daily.homework.forEach(hw => hw.done = true);
-                UI.showNotification('All homework completed!', 'success');
-            },
-            
-            completeAllChores() {
-                GameState.daily.chores.forEach(chore => chore.done = true);
-                UI.showNotification('All chores completed!', 'success');
-            },
-            
-            resetNeeds() {
-                GameState.needs = {
-                    energy: 100,
-                    hunger: 100,
-                    health: 100,
-                    happiness: 100,
-                    stress: 0
-                };
-                UI.updateStats();
-                UI.showNotification('All needs reset!', 'success');
-            },
-            
-            showState() {
-                console.log('Current Game State:', GameState);
-            }
-        };
-
         console.log('✅ Life Skills Academy loaded');
         console.log('Version: 1.0.0');
-        console.log('💡 Debug commands available: LifeSkillsDebug');
     </script>
 </body>
 </html>
