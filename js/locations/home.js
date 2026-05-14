@@ -7,6 +7,7 @@ function loadHome() {
         <div class="tabs">
             <div class="tab active" onclick="showHomeTab('chores')">Chores</div>
             <div class="tab" onclick="showHomeTab('cooking')">Cooking</div>
+            <div class="tab" onclick="showHomeTab('fridge')">Fridge (${GameState.fridge.length})</div>
             <div class="tab" onclick="showHomeTab('sleep')">Rest</div>
         </div>
         
@@ -16,6 +17,10 @@ function loadHome() {
         
         <div id="home-cooking" class="tab-content">
             ${renderCooking()}
+        </div>
+        
+        <div id="home-fridge" class="tab-content">
+            ${renderFridge()}
         </div>
         
         <div id="home-sleep" class="tab-content">
@@ -214,14 +219,112 @@ function renderCooking() {
     return html;
 }
 
+function renderFridge() {
+    let html = '<h3>🧊 Fridge</h3>';
+    
+    if (GameState.fridge.length === 0) {
+        html += `
+            <div class="alert alert-info">
+                Your fridge is empty! Cook some meals to store them here.
+            </div>
+            
+            <div class="info-box">
+                <strong>💡 How the Fridge Works:</strong>
+                <ul>
+                    <li>Cooked meals are automatically stored in the fridge</li>
+                    <li>Meals stay fresh for 3 days</li>
+                    <li>After 3 days, they expire and are thrown out</li>
+                    <li>Eat stored meals anytime for instant hunger restoration</li>
+                    <li>No need to cook every day - meal prep in advance!</li>
+                </ul>
+            </div>
+        `;
+        return html;
+    }
+    
+    html += `<p>Stored meals (automatically added when you cook):</p>`;
+    html += '<div class="content-grid">';
+    
+    GameState.fridge.forEach((meal, index) => {
+        const daysLeft = GameState.getDaysUntilExpiry(meal.expiryDate);
+        const freshness = daysLeft >= 2 ? 'fresh' : daysLeft >= 1 ? 'ok' : 'expiring-soon';
+        const freshnessColor = daysLeft >= 2 ? '#27ae60' : daysLeft >= 1 ? '#f39c12' : '#e74c3c';
+        const freshnessText = daysLeft >= 2 ? '✅ Fresh' : daysLeft >= 1 ? '⚠️ Eat Soon' : '🚨 Expiring!';
+        
+        html += `
+            <div class="card" style="border-left: 5px solid ${freshnessColor};">
+                <div class="card-title">${Utils.escapeHtml(meal.name)}</div>
+                <div class="card-content">
+                    <div style="font-size: 64px; text-align: center; margin: 15px 0;">🍽️</div>
+                    
+                    <div class="info-row">
+                        <span class="info-label">Freshness:</span>
+                        <span class="info-value" style="color: ${freshnessColor}; font-weight: bold;">
+                            ${freshnessText}
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Days Left:</span>
+                        <span class="info-value">${daysLeft} day${daysLeft !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Hunger Restored:</span>
+                        <span class="info-value">+${meal.nutrition.hunger}</span>
+                    </div>
+                    
+                    <h4 style="margin-top: 15px; font-size: 14px;">Nutrition:</h4>
+                    <div style="font-size: 12px; color: #7f8c8d;">
+                        <div>🔥 ${meal.nutrition.calories} cal</div>
+                        <div>🥩 ${meal.nutrition.protein}g protein</div>
+                        <div>🍞 ${meal.nutrition.carbs}g carbs</div>
+                        <div>🥑 ${meal.nutrition.fats}g fats</div>
+                        <div>🍊 ${meal.nutrition.vitamins}% vitamins</div>
+                    </div>
+                    
+                    ${daysLeft >= 0 ?
+                        `<button class="btn btn-success mt-15" onclick="eatFromFridge(${meal.id})" style="width: 100%;">
+                            🍴 Eat This Meal
+                        </button>` :
+                        '<button class="btn" disabled style="width: 100%;">❌ Expired</button>'
+                    }
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    
+    html += `
+        <div class="info-box mt-20">
+            <strong>💡 Meal Storage Tips:</strong>
+            <ul>
+                <li>Cook multiple meals to save time later</li>
+                <li>Eat meals before they expire to avoid waste</li>
+                <li>Red/yellow indicators mean eat soon</li>
+                <li>Expired meals are automatically thrown out</li>
+                <li>Each meal provides full nutrition when eaten</li>
+            </ul>
+        </div>
+    `;
+    
+    return html;
+}
+
+function eatFromFridge(mealId) {
+    if (GameState.eatMeal(mealId)) {
+        loadHome();
+        UI.updateStats();
+    }
+}
+
 function renderSleep() {
     let html = '<h3>😴 Rest & Sleep</h3>';
-    html += '<p>Rest to restore your energy and pass time.</p>';
+    html += '<p>Rest to restore your energy and reduce stress.</p>';
     
     const sleepOptions = [
-        { name: 'Quick Nap', hours: 1, energy: 20, icon: '💤' },
-        { name: 'Short Sleep', hours: 4, energy: 50, icon: '😴' },
-        { name: 'Full Night Sleep', hours: 8, energy: 100, icon: '🌙' }
+        { name: 'Quick Nap', hours: 1, energy: 20, stress: 5, icon: '💤' },
+        { name: 'Short Sleep', hours: 4, energy: 50, stress: 15, icon: '😴' },
+        { name: 'Full Night Sleep', hours: 8, energy: 100, stress: 40, icon: '🌙' }
     ];
     
     html += '<div class="content-grid">';
@@ -241,9 +344,13 @@ function renderSleep() {
                         <span class="info-label">Energy Restored:</span>
                         <span class="info-value">+${option.energy}</span>
                     </div>
+                    <div class="info-row">
+                        <span class="info-label">Stress Reduced:</span>
+                        <span class="info-value" style="color: #27ae60;">-${option.stress}</span>
+                    </div>
                     
                     ${canSleep ?
-                        `<button class="btn btn-primary" onclick="goToSleep(${option.hours}, ${option.energy})">
+                        `<button class="btn btn-primary" onclick="goToSleep(${option.hours}, ${option.energy}, ${option.stress})">
                             Sleep
                         </button>` :
                         '<button class="btn" disabled>Already Well Rested</button>'
@@ -260,9 +367,11 @@ function renderSleep() {
             <h4>💡 Sleep Tips:</h4>
             <ul>
                 <li>Sleep restores your energy levels</li>
+                <li><strong>Sleep is the best way to reduce stress!</strong></li>
                 <li>Getting enough sleep improves school performance</li>
                 <li>A full night's sleep (8 hours) is healthiest</li>
                 <li>Time advances while you sleep</li>
+                <li>If stressed, prioritize sleep over other activities</li>
             </ul>
         </div>
     `;
@@ -334,6 +443,9 @@ function completeChoreSimple(choreId) {
         GameState.clearBusy();
         GameState.stats.choresCompleted++;
         
+        // Small stress reduction from accomplishing tasks
+        GameState.needs.stress = Math.max(0, GameState.needs.stress - 2);
+        
         UI.showNotification(`✅ ${chore.name} complete! +$${chore.reward}`, 'success');
         
         loadHome();
@@ -359,7 +471,7 @@ function startCooking(recipeId) {
 
 // ==================== SLEEP FUNCTIONS ====================
 
-function goToSleep(hours, energyRestore) {
+function goToSleep(hours, energyRestore, stressReduction) {
     if (GameState.isBusy()) {
         UI.showNotification('You are already busy with something!', 'warning');
         return;
@@ -379,9 +491,17 @@ function goToSleep(hours, energyRestore) {
         // Restore energy
         GameState.needs.energy = Math.min(100, GameState.needs.energy + energyRestore);
         
+        // Sleep reduces stress significantly
+        GameState.needs.stress = Math.max(0, GameState.needs.stress - stressReduction);
+        
         GameState.clearBusy();
         
-        UI.showNotification(`😊 You feel refreshed! Energy: ${GameState.needs.energy}`, 'success');
+        let message = `😊 You feel refreshed! Energy: ${GameState.needs.energy}`;
+        if (stressReduction > 0) {
+            message += `, Stress: ${Math.round(GameState.needs.stress)}`;
+        }
+        
+        UI.showNotification(message, 'success');
         
         loadHome();
         UI.updateStats();
