@@ -501,6 +501,31 @@ const GameState = {
         }
     },
     
+    save() {
+        try {
+            const saveData = this.getSaveData();
+            localStorage.setItem('lifeSkillsGameState', JSON.stringify(saveData));
+            return true;
+        } catch (error) {
+            console.error('Save failed:', error);
+            return false;
+        }
+    },
+    
+    load() {
+        try {
+            const saved = localStorage.getItem('lifeSkillsGameState');
+            if (!saved) return false;
+            
+            const saveData = JSON.parse(saved);
+            this.loadSaveData(saveData);
+            return true;
+        } catch (error) {
+            console.error('Load failed:', error);
+            return false;
+        }
+    },
+    
     reset() {
         console.log('Resetting game state...');
         location.reload();
