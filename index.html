@@ -191,7 +191,6 @@
     <script src="js/utils/ui.js"></script>
     <script src="js/utils/time.js"></script>
     <script src="js/state.js"></script>
-    <script src="js/main.js"></script>
     
     <!-- 3D City -->
     <script src="js/city3d.js"></script>
@@ -211,9 +210,276 @@
     <script src="js/minigames/laundry.js"></script>
     <script src="js/minigames/cooking.js"></script>
 
+    <!-- Game Initialization Script -->
     <script>
+        // ==================== GAME INITIALIZATION ====================
+        
+        /**
+         * Start the game with character creation
+         */
+        function startGame() {
+            const nameInput = document.getElementById('playerName');
+            const ageSelect = document.getElementById('playerAge');
+            
+            const playerName = nameInput.value.trim();
+            const playerAge = parseInt(ageSelect.value);
+            
+            if (!playerName) {
+                UI.showNotification('❌ Please enter your name!', 'error');
+                nameInput.focus();
+                return;
+            }
+            
+            // Initialize game state
+            GameState.player.name = playerName;
+            GameState.player.age = playerAge;
+            GameState.player.grade = playerAge - 6; // 13 -> Grade 7, 16 -> Grade 10, etc.
+            
+            // Set initial time based on age (start on a Monday morning)
+            GameState.time.day = 1; // Monday
+            GameState.time.hour = 7;
+            GameState.time.minute = 0;
+            
+            // Initialize stats
+            GameState.needs = {
+                energy: 100,
+                hunger: 80,
+                health: 100,
+                happiness: 75,
+                stress: 20
+            };
+            
+            GameState.money = 50; // Starting money
+            
+            // Save initial state
+            GameState.save();
+            
+            // Show success message
+            UI.showNotification(`🎉 Welcome, ${playerName}!`, 'success');
+            
+            // Transition to city view
+            setTimeout(() => {
+                document.getElementById('startScreen').classList.add('hidden');
+                document.getElementById('cityContainer').classList.remove('hidden');
+                
+                // Initialize 3D city
+                try {
+                    City3D.init();
+                    UI.updateStats();
+                    
+                    // Start time updates
+                    TimeManager.startHourlyUpdates();
+                    
+                    // Show tutorial notification
+                    setTimeout(() => {
+                        UI.showNotification('🏙️ Click on buildings to visit them!', 'info', 5000);
+                    }, 1000);
+                    
+                } catch (error) {
+                    console.error('Failed to initialize 3D city:', error);
+                    UI.showNotification('⚠️ 3D view failed to load. Please refresh.', 'error');
+                }
+            }, 500);
+        }
+
+        /**
+         * Reset the game
+         */
+        function resetGame() {
+            if (!confirm('Are you sure you want to reset your game? All progress will be lost!')) {
+                return;
+            }
+            
+            // Clear saved data
+            localStorage.removeItem('lifeSkillsGameState');
+            
+            // Reload page
+            location.reload();
+        }
+
+        /**
+         * Save game
+         */
+        function saveGame() {
+            GameState.save();
+            UI.showNotification('💾 Game saved!', 'success');
+        }
+
+        /**
+         * Load game
+         */
+        function loadGame() {
+            const loaded = GameState.load();
+            
+            if (loaded) {
+                UI.showNotification('📂 Game loaded!', 'success');
+                UI.updateStats();
+                
+                // Return to city if not on start screen
+                if (!document.getElementById('startScreen').classList.contains('hidden')) {
+                    document.getElementById('startScreen').classList.add('hidden');
+                    document.getElementById('cityContainer').classList.remove('hidden');
+                    
+                    try {
+                        City3D.init();
+                        TimeManager.startHourlyUpdates();
+                    } catch (error) {
+                        console.error('Failed to initialize 3D city:', error);
+                    }
+                }
+            } else {
+                UI.showNotification('❌ No saved game found!', 'error');
+            }
+        }
+
+        /**
+         * Check for auto-save on page load
+         */
+        window.addEventListener('load', () => {
+            console.log('🎮 Life Skills Academy initializing...');
+            
+            // Check if there's a saved game
+            const hasSavedGame = localStorage.getItem('lifeSkillsGameState');
+            
+            if (hasSavedGame) {
+                // Show option to continue
+                const startScreen = document.getElementById('startScreen');
+                const welcomeBox = startScreen.querySelector('.welcome-box');
+                
+                const continueButton = document.createElement('button');
+                continueButton.className = 'btn btn-success btn-large';
+                continueButton.style.marginTop = '20px';
+                continueButton.textContent = '📂 Continue Last Game';
+                continueButton.onclick = loadGame;
+                
+                const startButton = welcomeBox.querySelector('button');
+                startButton.textContent = '🆕 New Game';
+                startButton.parentNode.insertBefore(continueButton, startButton);
+            }
+            
+            console.log('✅ Game ready!');
+        });
+
+        /**
+         * Auto-save every 2 minutes
+         */
+        setInterval(() => {
+            if (GameState.player.name) {
+                GameState.save();
+                console.log('💾 Auto-saved game state');
+            }
+        }, 120000); // 2 minutes
+
+        /**
+         * Save before page unload
+         */
+        window.addEventListener('beforeunload', () => {
+            if (GameState.player.name) {
+                GameState.save();
+            }
+        });
+
+        /**
+         * Handle visibility change (tab switching)
+         */
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                // Tab is hidden, save game
+                if (GameState.player.name) {
+                    GameState.save();
+                }
+            } else {
+                // Tab is visible again, update UI
+                if (GameState.player.name) {
+                    UI.updateStats();
+                }
+            }
+        });
+
+        /**
+         * Keyboard shortcuts
+         */
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + S to save
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                saveGame();
+            }
+            
+            // ESC to close modal
+            if (e.key === 'Escape') {
+                UI.closeModal();
+            }
+        });
+
+        /**
+         * Handle window resize
+         */
+        window.addEventListener('resize', () => {
+            // Update 3D city renderer if it exists
+            if (City3D.renderer && City3D.camera) {
+                City3D.onWindowResize();
+            }
+        });
+
+        /**
+         * Debug commands (only in development)
+         */
+        window.LifeSkillsDebug = {
+            addMoney(amount) {
+                GameState.addMoney(amount, 'debug');
+                UI.showNotification(`Added $${amount}`, 'info');
+            },
+            
+            setNeed(need, value) {
+                if (GameState.needs.hasOwnProperty(need)) {
+                    GameState.needs[need] = Math.max(0, Math.min(100, value));
+                    UI.updateStats();
+                    UI.showNotification(`${need} set to ${value}`, 'info');
+                }
+            },
+            
+            advanceTime(hours) {
+                TimeManager.advanceTime(hours * 60);
+                UI.showNotification(`Advanced ${hours} hours`, 'info');
+            },
+            
+            setGrade(grade) {
+                GameState.player.grade = grade;
+                GameState.player.age = grade + 6;
+                UI.showNotification(`Grade set to ${grade}`, 'info');
+            },
+            
+            completeAllHomework() {
+                GameState.daily.homework.forEach(hw => hw.done = true);
+                UI.showNotification('All homework completed!', 'success');
+            },
+            
+            completeAllChores() {
+                GameState.daily.chores.forEach(chore => chore.done = true);
+                UI.showNotification('All chores completed!', 'success');
+            },
+            
+            resetNeeds() {
+                GameState.needs = {
+                    energy: 100,
+                    hunger: 100,
+                    health: 100,
+                    happiness: 100,
+                    stress: 0
+                };
+                UI.updateStats();
+                UI.showNotification('All needs reset!', 'success');
+            },
+            
+            showState() {
+                console.log('Current Game State:', GameState);
+            }
+        };
+
         console.log('✅ Life Skills Academy loaded');
         console.log('Version: 1.0.0');
+        console.log('💡 Debug commands available: LifeSkillsDebug');
     </script>
 </body>
 </html>
