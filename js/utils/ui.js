@@ -55,7 +55,6 @@ const UI = {
         this.isShowingNotification = true;
         const { message, type, duration } = this.notificationQueue.shift();
         
-        // Remove any existing notification
         const existing = document.getElementById('notification');
         if (existing) {
             existing.remove();
@@ -68,12 +67,10 @@ const UI = {
         
         document.body.appendChild(notification);
         
-        // Trigger animation
         setTimeout(() => {
             notification.classList.add('show');
         }, 10);
         
-        // Hide and remove
         setTimeout(() => {
             notification.classList.remove('show');
             setTimeout(() => {
@@ -84,7 +81,6 @@ const UI = {
     },
     
     updateStats() {
-        // FIXED: Update to match HTML element IDs
         const moneyEl = document.getElementById('statMoney');
         const energyEl = document.getElementById('statEnergy');
         const hungerEl = document.getElementById('statHunger');
@@ -94,7 +90,6 @@ const UI = {
         const timeEl = document.getElementById('statTime');
         const dayEl = document.getElementById('statDay');
         
-        // Update values
         if (moneyEl) moneyEl.textContent = Utils.formatMoney(GameState.player.cash);
         if (energyEl) energyEl.textContent = Math.round(GameState.needs.energy);
         if (hungerEl) hungerEl.textContent = Math.round(GameState.needs.hunger);
@@ -102,21 +97,18 @@ const UI = {
         if (happinessEl) happinessEl.textContent = Math.round(GameState.needs.happiness);
         if (stressEl) stressEl.textContent = Math.round(GameState.needs.stress);
         
-        // Update progress bars
         this.updateProgressBar('barEnergy', GameState.needs.energy);
         this.updateProgressBar('barHunger', GameState.needs.hunger);
         this.updateProgressBar('barHealth', GameState.needs.health);
         this.updateProgressBar('barHappiness', GameState.needs.happiness);
-        this.updateProgressBar('barStress', GameState.needs.stress, true); // inverted for stress
+        this.updateProgressBar('barStress', GameState.needs.stress, true);
         
-        // Update date/time
         const { day, month, year, hour, minute, dayOfWeek } = GameState.time;
         const dayName = Utils.getDayOfWeek(dayOfWeek);
         
         if (timeEl) timeEl.textContent = Utils.formatTime(hour, minute);
         if (dayEl) dayEl.textContent = dayName;
         
-        // Check critical needs
         if (GameState.needs.energy <= 10) {
             this.showNotification('⚠️ You\'re exhausted! Rest soon!', 'warning', 5000);
         }
@@ -141,11 +133,9 @@ const UI = {
         const percentage = Math.max(0, Math.min(100, value));
         bar.style.width = percentage + '%';
         
-        // Update color based on value
         bar.classList.remove('high', 'medium', 'low');
         
         if (inverted) {
-            // For stress - high is bad
             if (percentage >= 70) {
                 bar.classList.add('low');
             } else if (percentage >= 40) {
@@ -154,7 +144,6 @@ const UI = {
                 bar.classList.add('high');
             }
         } else {
-            // For other stats - high is good
             if (percentage >= 70) {
                 bar.classList.add('high');
             } else if (percentage >= 40) {
@@ -198,4 +187,41 @@ const UI = {
         return modal;
     },
     
-    close
+    closeModal() {
+        const modal = document.querySelector('.modal-overlay');
+        if (modal) {
+            modal.remove();
+        }
+    },
+    
+    showAchievement(achievement) {
+        const achievementEl = document.createElement('div');
+        achievementEl.className = 'achievement-popup';
+        achievementEl.innerHTML = `
+            <div class="achievement-icon">${achievement.icon}</div>
+            <div class="achievement-text">
+                <div class="achievement-title">Achievement Unlocked!</div>
+                <div class="achievement-name">${achievement.name}</div>
+                <div class="achievement-description">${achievement.description}</div>
+            </div>
+        `;
+        
+        document.body.appendChild(achievementEl);
+        
+        setTimeout(() => {
+            achievementEl.classList.add('show');
+        }, 10);
+        
+        setTimeout(() => {
+            achievementEl.classList.remove('show');
+            setTimeout(() => {
+                achievementEl.remove();
+            }, 500);
+        }, 5000);
+    }
+};
+
+window.Utils = Utils;
+window.UI = UI;
+
+console.log('✅ ui.js loaded');
