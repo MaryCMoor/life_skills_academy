@@ -91,7 +91,7 @@ const GameState = {
         hygiene: 100,
         happiness: 100,
         health: 100,
-        stress: 0, // 0 = relaxed, 100 = burnout
+        stress: 0,
         calories: 0,
         protein: 0,
         carbs: 0,
@@ -124,7 +124,7 @@ const GameState = {
         bills: []
     },
     
-    fridge: [], // NEW: Stores cooked meals with expiration dates
+    fridge: [],
     
     inventory: [],
     achievements: [],
@@ -223,7 +223,7 @@ const GameState = {
                 month: this.time.month,
                 date: this.time.date
             },
-            expiryDate: this.calculateExpiryDate(3), // 3 days from now
+            expiryDate: this.calculateExpiryDate(3),
             nutrition: nutrition || {
                 calories: 500,
                 protein: 20,
@@ -323,9 +323,7 @@ const GameState = {
             this.stressWarningShown = false;
         }
         
-        // High stress consequences
         if (this.needs.stress > 70) {
-            // Reduce grade gains slightly
             if (Math.random() < 0.3) {
                 Object.keys(this.school.grades).forEach(subject => {
                     this.school.grades[subject] = Math.max(0, this.school.grades[subject] - 0.5);
@@ -428,14 +426,12 @@ const GameState = {
             this.adult.groceries = Math.max(0, this.adult.groceries - 15);
         }
         
-        // Reset daily nutrition
         this.needs.calories = 0;
         this.needs.protein = 0;
         this.needs.carbs = 0;
         this.needs.fats = 0;
         this.needs.vitamins = 0;
         
-        // Check fridge for expired meals
         this.checkFridgeExpiration();
         
         this.stats.daysPlayed++;
