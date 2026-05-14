@@ -5,10 +5,10 @@ function loadSchool() {
     
     const content = `
         <div class="tabs">
-            <div class="tab active" onclick="showSchoolTab(event, 'classes')">Classes</div>
-            <div class="tab" onclick="showSchoolTab(event, 'homework')">Homework</div>
-            <div class="tab" onclick="showSchoolTab(event, 'extracurricular')">Extracurricular</div>
-            <div class="tab" onclick="showSchoolTab(event, 'grades')">Grades</div>
+            <div class="tab active" onclick="showSchoolTab('classes')">Classes</div>
+            <div class="tab" onclick="showSchoolTab('homework')">Homework</div>
+            <div class="tab" onclick="showSchoolTab('extracurricular')">Extracurricular</div>
+            <div class="tab" onclick="showSchoolTab('grades')">Grades</div>
         </div>
         
         <div id="school-classes" class="tab-content active">
@@ -31,21 +31,18 @@ function loadSchool() {
     document.getElementById('locationContent').innerHTML = content;
 }
 
-function showSchoolTab(event, tab) {
-    // Prevent default behavior
-    if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-    }
-    
+function showSchoolTab(tab) {
     // Remove active class from all tabs and content
     document.querySelectorAll('#locationContent .tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('#locationContent .tab-content').forEach(t => t.classList.remove('active'));
     
-    // Add active class to clicked tab
-    if (event && event.target) {
-        event.target.classList.add('active');
-    }
+    // Find and activate the clicked tab
+    const tabs = document.querySelectorAll('#locationContent .tab');
+    tabs.forEach(t => {
+        if (t.onclick && t.onclick.toString().includes(`'${tab}'`)) {
+            t.classList.add('active');
+        }
+    });
     
     // Show selected content
     const contentEl = document.getElementById(`school-${tab}`);
