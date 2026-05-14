@@ -66,25 +66,25 @@ function renderChores() {
             'dishes': { 
                 icon: '🍽️', 
                 desc: 'Wash dirty dishes - click to scrub them clean!',
-                time: '3 minutes',
+                time: '5 minutes',
                 hasMinigame: true
             },
             'vacuum': { 
                 icon: '🧹', 
                 desc: 'Vacuum the floors - use WASD to move around!',
-                time: '5 minutes',
+                time: '10 minutes',
                 hasMinigame: true
             },
             'trash': { 
                 icon: '🗑️', 
                 desc: 'Take out the trash',
-                time: '1 minute',
+                time: '2 minutes',
                 hasMinigame: true
             },
             'laundry': { 
                 icon: '🧺', 
                 desc: 'Do the laundry - realistic simulation! Sort, wash, and dry clothes.',
-                time: '10 minutes',
+                time: '15 minutes',
                 hasMinigame: true
             }
         };
@@ -133,6 +133,7 @@ function renderChores() {
                     <li>Some chores have interactive minigames 🎮</li>
                     <li>Earn money and improve your skills</li>
                     <li>Chores reset every day at midnight</li>
+                    <li><strong>Time advances based on chore duration!</strong></li>
                 </ul>
             </div>
         `;
@@ -380,7 +381,7 @@ function renderSleep() {
                 <li><strong>Sleep is the best way to reduce stress!</strong></li>
                 <li>Getting enough sleep improves school performance</li>
                 <li>A full night's sleep (8 hours) is healthiest</li>
-                <li>Time advances while you sleep</li>
+                <li><strong>Time advances while you sleep (clock moves forward!)</strong></li>
                 <li>If stressed, prioritize sleep over other activities</li>
             </ul>
         </div>
@@ -443,22 +444,47 @@ function completeChoreSimple(choreId) {
     const chore = GameState.daily.chores.find(c => c.id === choreId);
     if (!chore) return;
     
-    GameState.setBusy(chore.name, 5);
+    // Time for each chore type (in minutes)
+    const choreTimes = {
+        bed: 2,
+        dishes: 5,
+        vacuum: 10,
+        trash: 2,
+        laundry: 15
+    };
     
-    setTimeout(() => {
-        GameState.completeChore(choreId);
-        GameState.addMoney(chore.reward, 'chore');
-        GameState.addSkill(chore.skill, 5);
-        GameState.clearBusy();
-        GameState.stats.choresCompleted++;
-        
-        GameState.needs.stress = Math.max(0, GameState.needs.stress - 2);
-        
-        UI.showNotification(`✅ ${chore.name} complete! +$${chore.reward}`, 'success');
-        
-        loadHome();
-        UI.updateStats();
-    }, 5000);
+    const duration = choreTimes[choreId] || 5;
+    
+    UI.showNotification(`🧹 ${chore.name}... (${duration} min)`, 'info');
+    
+    // Set busy
+    GameState.setBusy(chore.name, duration);
+    
+    // Advance game time
+    if (typeof TimeManager !== 'undefined' && TimeManager.advanceTime) {
+        TimeManager.advanceTime(duration);
+    }
+    
+    // Complete chore and apply effects
+    GameState.completeChore(choreId);
+    GameState.addMoney(chore.reward, 'chore');
+    GameState.addSkill(chore.skill, 5);
+    
+    // Stats adjustments
+    GameState.needs.stress = Math.max(0, GameState.needs.stress - 2);
+    GameState.needs.energy = Math.max(0, GameState.needs.energy - 3);
+    GameState.needs.happiness = Math.min(100, GameState.needs.happiness + 5);
+    
+    // Clear busy
+    GameState.clearBusy();
+    
+    if (!GameState.stats.choresCompleted) GameState.stats.choresCompleted = 0;
+    GameState.stats.choresCompleted++;
+    
+    UI.showNotification(`✅ ${chore.name} complete! +$${chore.reward}`, 'success');
+    
+    loadHome();
+    UI.updateStats();
 }
 
 // ==================== COOKING FUNCTIONS ====================
@@ -489,10 +515,10 @@ function goToSleep(hours, energyRestore, stressReduction) {
     
     UI.showNotification(`😴 Sleeping for ${hours} hour${hours > 1 ? 's' : ''}...`, 'info');
     
-    // Set busy
+    // Set busy state
     GameState.setBusy('sleeping', minutes);
     
-    // Advance time
+    // Advance game time
     if (typeof TimeManager !== 'undefined' && TimeManager.advanceTime) {
         TimeManager.advanceTime(minutes);
     }
@@ -501,8 +527,9 @@ function goToSleep(hours, energyRestore, stressReduction) {
     GameState.needs.energy = Math.min(100, GameState.needs.energy + energyRestore);
     GameState.needs.stress = Math.max(0, GameState.needs.stress - stressReduction);
     GameState.needs.health = Math.min(100, GameState.needs.health + (hours * 2));
+    GameState.needs.happiness = Math.min(100, GameState.needs.happiness + (hours * 1));
     
-    // Clear busy
+    // Clear busy state
     GameState.clearBusy();
     
     let message = `😊 You feel refreshed! Energy: ${Math.round(GameState.needs.energy)}`;
@@ -515,6 +542,5 @@ function goToSleep(hours, energyRestore, stressReduction) {
     loadHome();
     UI.updateStats();
 }
-
 
 console.log('✅ home.js loaded');
