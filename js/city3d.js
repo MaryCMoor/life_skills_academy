@@ -627,7 +627,14 @@ const City3D = {
     }
 };
 
+// Enhanced backToCity function
 function backToCity() {
+    // Remove emergency button if exists
+    const btn = document.getElementById('emergencyBackBtn');
+    if (btn) {
+        btn.remove();
+    }
+    
     document.getElementById('cityContainer').classList.remove('hidden');
     document.getElementById('locationScreen').classList.add('hidden');
     City3D.hideTooltip();
@@ -668,6 +675,9 @@ function loadWorkplace(locationName) {
     `;
     
     document.getElementById('locationContent').innerHTML = content;
+    
+    // Add emergency button
+    ensureBackButton();
 }
 
 // Gym location
@@ -740,6 +750,9 @@ function loadGym() {
     `;
     
     document.getElementById('locationContent').innerHTML = content;
+    
+    // Add emergency button
+    ensureBackButton();
 }
 
 function exerciseCardio() {
@@ -827,6 +840,9 @@ function loadPark() {
     `;
     
     document.getElementById('locationContent').innerHTML = content;
+    
+    // Add emergency button
+    ensureBackButton();
 }
 
 function parkWalk() {
@@ -855,6 +871,30 @@ function parkRelax() {
     UI.showNotification('✅ Feeling peaceful!', 'success');
     UI.updateStats();
 }
+
+// Emergency back button system
+function ensureBackButton() {
+    // Remove old button if exists
+    const oldBtn = document.getElementById('emergencyBackBtn');
+    if (oldBtn) {
+        oldBtn.remove();
+    }
+    
+    // Create new button
+    const btn = document.createElement('button');
+    btn.id = 'emergencyBackBtn';
+    btn.innerHTML = '⬅️ Back to City';
+    btn.onclick = backToCity;
+    
+    document.body.appendChild(btn);
+}
+
+// Override enterBuilding to add back button
+const originalEnterBuilding = City3D.enterBuilding;
+City3D.enterBuilding = function(buildingName) {
+    originalEnterBuilding.call(this, buildingName);
+    setTimeout(ensureBackButton, 100);
+};
 
 // Wrapper function for compatibility
 function loadCity3D() {
