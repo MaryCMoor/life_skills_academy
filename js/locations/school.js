@@ -275,21 +275,35 @@ function doHomework(subject) {
         return;
     }
     
-    GameState.setBusy(`${subject} homework`, 30);
-    UI.showNotification(`📝 Doing ${subject} homework...`, 'info');
+    // Show immediate feedback
+    UI.showNotification(`📝 Starting ${subject} homework... (30 min)`, 'info');
     
-    setTimeout(() => {
-        GameState.completeHomework(subject);
-        GameState.needs.energy = Math.max(0, GameState.needs.energy - 10);
-        GameState.addSkill('timeManagement', 2);
-        GameState.clearBusy();
-        
-        UI.showNotification(`✅ ${subject} homework complete! Grade improved to ${GameState.school.grades[subject]}%`, 'success');
-        
-        loadSchool();
-        UI.updateStats();
-    }, 5000);
+    // Set busy state
+    GameState.setBusy(`${subject} homework`, 30);
+    
+    // Advance game time by 30 minutes
+    if (typeof TimeManager !== 'undefined' && TimeManager.advanceTime) {
+        TimeManager.advanceTime(30);
+    }
+    
+    // Apply effects
+    GameState.completeHomework(subject);
+    GameState.needs.energy = Math.max(0, GameState.needs.energy - 10);
+    GameState.needs.hunger = Math.max(0, GameState.needs.hunger - 5);
+    GameState.needs.stress = Math.min(100, GameState.needs.stress + 3);
+    GameState.addSkill('timeManagement', 2);
+    
+    // Clear busy state
+    GameState.clearBusy();
+    
+    // Show completion
+    UI.showNotification(`✅ ${subject} homework complete! Grade: ${GameState.school.grades[subject]}%`, 'success');
+    
+    // Refresh display
+    loadSchool();
+    UI.updateStats();
 }
+
 
 function renderExtracurricular() {
     let html = '<h3>🎭 Extracurricular Activities</h3>';
