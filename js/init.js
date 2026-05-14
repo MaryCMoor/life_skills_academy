@@ -1,197 +1,179 @@
-// ==================== INITIALIZATION ====================
+// ==================== GAME INITIALIZATION ====================
 
 function startGame() {
     console.log('🎮 startGame() called');
     
-    const nameInput = document.getElementById('playerName');
-    const ageSelect = document.getElementById('playerAge');
-    
-    // FIXED: Add null checks
-    if (!nameInput || !ageSelect) {
-        console.error('❌ Form elements not found');
-        alert('Error: Form elements not found. Please refresh the page.');
-        return;
-    }
-    
-    const playerName = nameInput.value.trim();
-    const playerAge = parseInt(ageSelect.value);
-    
-    console.log('Player Name:', playerName);
-    console.log('Player Age:', playerAge);
-    
-    // FIXED: Add validation
-    if (!playerName) {
-        if (typeof UI !== 'undefined') {
-            UI.showNotification('❌ Please enter your name!', 'error');
-        } else {
-            alert('Please enter your name!');
-        }
-        nameInput.focus();
-        return;
-    }
-    
-    // Check if GameState exists
-    if (typeof GameState === 'undefined') {
-        console.error('❌ GameState not loaded!');
-        alert('Error: Game not loaded properly. Please refresh the page.');
-        return;
-    }
-    
-    // Initialize game state
-    GameState.player.name = playerName;
-    GameState.player.age = playerAge;
-    GameState.player.grade = playerAge <= 10 ? 'Elementary' : 
-                             playerAge <= 13 ? 'Middle School' : 
-                             'High School';
-    
-    console.log('✅ GameState initialized:', GameState.player);
-    
-    // Hide start screen
-    const startScreen = document.getElementById('startScreen');
-    const gameContainer = document.getElementById('gameContainer');
-    
-    if (!startScreen || !gameContainer) {
-        console.error('❌ Screen elements not found');
-        alert('Error: Game screens not found. Please refresh the page.');
-        return;
-    }
-    
-    startScreen.style.display = 'none';
-    gameContainer.style.display = 'flex';
-    
-    console.log('✅ Screens switched');
-    
-    // Start time manager
-    if (typeof TimeManager !== 'undefined' && typeof TimeManager.start === 'function') {
-        console.log('⏰ Starting TimeManager...');
-        TimeManager.start();
-    } else {
-        console.warn('⚠️ TimeManager not available');
-    }
-    
-    // Update UI
-    if (typeof UI !== 'undefined' && typeof UI.updateStats === 'function') {
-        console.log('📊 Updating stats...');
-        UI.updateStats();
-    } else {
-        console.warn('⚠️ UI.updateStats not available');
-    }
-    
-    // Try to load city 3D
-    console.log('🏙️ Attempting to load city...');
-    console.log('THREE available?', typeof THREE !== 'undefined');
-    console.log('loadCity3D available?', typeof loadCity3D !== 'undefined');
-    console.log('City3D available?', typeof City3D !== 'undefined');
-    
     try {
+        // Get player info
+        const nameInput = document.getElementById('playerName');
+        const ageInput = document.getElementById('playerAge');
+        
+        if (!nameInput || !ageInput) {
+            console.error('Input elements not found');
+            return;
+        }
+        
+        const name = nameInput.value.trim();
+        const age = parseInt(ageInput.value);
+        
+        console.log('Player Name:', name);
+        console.log('Player Age:', age);
+        
+        if (!name) {
+            alert('Please enter your name!');
+            return;
+        }
+        
+        if (isNaN(age) || age < 13 || age > 17) {
+            alert('Please select a valid age!');
+            return;
+        }
+        
+        // Initialize GameState with player data
+        GameState.player.name = name;
+        GameState.player.age = age;
+        GameState.player.cash = GameState.player.cash || 100; // Default starting cash
+        
+        // Set grade based on age
+        const gradeMap = {
+            13: 7,
+            14: 8,
+            15: 9,
+            16: 10,
+            17: 11
+        };
+        GameState.player.grade = gradeMap[age] || 10;
+        
+        console.log('✅ GameState initialized:', GameState.player);
+        
+        // Hide start screen
+        const startScreen = document.getElementById('startScreen');
+        const cityContainer = document.getElementById('cityContainer');
+        
+        if (startScreen) startScreen.classList.add('hidden');
+        if (cityContainer) cityContainer.classList.remove('hidden');
+        
+        console.log('✅ Screens switched');
+        
+        // Start time manager
+        console.log('⏰ Starting TimeManager...');
+        if (typeof TimeManager !== 'undefined' && TimeManager.startDay) {
+            TimeManager.startDay();
+        }
+        
+        // Update UI
+        console.log('📊 Updating stats...');
+        if (typeof UI !== 'undefined' && UI.updateStats) {
+            UI.updateStats();
+        }
+        
+        // Show welcome message
+        if (typeof UI !== 'undefined' && UI.showNotification) {
+            UI.showNotification(`👋 Welcome, ${name}! Your life journey begins now!`, 'success', 5000);
+        }
+        
+        // Load 3D city
+        console.log('🏙️ Loading 3D city...');
         if (typeof THREE === 'undefined') {
-            throw new Error('Three.js not loaded');
-        }
-        
-        if (typeof loadCity3D === 'function') {
-            console.log('✅ Calling loadCity3D()');
-            loadCity3D();
-        } else if (typeof City3D !== 'undefined' && typeof City3D.init === 'function') {
-            console.log('✅ Calling City3D.init()');
-            City3D.init();
-        } else {
-            throw new Error('City3D functions not available');
-        }
-    } catch (error) {
-        console.error('❌ Error loading city:', error);
-        console.log('📱 Loading fallback (Home)...');
-        
-        // Fallback to home screen if 3D doesn't work
-        if (typeof loadHome === 'function') {
-            document.getElementById('cityContainer').classList.add('hidden');
-            document.getElementById('locationScreen').classList.remove('hidden');
-            loadHome();
-        } else {
-            alert('Error loading game. Please check console and refresh the page.');
-        }
-    }
-    
-    // Show welcome message
-    if (typeof UI !== 'undefined') {
-        UI.showNotification(`🎮 Welcome to Life Skills Academy, ${playerName}!`, 'success', 5000);
-    }
-    
-    console.log('🎮 Game started!');
-}
-
-function loadGame() {
-    console.log('📂 loadGame() called');
-    
-    if (typeof SaveLoad !== 'undefined' && SaveLoad.loadGame) {
-        const success = SaveLoad.loadGame();
-        if (success) {
-            console.log('✅ Save loaded successfully');
-            
-            // Game loaded, now show the game
-            document.getElementById('startScreen').style.display = 'none';
-            document.getElementById('gameContainer').style.display = 'flex';
-            
-            // Load city view
-            try {
-                if (typeof loadCity3D === 'function') {
-                    loadCity3D();
-                } else if (typeof City3D !== 'undefined' && typeof City3D.init === 'function') {
-                    City3D.init();
-                } else {
-                    // Fallback to home
-                    document.getElementById('cityContainer').classList.add('hidden');
-                    document.getElementById('locationScreen').classList.remove('hidden');
-                    loadHome();
-                }
-            } catch (error) {
-                console.error('Error loading city:', error);
+            console.error('THREE.js not loaded, falling back to home');
+            if (typeof loadHome === 'function') {
                 document.getElementById('cityContainer').classList.add('hidden');
                 document.getElementById('locationScreen').classList.remove('hidden');
                 loadHome();
             }
-            
-            // Start time manager if not already running
-            if (typeof TimeManager !== 'undefined' && typeof TimeManager.start === 'function') {
-                TimeManager.start();
-            }
-            
-            if (typeof UI !== 'undefined') {
-                UI.updateStats();
-            }
+        } else if (typeof loadCity3D === 'function') {
+            loadCity3D();
+        } else if (typeof City3D !== 'undefined' && City3D.init) {
+            City3D.init();
         } else {
-            console.error('❌ Failed to load save');
+            console.error('City3D not available, falling back to home');
+            if (typeof loadHome === 'function') {
+                document.getElementById('cityContainer').classList.add('hidden');
+                document.getElementById('locationScreen').classList.remove('hidden');
+                loadHome();
+            }
         }
-    } else {
-        console.error('SaveLoad not available');
-        if (typeof UI !== 'undefined') {
-            UI.showNotification('❌ Unable to load game', 'error');
+        
+    } catch (error) {
+        console.error('Error starting game:', error);
+        alert('Failed to start game. Check console for details.');
+    }
+}
+
+// Auto-load saved game if available
+function checkForSavedGame() {
+    if (typeof SaveLoad === 'undefined') {
+        console.log('SaveLoad not available');
+        return false;
+    }
+    
+    const savedData = localStorage.getItem(SaveLoad.SAVE_KEY);
+    if (savedData) {
+        console.log('Has saved game?', true);
+        
+        try {
+            const data = JSON.parse(savedData);
+            
+            // Ensure cash property exists in old saves
+            if (data.player && data.player.cash === undefined) {
+                data.player.cash = 100; // Default starting cash for old saves
+                console.log('⚠️ Added missing cash property to old save');
+            }
+            
+            // Update the save with the fix
+            localStorage.setItem(SaveLoad.SAVE_KEY, JSON.stringify(data));
+            
+            const shouldLoad = confirm('Found a saved game! Would you like to continue?');
+            if (shouldLoad) {
+                if (SaveLoad.loadGame()) {
+                    // Ensure cash exists after loading
+                    if (GameState.player.cash === undefined) {
+                        GameState.player.cash = 100;
+                    }
+                    
+                    // Hide start screen, show city
+                    document.getElementById('startScreen').classList.add('hidden');
+                    document.getElementById('cityContainer').classList.remove('hidden');
+                    
+                    // Start systems
+                    if (typeof TimeManager !== 'undefined' && TimeManager.startDay) {
+                        TimeManager.startDay();
+                    }
+                    
+                    if (typeof UI !== 'undefined' && UI.updateStats) {
+                        UI.updateStats();
+                    }
+                    
+                    if (typeof UI !== 'undefined' && UI.showNotification) {
+                        UI.showNotification(`👋 Welcome back, ${GameState.player.name}!`, 'success', 5000);
+                    }
+                    
+                    // Load city
+                    if (typeof loadCity3D === 'function') {
+                        loadCity3D();
+                    } else if (typeof City3D !== 'undefined' && City3D.init) {
+                        City3D.init();
+                    }
+                    
+                    return true;
+                }
+            }
+        } catch (error) {
+            console.error('Error loading saved game:', error);
+            alert('Failed to load saved game. Starting fresh.');
+            localStorage.removeItem(SaveLoad.SAVE_KEY);
         }
     }
+    
+    return false;
 }
 
-function saveGame() {
-    if (typeof SaveLoad !== 'undefined' && SaveLoad.saveGame) {
-        SaveLoad.saveGame();
-        UI.showNotification('💾 Game saved!', 'success');
-    } else {
-        console.error('SaveLoad not available');
-        UI.showNotification('❌ Unable to save game', 'error');
-    }
-}
-
-function quitGame() {
-    const confirmed = confirm('Are you sure you want to quit? Make sure to save your progress!');
-    if (confirmed) {
-        location.reload();
-    }
-}
-
-// FIXED: Improved initialization order
-window.addEventListener('DOMContentLoaded', () => {
+// Game initialization when page loads
+document.addEventListener('DOMContentLoaded', function() {
     console.log('🎮 Life Skills Academy initializing...');
     console.log('Current URL:', window.location.href);
     
-    // Check if all scripts loaded
+    // Check if all dependencies are loaded
     console.log('Script load status:');
     console.log('  - Utils:', typeof Utils !== 'undefined');
     console.log('  - UI:', typeof UI !== 'undefined');
@@ -199,65 +181,55 @@ window.addEventListener('DOMContentLoaded', () => {
     console.log('  - TimeManager:', typeof TimeManager !== 'undefined');
     console.log('  - THREE.js:', typeof THREE !== 'undefined');
     console.log('  - City3D:', typeof City3D !== 'undefined');
-    console.log('  - loadHome:', typeof loadHome !== 'undefined');
-    console.log('  - loadSchool:', typeof loadSchool !== 'undefined');
+    console.log('  - loadHome:', typeof loadHome === 'function');
+    console.log('  - loadSchool:', typeof loadSchool === 'function');
     
-    // Verify required modules loaded
-    const requiredModules = {
-        'Utils': typeof Utils !== 'undefined',
-        'UI': typeof UI !== 'undefined',
-        'GameState': typeof GameState !== 'undefined',
-        'TimeManager': typeof TimeManager !== 'undefined'
-    };
+    // Ensure GameState has cash property
+    if (typeof GameState !== 'undefined' && GameState.player) {
+        if (GameState.player.cash === undefined) {
+            GameState.player.cash = 100;
+            console.log('✅ Initialized default cash property');
+        }
+    }
     
-    const missingModules = Object.keys(requiredModules).filter(mod => !requiredModules[mod]);
+    // Check for critical dependencies
+    if (typeof Utils === 'undefined') {
+        console.error('❌ Utils not loaded');
+        alert('Game failed to load properly. Please refresh the page.');
+        return;
+    }
     
-    if (missingModules.length > 0) {
-        console.error('❌ Missing required modules:', missingModules.join(', '));
-        alert('Game failed to load properly. Missing: ' + missingModules.join(', ') + '\n\nPlease refresh the page.');
+    if (typeof UI === 'undefined') {
+        console.error('❌ UI not loaded');
+        alert('Game failed to load properly. Please refresh the page.');
+        return;
+    }
+    
+    if (typeof GameState === 'undefined') {
+        console.error('❌ GameState not loaded');
+        alert('Game failed to load properly. Please refresh the page.');
         return;
     }
     
     // Check for saved game
-    const hasSavedGame = localStorage.getItem('lifeSkillsGameState');
-    console.log('Has saved game?', !!hasSavedGame);
-    
-    if (hasSavedGame) {
+    if (!checkForSavedGame()) {
+        // Show start screen
         const startScreen = document.getElementById('startScreen');
-        if (!startScreen) {
-            console.error('❌ Start screen not found');
-            return;
-        }
-        
-        const welcomeBox = startScreen.querySelector('.welcome-box');
-        if (!welcomeBox) {
-            console.error('❌ Welcome box not found');
-            return;
-        }
-        
-        const continueButton = document.createElement('button');
-        continueButton.className = 'btn btn-success btn-large';
-        continueButton.style.marginTop = '20px';
-        continueButton.textContent = '📂 Continue Last Game';
-        continueButton.onclick = loadGame;
-        
-        const startButton = welcomeBox.querySelector('button');
-        if (startButton) {
-            startButton.textContent = '🆕 New Game';
-            startButton.parentNode.insertBefore(continueButton, startButton);
+        if (startScreen) {
+            startScreen.classList.remove('hidden');
         }
     }
     
     console.log('✅ Game ready!');
 });
 
-// Handle window before unload
-window.addEventListener('beforeunload', (e) => {
-    if (GameState && GameState.player && GameState.player.name) {
-        e.preventDefault();
-        e.returnValue = 'You have unsaved progress. Are you sure you want to leave?';
-        return e.returnValue;
+// Auto-save every 2 minutes
+setInterval(function() {
+    if (typeof SaveLoad !== 'undefined' && SaveLoad.saveGame && 
+        typeof GameState !== 'undefined' && GameState.player && GameState.player.name) {
+        SaveLoad.saveGame();
+        console.log('💾 Auto-saved');
     }
-});
+}, 120000); // 2 minutes
 
 console.log('✅ init.js loaded');
