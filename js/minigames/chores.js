@@ -1,35 +1,52 @@
 // ==================== CHORE MINIGAMES ====================
-// All household chores with interactive minigames
 
 const ChoreMinigames = {
     currentChore: null,
+    gameData: {},
     
-    // Start a chore minigame
     start(choreType) {
         this.currentChore = choreType;
+        this.gameData = {};
+        
+        const overlay = document.createElement('div');
+        overlay.id = 'choreMinigameOverlay';
+        overlay.className = 'minigame-overlay';
         
         switch(choreType) {
             case 'bed':
-                this.bedGame();
+                overlay.innerHTML = this.renderBedMinigame();
                 break;
             case 'dishes':
-                this.dishesGame();
+                overlay.innerHTML = this.renderDishesMinigame();
                 break;
             case 'vacuum':
-                this.vacuumGame();
+                overlay.innerHTML = this.renderVacuumMinigame();
                 break;
             case 'trash':
-                this.trashGame();
-                break;
-            case 'laundry':
-                this.laundryGame();
+                overlay.innerHTML = this.renderTrashMinigame();
                 break;
             default:
                 console.error('Unknown chore type:', choreType);
+                return;
         }
+        
+        document.body.appendChild(overlay);
+        
+        // Initialize game logic after DOM is ready
+        setTimeout(() => {
+            this.initGame(choreType);
+        }, 100);
     },
     
-    // Complete chore and give rewards
+    close() {
+        const overlay = document.getElementById('choreMinigameOverlay');
+        if (overlay) {
+            overlay.remove();
+        }
+        this.currentChore = null;
+        this.gameData = {};
+    },
+    
     complete(choreType) {
         const chores = {
             bed: { name: 'Making the Bed', duration: 2, reward: 5, energy: -2 },
@@ -42,18 +59,16 @@ const ChoreMinigames = {
         const chore = chores[choreType];
         if (!chore) return;
         
-        // Advance time by chore duration
+        // Advance time
         if (typeof TimeManager !== 'undefined' && TimeManager.advanceTime) {
             TimeManager.advanceTime(chore.duration);
         }
         
-        // Give rewards - FIXED
-        GameState.money.cash += chore.reward;
-        GameState.updateNeeds({ 
-            energy: chore.energy, 
-            hygiene: 5, 
-            happiness: 10 
-        });
+        // FIXED: Use proper GameState.addMoney method
+        GameState.addMoney(chore.reward, `chore: ${chore.name}`);
+        GameState.needs.energy = Math.max(0, GameState.needs.energy + chore.energy);
+        GameState.needs.hygiene = Math.min(100, GameState.needs.hygiene + 5);
+        GameState.needs.happiness = Math.min(100, GameState.needs.happiness + 10);
         
         // Add skill
         const skillMap = {
@@ -69,577 +84,501 @@ const ChoreMinigames = {
             GameState.addSkill(skill, 5);
         }
         
-        // Record chore completion
+        // Record completion
         GameState.completeChore(choreType);
         if (!GameState.stats.choresCompleted) GameState.stats.choresCompleted = 0;
         GameState.stats.choresCompleted++;
         
-        // Show success message
         UI.showNotification(
             `✅ ${chore.name} complete! +$${chore.reward}, +10 Happiness`,
             'success'
         );
         
-        // Achievement check
         if (GameState.stats.choresCompleted >= 10) {
             GameState.addAchievement('Clean Freak', 'Complete 10 chores', '🧹');
         }
         
         this.close();
-    },
-    
-    // Close minigame
-    close() {
-        const overlay = document.querySelector('.minigame-overlay');
-        if (overlay) {
-            overlay.remove();
+        
+        if (typeof UI !== 'undefined') {
+            UI.updateStats();
         }
-        this.currentChore = null;
+        
+        if (typeof loadHome === 'function') {
+            loadHome();
+        }
     },
     
-    // ==================== BED MAKING GAME ====================
-    bedGame() {
-        const overlay = document.createElement('div');
-        overlay.className = 'minigame-overlay active';
-        overlay.id = 'bedGame';
-        
-        let html = `
+    // ==================== BED MAKING MINIGAME ====================
+    
+    renderBedMinigame() {
+        return `
             <div class="minigame-container">
                 <div class="minigame-header">
-                    <div class="minigame-title">🛏️ Make the Bed</div>
-                    <div class="minigame-subtitle">Drag items onto the bed in order: Sheet → Blanket → Pillow</div>
+                    <h2>🛏️ Make Your Bed</h2>
+                    <button class="minigame-close" onclick="ChoreMinigames.close()">✖</button>
                 </div>
                 
-                <div style="margin: 30px 0;">
-                    <div style="text-align: center; margin-bottom: 25px;">
-                        <h2 style="color: #2c3e50; margin-bottom: 10px;">📦 Drag These Items (In Order):</h2>
+                <div class="minigame-content">
+                    <p>Click the items in the correct order to make your bed!</p>
+                    
+                    <div id="bedProgress" style="margin: 20px 0;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="bedProgressFill" style="width: 0%;"></div>
+                        </div>
+                        <p id="bedStep">Step 1: Straighten the sheets</p>
                     </div>
                     
-                    <div id="bedItems" style="
-                        display: flex;
-                        justify-content: center;
-                        gap: 40px;
-                        flex-wrap: wrap;
-                        margin-bottom: 40px;
-                        padding: 30px;
-                        background: rgba(255, 255, 255, 0.8);
-                        border-radius: 20px;
-                        border: 3px dashed #3498db;
-                        min-height: 160px;
-                    ">
-                        <div class="bed-item" draggable="true" data-item="sheet" 
-                             style="width: 120px; height: 120px; background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); 
-                             border-radius: 15px; display: flex; flex-direction: column; align-items: center; 
-                             justify-content: center; cursor: grab; border: 3px solid #3498db; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-                             font-weight: bold; font-size: 16px; color: #2c3e50;">
-                            <div style="font-size: 50px; margin-bottom: 5px;">🟦</div>
-                            <div>Sheet</div>
-                        </div>
-                        
-                        <div class="bed-item" draggable="true" data-item="blanket"
-                             style="width: 120px; height: 120px; background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); 
-                             border-radius: 15px; display: flex; flex-direction: column; align-items: center; 
-                             justify-content: center; cursor: grab; border: 3px solid #e67e22; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-                             font-weight: bold; font-size: 16px; color: #2c3e50;">
-                            <div style="font-size: 50px; margin-bottom: 5px;">🟧</div>
-                            <div>Blanket</div>
-                        </div>
-                        
-                        <div class="bed-item" draggable="true" data-item="pillow"
-                             style="width: 120px; height: 120px; background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%); 
-                             border-radius: 15px; display: flex; flex-direction: column; align-items: center; 
-                             justify-content: center; cursor: grab; border: 3px solid #9b59b6; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-                             font-weight: bold; font-size: 16px; color: #2c3e50;">
-                            <div style="font-size: 50px; margin-bottom: 5px;">🟪</div>
-                            <div>Pillow</div>
-                        </div>
+                    <div id="bedGame" style="position: relative; width: 100%; height: 300px; background: #ecf0f1; border-radius: 10px; overflow: hidden;">
+                        <!-- Bed items will be added here -->
                     </div>
                     
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <h2 style="color: #2c3e50;">👇 Drop Items Here:</h2>
+                    <div style="margin-top: 20px; text-align: center;">
+                        <button class="btn btn-secondary" onclick="ChoreMinigames.close()">Cancel</button>
                     </div>
-                    
-                    <div id="bedTarget" style="
-                        width: 500px;
-                        height: 300px;
-                        margin: 0 auto;
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        border: 5px dashed #2c3e50;
-                        border-radius: 20px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        font-size: 80px;
-                        position: relative;
-                        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-                    ">
-                        🛏️
-                        <div id="bedLayers" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
-                    </div>
-                </div>
-                
-                <div class="minigame-actions">
-                    <button class="btn btn-danger" onclick="ChoreMinigames.close()">Cancel</button>
                 </div>
             </div>
         `;
+    },
+    
+    initGame(choreType) {
+        if (choreType === 'bed') {
+            this.initBedGame();
+        } else if (choreType === 'dishes') {
+            this.initDishesGame();
+        } else if (choreType === 'vacuum') {
+            this.initVacuumGame();
+        } else if (choreType === 'trash') {
+            this.initTrashGame();
+        }
+    },
+    
+    initBedGame() {
+        this.gameData.currentStep = 0;
+        this.gameData.steps = [
+            { id: 'sheets', name: 'Straighten the sheets', icon: '📄', color: '#ecf0f1' },
+            { id: 'blanket', name: 'Add the blanket', icon: '🟦', color: '#3498db' },
+            { id: 'pillow', name: 'Fluff the pillow', icon: '◻️', color: '#95a5a6' },
+            { id: 'finish', name: 'Smooth everything', icon: '✨', color: '#2ecc71' }
+        ];
         
-        overlay.innerHTML = html;
-        document.body.appendChild(overlay);
+        const bedGame = document.getElementById('bedGame');
+        if (!bedGame) return;
         
-        // Setup drag and drop
-        let itemsPlaced = [];
-        const correctOrder = ['sheet', 'blanket', 'pillow'];
-        
-        const items = overlay.querySelectorAll('.bed-item');
-        const target = overlay.querySelector('#bedTarget');
-        const layers = overlay.querySelector('#bedLayers');
-        
-        items.forEach(item => {
-            item.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('text/plain', item.dataset.item);
-                item.style.opacity = '0.5';
-            });
-            
-            item.addEventListener('dragend', (e) => {
-                item.style.opacity = '1';
-            });
+        this.gameData.steps.forEach(step => {
+            const item = document.createElement('div');
+            item.className = 'bed-item';
+            item.style.cssText = `
+                position: absolute;
+                width: 200px;
+                height: 100px;
+                background: ${step.color};
+                border: 3px solid #2c3e50;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 48px;
+                cursor: pointer;
+                transition: all 0.3s;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+            `;
+            item.textContent = step.icon;
+            item.dataset.stepId = step.id;
+            item.onclick = () => this.handleBedClick(step.id);
+            bedGame.appendChild(item);
         });
         
-        target.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            target.style.borderColor = '#27ae60';
-            target.style.transform = 'scale(1.05)';
-        });
+        this.updateBedDisplay();
+    },
+    
+    handleBedClick(stepId) {
+        const currentStep = this.gameData.steps[this.gameData.currentStep];
         
-        target.addEventListener('dragleave', () => {
-            target.style.borderColor = '#2c3e50';
-            target.style.transform = 'scale(1)';
-        });
-        
-        target.addEventListener('drop', (e) => {
-            e.preventDefault();
-            target.style.borderColor = '#2c3e50';
-            target.style.transform = 'scale(1)';
+        if (stepId === currentStep.id) {
+            this.gameData.currentStep++;
             
-            const itemType = e.dataTransfer.getData('text/plain');
-            const expectedItem = correctOrder[itemsPlaced.length];
-            
-            if (itemType === expectedItem) {
-                itemsPlaced.push(itemType);
-                
-                // Visual feedback
-                const layer = document.createElement('div');
-                layer.style.cssText = `
-                    position: absolute;
-                    width: 100%;
-                    height: 100%;
-                    opacity: 0.7;
-                    z-index: ${itemsPlaced.length};
-                    border-radius: 15px;
-                `;
-                
-                const colors = {
-                    sheet: 'rgba(168, 237, 234, 0.8)',
-                    blanket: 'rgba(252, 182, 159, 0.8)',
-                    pillow: 'rgba(251, 194, 235, 0.8)'
-                };
-                
-                layer.style.background = colors[itemType];
-                layers.appendChild(layer);
-                
-                // Remove item from available items
-                const draggedItem = Array.from(items).find(i => i.dataset.item === itemType);
-                if (draggedItem) {
-                    draggedItem.style.display = 'none';
-                }
-                
-                UI.showNotification(`✅ ${itemType.charAt(0).toUpperCase() + itemType.slice(1)} placed!`, 'success', 1500);
-                
-                // Check if complete
-                if (itemsPlaced.length === 3) {
-                    setTimeout(() => {
-                        ChoreMinigames.complete('bed');
-                    }, 500);
-                }
+            if (this.gameData.currentStep >= this.gameData.steps.length) {
+                this.complete('bed');
             } else {
-                UI.showNotification(`❌ Wrong order! Place ${expectedItem} next.`, 'error', 2000);
+                this.updateBedDisplay();
             }
-        });
+        } else {
+            UI.showNotification('❌ Wrong order! Try again.', 'error');
+        }
     },
     
-    // ==================== DISH WASHING GAME ====================
-    dishesGame() {
-        const overlay = document.createElement('div');
-        overlay.className = 'minigame-overlay active';
-        overlay.id = 'dishesGame';
+    updateBedDisplay() {
+        const progress = (this.gameData.currentStep / this.gameData.steps.length) * 100;
+        const progressFill = document.getElementById('bedProgressFill');
+        const stepText = document.getElementById('bedStep');
         
-        let dishesClean = 0;
-        const totalDishes = 5;
+        if (progressFill) {
+            progressFill.style.width = progress + '%';
+        }
         
-        let html = `
-            <div class="minigame-container">
-                <div class="minigame-header">
-                    <div class="minigame-title">🍽️ Wash the Dishes</div>
-                    <div class="minigame-subtitle">Click and hold on dirty dishes to scrub them clean!</div>
-                </div>
+        if (stepText && this.gameData.currentStep < this.gameData.steps.length) {
+            const currentStep = this.gameData.steps[this.gameData.currentStep];
+            stepText.textContent = `Step ${this.gameData.currentStep + 1}: ${currentStep.name}`;
+        }
+        
+        // Hide completed items
+        const bedGame = document.getElementById('bedGame');
+        if (bedGame) {
+            const items = bedGame.querySelectorAll('.bed-item');
+            items.forEach(item => {
+                const stepId = item.dataset.stepId;
+                const stepIndex = this.gameData.steps.findIndex(s => s.id === stepId);
                 
-                <div style="margin: 30px 0; text-align: center;">
-                    <div style="font-size: 24px; font-weight: bold; color: #2c3e50; margin-bottom: 20px;">
-                        Clean: <span id="dishCount">0</span> / ${totalDishes}
-                    </div>
-                    
-                    <div id="dishRack" style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
-                        ${Array(totalDishes).fill(0).map((_, i) => `
-                            <div class="dirty-dish" data-dish="${i}" style="
-                                width: 100px;
-                                height: 100px;
-                                background: linear-gradient(135deg, #8B4513 0%, #654321 100%);
-                                border-radius: 50%;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                font-size: 50px;
-                                cursor: pointer;
-                                border: 3px solid #654321;
-                                position: relative;
-                                user-select: none;
-                                box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-                            ">
-                                <div class="dish-progress" style="
-                                    position: absolute;
-                                    bottom: -5px;
-                                    left: 50%;
-                                    transform: translateX(-50%);
-                                    width: 0%;
-                                    height: 5px;
-                                    background: #27ae60;
-                                    border-radius: 5px;
-                                    transition: width 0.1s;
-                                "></div>
-                                🍽️
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-                
-                <div class="minigame-actions">
-                    <button class="btn btn-danger" onclick="ChoreMinigames.close()">Cancel</button>
-                </div>
-            </div>
-        `;
-        
-        overlay.innerHTML = html;
-        document.body.appendChild(overlay);
-        
-        // Setup dish cleaning
-        const dishes = overlay.querySelectorAll('.dirty-dish');
-        const dishCount = overlay.querySelector('#dishCount');
-        
-        dishes.forEach(dish => {
-            let cleanProgress = 0;
-            let intervalId = null;
-            
-            const startCleaning = () => {
-                if (cleanProgress >= 100) return;
-                
-                intervalId = setInterval(() => {
-                    cleanProgress += 5;
-                    const progressBar = dish.querySelector('.dish-progress');
-                    progressBar.style.width = cleanProgress + '%';
-                    
-                    // Gradually lighten the dish
-                    const brownLevel = Math.floor(139 - (cleanProgress * 0.5));
-                    dish.style.background = `linear-gradient(135deg, rgb(${brownLevel}, ${Math.floor(brownLevel * 0.5)}, ${Math.floor(brownLevel * 0.15)}) 0%, rgb(255, 255, 255) 100%)`;
-                    
-                    if (cleanProgress >= 100) {
-                        stopCleaning();
-                        dish.style.background = 'linear-gradient(135deg, #e3f2fd 0%, #90caf9 100%)';
-                        dish.style.borderColor = '#2196f3';
-                        dish.style.cursor = 'default';
-                        dish.textContent = '✨';
-                        dishesClean++;
-                        dishCount.textContent = dishesClean;
-                        
-                        UI.showNotification('✅ Dish clean!', 'success', 1000);
-                        
-                        if (dishesClean === totalDishes) {
-                            setTimeout(() => {
-                                ChoreMinigames.complete('dishes');
-                            }, 500);
-                        }
-                    }
-                }, 100);
-            };
-            
-            const stopCleaning = () => {
-                if (intervalId) {
-                    clearInterval(intervalId);
-                    intervalId = null;
+                if (stepIndex < this.gameData.currentStep) {
+                    item.style.opacity = '0.3';
+                    item.style.pointerEvents = 'none';
+                } else if (stepIndex === this.gameData.currentStep) {
+                    item.style.transform = 'translate(-50%, -50%) scale(1.1)';
+                    item.style.boxShadow = '0 0 20px rgba(52, 152, 219, 0.8)';
+                } else {
+                    item.style.opacity = '0.5';
+                    item.style.pointerEvents = 'none';
                 }
-            };
-            
-            dish.addEventListener('mousedown', startCleaning);
-            dish.addEventListener('mouseup', stopCleaning);
-            dish.addEventListener('mouseleave', stopCleaning);
-            dish.addEventListener('touchstart', startCleaning);
-            dish.addEventListener('touchend', stopCleaning);
-        });
+            });
+        }
     },
     
-    // ==================== VACUUM GAME ====================
-    vacuumGame() {
-        const overlay = document.createElement('div');
-        overlay.className = 'minigame-overlay active';
-        overlay.id = 'vacuumGame';
-        
-        let dirtCleaned = 0;
-        const totalDirt = 20;
-        
-        let html = `
+    // ==================== DISHES MINIGAME ====================
+    
+    renderDishesMinigame() {
+        return `
             <div class="minigame-container">
                 <div class="minigame-header">
-                    <div class="minigame-title">🧹 Vacuum the Floor</div>
-                    <div class="minigame-subtitle">Move your mouse/finger over the dirt to vacuum it up!</div>
+                    <h2>🍽️ Wash the Dishes</h2>
+                    <button class="minigame-close" onclick="ChoreMinigames.close()">✖</button>
                 </div>
                 
-                <div style="margin: 30px 0; text-align: center;">
-                    <div style="font-size: 24px; font-weight: bold; color: #2c3e50; margin-bottom: 20px;">
-                        Cleaned: <span id="dirtCount">0</span> / ${totalDirt}
+                <div class="minigame-content">
+                    <p>Click the dirty dishes to wash them clean!</p>
+                    
+                    <div id="dishProgress" style="margin: 20px 0;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="dishProgressFill" style="width: 0%;"></div>
+                        </div>
+                        <p id="dishCount">0 / 10 dishes cleaned</p>
                     </div>
                     
-                    <div id="floor" style="
-                        width: 600px;
-                        height: 400px;
-                        margin: 0 auto;
-                        background: linear-gradient(135deg, #d4a574 0%, #c9965d 100%);
-                        border: 5px solid #8B4513;
-                        border-radius: 10px;
-                        position: relative;
-                        overflow: hidden;
-                        cursor: crosshair;
-                        box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
-                    ">
-                        <div id="vacuum" style="
-                            position: absolute;
-                            width: 40px;
-                            height: 40px;
-                            font-size: 30px;
-                            pointer-events: none;
-                            z-index: 100;
-                            transform: translate(-50%, -50%);
-                        ">🧹</div>
+                    <div id="dishGame" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 20px 0;">
+                        <!-- Dishes will be added here -->
                     </div>
-                </div>
-                
-                <div class="minigame-actions">
-                    <button class="btn btn-danger" onclick="ChoreMinigames.close()">Cancel</button>
+                    
+                    <div style="margin-top: 20px; text-align: center;">
+                        <button class="btn btn-secondary" onclick="ChoreMinigames.close()">Cancel</button>
+                    </div>
                 </div>
             </div>
         `;
+    },
+    
+    initDishesGame() {
+        this.gameData.totalDishes = 10;
+        this.gameData.cleanedDishes = 0;
         
-        overlay.innerHTML = html;
-        document.body.appendChild(overlay);
+        const dishGame = document.getElementById('dishGame');
+        if (!dishGame) return;
         
-        const floor = overlay.querySelector('#floor');
-        const vacuum = overlay.querySelector('#vacuum');
-        const dirtCount = overlay.querySelector('#dirtCount');
+        const dishIcons = ['🍽️', '🥄', '🍴', '🥣', '🍵'];
+        
+        for (let i = 0; i < this.gameData.totalDishes; i++) {
+            const dish = document.createElement('div');
+            dish.className = 'dish-item dirty';
+            dish.style.cssText = `
+                background: #95a5a6;
+                padding: 20px;
+                border-radius: 10px;
+                text-align: center;
+                font-size: 32px;
+                cursor: pointer;
+                transition: all 0.3s;
+                border: 3px solid #7f8c8d;
+            `;
+            dish.textContent = dishIcons[i % dishIcons.length];
+            dish.onclick = () => this.handleDishClick(dish, i);
+            dishGame.appendChild(dish);
+        }
+    },
+    
+    handleDishClick(dishElement, dishId) {
+        if (dishElement.classList.contains('clean')) {
+            return;
+        }
+        
+        dishElement.classList.remove('dirty');
+        dishElement.classList.add('clean');
+        dishElement.style.background = '#2ecc71';
+        dishElement.style.borderColor = '#27ae60';
+        dishElement.style.cursor = 'default';
+        
+        this.gameData.cleanedDishes++;
+        
+        const progress = (this.gameData.cleanedDishes / this.gameData.totalDishes) * 100;
+        const progressFill = document.getElementById('dishProgressFill');
+        const countText = document.getElementById('dishCount');
+        
+        if (progressFill) {
+            progressFill.style.width = progress + '%';
+        }
+        
+        if (countText) {
+            countText.textContent = `${this.gameData.cleanedDishes} / ${this.gameData.totalDishes} dishes cleaned`;
+        }
+        
+        if (this.gameData.cleanedDishes >= this.gameData.totalDishes) {
+            setTimeout(() => {
+                this.complete('dishes');
+            }, 500);
+        }
+    },
+    
+    // ==================== VACUUM MINIGAME ====================
+    
+    renderVacuumMinigame() {
+        return `
+            <div class="minigame-container">
+                <div class="minigame-header">
+                    <h2>🧹 Vacuum the Floor</h2>
+                    <button class="minigame-close" onclick="ChoreMinigames.close()">✖</button>
+                </div>
+                
+                <div class="minigame-content">
+                    <p>Use WASD or Arrow Keys to move and clean all the dirt!</p>
+                    
+                    <div id="vacuumProgress" style="margin: 20px 0;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="vacuumProgressFill" style="width: 0%;"></div>
+                        </div>
+                        <p id="vacuumCount">0 / 15 dirt spots cleaned</p>
+                    </div>
+                    
+                    <div id="vacuumGame" style="position: relative; width: 100%; height: 400px; background: #ecf0f1; border-radius: 10px; overflow: hidden; border: 3px solid #2c3e50;">
+                        <!-- Game will be rendered here -->
+                    </div>
+                    
+                    <div style="margin-top: 20px; text-align: center;">
+                        <p style="color: #7f8c8d;">Use WASD or Arrow Keys to move</p>
+                        <button class="btn btn-secondary" onclick="ChoreMinigames.close()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+    
+    initVacuumGame() {
+        this.gameData.totalDirt = 15;
+        this.gameData.cleanedDirt = 0;
+        this.gameData.playerX = 50;
+        this.gameData.playerY = 50;
+        this.gameData.dirtSpots = [];
+        
+        const vacuumGame = document.getElementById('vacuumGame');
+        if (!vacuumGame) return;
+        
+        // Create player
+        const player = document.createElement('div');
+        player.id = 'vacuumPlayer';
+        player.style.cssText = `
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #3498db;
+            border-radius: 50%;
+            left: ${this.gameData.playerX}px;
+            top: ${this.gameData.playerY}px;
+            transition: all 0.1s;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        `;
+        player.textContent = '🧹';
+        vacuumGame.appendChild(player);
         
         // Create dirt spots
-        for (let i = 0; i < totalDirt; i++) {
+        for (let i = 0; i < this.gameData.totalDirt; i++) {
             const dirt = document.createElement('div');
+            const x = Math.random() * (vacuumGame.offsetWidth - 30);
+            const y = Math.random() * (vacuumGame.offsetHeight - 30);
+            
             dirt.className = 'dirt-spot';
             dirt.style.cssText = `
                 position: absolute;
-                width: ${20 + Math.random() * 20}px;
-                height: ${20 + Math.random() * 20}px;
-                background: radial-gradient(circle, #654321 0%, transparent 70%);
+                width: 20px;
+                height: 20px;
+                background: #8b4513;
                 border-radius: 50%;
-                left: ${Math.random() * 90}%;
-                top: ${Math.random() * 90}%;
-                pointer-events: none;
-                opacity: 0.7;
+                left: ${x}px;
+                top: ${y}px;
             `;
-            floor.appendChild(dirt);
+            
+            this.gameData.dirtSpots.push({ element: dirt, x, y, cleaned: false });
+            vacuumGame.appendChild(dirt);
         }
         
-        // Move vacuum with mouse
-        floor.addEventListener('mousemove', (e) => {
-            const rect = floor.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            
-            vacuum.style.left = x + 'px';
-            vacuum.style.top = y + 'px';
-            
-            // Check collision with dirt
-            const dirtSpots = floor.querySelectorAll('.dirt-spot');
-            dirtSpots.forEach(spot => {
-                const spotRect = spot.getBoundingClientRect();
-                const spotX = spotRect.left + spotRect.width / 2 - rect.left;
-                const spotY = spotRect.top + spotRect.height / 2 - rect.top;
-                
-                const distance = Math.sqrt(Math.pow(x - spotX, 2) + Math.pow(y - spotY, 2));
-                
-                if (distance < 30) {
-                    spot.remove();
-                    dirtCleaned++;
-                    dirtCount.textContent = dirtCleaned;
-                    
-                    if (dirtCleaned === totalDirt) {
-                        setTimeout(() => {
-                            ChoreMinigames.complete('vacuum');
-                        }, 500);
-                    }
-                }
-            });
-        });
-        
-        // Touch support
-        floor.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            const touch = e.touches[0];
-            const rect = floor.getBoundingClientRect();
-            const x = touch.clientX - rect.left;
-            const y = touch.clientY - rect.top;
-            
-            vacuum.style.left = x + 'px';
-            vacuum.style.top = y + 'px';
-            
-            const dirtSpots = floor.querySelectorAll('.dirt-spot');
-            dirtSpots.forEach(spot => {
-                const spotRect = spot.getBoundingClientRect();
-                const spotX = spotRect.left + spotRect.width / 2 - rect.left;
-                const spotY = spotRect.top + spotRect.height / 2 - rect.top;
-                
-                const distance = Math.sqrt(Math.pow(x - spotX, 2) + Math.pow(y - spotY, 2));
-                
-                if (distance < 30) {
-                    spot.remove();
-                    dirtCleaned++;
-                    dirtCount.textContent = dirtCleaned;
-                    
-                    if (dirtCleaned === totalDirt) {
-                        setTimeout(() => {
-                            ChoreMinigames.complete('vacuum');
-                        }, 500);
-                    }
-                }
-            });
-        });
+        // Add keyboard controls
+        this.gameData.keyHandler = (e) => this.handleVacuumKeys(e);
+        document.addEventListener('keydown', this.gameData.keyHandler);
     },
     
-    // ==================== TRASH GAME ====================
-    trashGame() {
-        const overlay = document.createElement('div');
-        overlay.className = 'minigame-overlay active';
-        overlay.id = 'trashGame';
+    handleVacuumKeys(e) {
+        const key = e.key.toLowerCase();
+        const speed = 20;
         
-        let html = `
-            <div class="minigame-container">
-                <div class="minigame-header">
-                    <div class="minigame-title">🗑️ Take Out the Trash</div>
-                    <div class="minigame-subtitle">Drag the trash bag to the outdoor bin!</div>
-                </div>
-                
-                <div style="margin: 50px 0;">
-                    <div style="display: flex; justify-content: space-around; align-items: center;">
-                        <div style="text-align: center;">
-                            <div style="font-size: 20px; margin-bottom: 10px; font-weight: bold;">🏠 Inside</div>
-                            <div id="trashBag" draggable="true" style="
-                                width: 100px;
-                                height: 120px;
-                                background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-                                border-radius: 10px;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                font-size: 60px;
-                                cursor: grab;
-                                border: 3px solid #1a252f;
-                                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                            ">🗑️</div>
-                        </div>
-                        
-                        <div style="font-size: 80px; color: #95a5a6;">
-                            ➡️
-                        </div>
-                        
-                        <div style="text-align: center;">
-                            <div style="font-size: 20px; margin-bottom: 10px; font-weight: bold;">🏡 Outside</div>
-                            <div id="trashBin" style="
-                                width: 150px;
-                                height: 180px;
-                                background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
-                                border-radius: 15px;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                font-size: 80px;
-                                border: 5px dashed #1e8449;
-                                box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-                            ">♻️</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="minigame-actions">
-                    <button class="btn btn-danger" onclick="ChoreMinigames.close()">Cancel</button>
-                </div>
-            </div>
-        `;
-        
-        overlay.innerHTML = html;
-        document.body.appendChild(overlay);
-        
-        const trashBag = overlay.querySelector('#trashBag');
-        const trashBin = overlay.querySelector('#trashBin');
-        
-        trashBag.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData('text/plain', 'trash');
-            trashBag.style.opacity = '0.5';
-        });
-        
-        trashBag.addEventListener('dragend', () => {
-            trashBag.style.opacity = '1';
-        });
-        
-        trashBin.addEventListener('dragover', (e) => {
+        if (['w', 'a', 's', 'd', 'arrowup', 'arrowleft', 'arrowdown', 'arrowright'].includes(key)) {
             e.preventDefault();
-            trashBin.style.borderColor = '#f39c12';
-            trashBin.style.transform = 'scale(1.1)';
-        });
-        
-        trashBin.addEventListener('dragleave', () => {
-            trashBin.style.borderColor = '#1e8449';
-            trashBin.style.transform = 'scale(1)';
-        });
-        
-        trashBin.addEventListener('drop', (e) => {
-            e.preventDefault();
-            trashBin.style.borderColor = '#1e8449';
-            trashBin.style.transform = 'scale(1)';
             
-            if (e.dataTransfer.getData('text/plain') === 'trash') {
-                trashBag.style.display = 'none';
-                trashBin.textContent = '✅';
-                UI.showNotification('✅ Trash taken out!', 'success');
+            const vacuumGame = document.getElementById('vacuumGame');
+            const player = document.getElementById('vacuumPlayer');
+            if (!vacuumGame || !player) return;
+            
+            const maxX = vacuumGame.offsetWidth - 40;
+            const maxY = vacuumGame.offsetHeight - 40;
+            
+            if (key === 'w' || key === 'arrowup') {
+                this.gameData.playerY = Math.max(0, this.gameData.playerY - speed);
+            } else if (key === 's' || key === 'arrowdown') {
+                this.gameData.playerY = Math.min(maxY, this.gameData.playerY + speed);
+            } else if (key === 'a' || key === 'arrowleft') {
+                this.gameData.playerX = Math.max(0, this.gameData.playerX - speed);
+            } else if (key === 'd' || key === 'arrowright') {
+                this.gameData.playerX = Math.min(maxX, this.gameData.playerX + speed);
+            }
+            
+            player.style.left = this.gameData.playerX + 'px';
+            player.style.top = this.gameData.playerY + 'px';
+            
+            this.checkVacuumCollisions();
+        }
+    },
+    
+    checkVacuumCollisions() {
+        this.gameData.dirtSpots.forEach(dirt => {
+            if (dirt.cleaned) return;
+            
+            const dx = this.gameData.playerX - dirt.x;
+            const dy = this.gameData.playerY - dirt.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < 30) {
+                dirt.cleaned = true;
+                dirt.element.remove();
+                this.gameData.cleanedDirt++;
                 
-                setTimeout(() => {
-                    ChoreMinigames.complete('trash');
-                }, 800);
+                const progress = (this.gameData.cleanedDirt / this.gameData.totalDirt) * 100;
+                const progressFill = document.getElementById('vacuumProgressFill');
+                const countText = document.getElementById('vacuumCount');
+                
+                if (progressFill) {
+                    progressFill.style.width = progress + '%';
+                }
+                
+                if (countText) {
+                    countText.textContent = `${this.gameData.cleanedDirt} / ${this.gameData.totalDirt} dirt spots cleaned`;
+                }
+                
+                if (this.gameData.cleanedDirt >= this.gameData.totalDirt) {
+                    document.removeEventListener('keydown', this.gameData.keyHandler);
+                    setTimeout(() => {
+                        this.complete('vacuum');
+                    }, 500);
+                }
             }
         });
     },
     
-    // ==================== LAUNDRY GAME ====================
-    laundryGame() {
-        UI.showNotification('💡 Use the Laundry Minigame from the Activities menu for a full experience!', 'info', 3000);
+    // ==================== TRASH MINIGAME ====================
+    
+    renderTrashMinigame() {
+        return `
+            <div class="minigame-container">
+                <div class="minigame-header">
+                    <h2>🗑️ Take Out the Trash</h2>
+                    <button class="minigame-close" onclick="ChoreMinigames.close()">✖</button>
+                </div>
+                
+                <div class="minigame-content">
+                    <p>Drag the trash bag to the outdoor bin!</p>
+                    
+                    <div id="trashGame" style="position: relative; width: 100%; height: 400px; background: linear-gradient(180deg, #ecf0f1 0%, #bdc3c7 100%); border-radius: 10px; overflow: hidden; border: 3px solid #2c3e50;">
+                        <div id="trashBag" style="position: absolute; left: 50px; top: 50px; cursor: move; font-size: 64px;">🗑️</div>
+                        <div id="trashBin" style="position: absolute; right: 50px; bottom: 50px; font-size: 80px;">🚮</div>
+                        <div style="position: absolute; bottom: 10px; left: 10px; color: #7f8c8d; font-size: 14px;">
+                            ← Drag the trash bag to the bin →
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px; text-align: center;">
+                        <button class="btn btn-secondary" onclick="ChoreMinigames.close()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+    
+    initTrashGame() {
+        const trashBag = document.getElementById('trashBag');
+        const trashBin = document.getElementById('trashBin');
+        const trashGame = document.getElementById('trashGame');
         
-        // Simple quick version for chore list
-        setTimeout(() => {
-            ChoreMinigames.complete('laundry');
-        }, 2000);
+        if (!trashBag || !trashBin || !trashGame) return;
+        
+        let isDragging = false;
+        let offsetX = 0;
+        let offsetY = 0;
+        
+        trashBag.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            offsetX = e.clientX - trashBag.offsetLeft;
+            offsetY = e.clientY - trashBag.offsetTop;
+            trashBag.style.cursor = 'grabbing';
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            
+            const gameRect = trashGame.getBoundingClientRect();
+            let x = e.clientX - gameRect.left - offsetX;
+            let y = e.clientY - gameRect.top - offsetY;
+            
+            x = Math.max(0, Math.min(x, trashGame.offsetWidth - 64));
+            y = Math.max(0, Math.min(y, trashGame.offsetHeight - 64));
+            
+            trashBag.style.left = x + 'px';
+            trashBag.style.top = y + 'px';
+            
+            // Check collision with bin
+            const bagRect = trashBag.getBoundingClientRect();
+            const binRect = trashBin.getBoundingClientRect();
+            
+            if (this.checkCollision(bagRect, binRect)) {
+                isDragging = false;
+                trashBag.style.display = 'none';
+                UI.showNotification('🎉 Trash taken out!', 'success');
+                setTimeout(() => {
+                    this.complete('trash');
+                }, 500);
+            }
+        });
+        
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            trashBag.style.cursor = 'move';
+        });
+    },
+    
+    checkCollision(rect1, rect2) {
+        return !(rect1.right < rect2.left || 
+                rect1.left > rect2.right || 
+                rect1.bottom < rect2.top || 
+                rect1.top > rect2.bottom);
     }
 };
 
