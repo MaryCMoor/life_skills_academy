@@ -14,58 +14,65 @@
 <body>
     <!-- Top Bar -->
     <div id="topBar">
-        <div class="top-bar-left">
-            <div class="game-logo">
-                <span style="font-size: 24px;">🎓</span>
-                <span style="font-weight: bold; font-size: 18px;">Life Skills Academy</span>
-            </div>
+    <!-- Current Activity Status (hidden by default) -->
+    <div id="currentActivity">
+        <div class="activity-text">
+            <span class="activity-icon">⏳</span>
+            <span id="activityName">Idle</span>
         </div>
-        
-        <div class="top-bar-center">
-            <div class="time-display-modern">
-                <div class="time-row">
-                    <span class="time-icon">🕐</span>
-                    <span id="gameTime" class="time-value">07:00</span>
-                </div>
-                <div class="date-row">
-                    <span class="date-icon">📅</span>
-                    <span id="gameDate" class="date-value">Mon Jan 1, 2020</span>
-                </div>
-            </div>
-            
-            <div class="time-controls-modern">
-                <button class="time-btn" onclick="TimeManager.setSpeed('normal')" title="Normal Speed">1x</button>
-                <button class="time-btn" onclick="TimeManager.setSpeed('fast')" title="Fast Speed">5x</button>
-                <button class="time-btn" onclick="TimeManager.setSpeed('veryFast')" title="Very Fast">30x</button>
-                <button class="time-btn pause-btn" onclick="TimeManager.pause()" title="Pause/Resume">⏸</button>
-            </div>
-        </div>
-        
-        <div class="top-bar-right">
-            <div class="player-stats-compact">
-                <div class="stat-compact">
-                    <span class="stat-icon">💵</span>
-                    <span class="stat-label-compact">Cash</span>
-                    <span class="stat-value-compact">$<span id="playerCash">50</span></span>
-                </div>
-                <div class="stat-compact">
-                    <span class="stat-icon">👤</span>
-                    <span class="stat-label-compact">Age</span>
-                    <span class="stat-value-compact" id="playerAge">13</span>
-                </div>
-                <div class="stat-compact">
-                    <span class="stat-icon">📚</span>
-                    <span class="stat-label-compact">GPA</span>
-                    <span class="stat-value-compact" id="playerGpa">3.0</span>
-                </div>
-            </div>
-            
-            <button class="btn-stats-modern" onclick="StatsPanel.show()">
-                <span style="font-size: 20px;">📊</span>
-                <span>Stats</span>
-            </button>
+        <div class="activity-time" id="activityTime"></div>
+    </div>
+    
+    <!-- Regular Stats -->
+    <div class="stat-item">
+        <div class="stat-label">Time</div>
+        <div class="stat-value time" id="statTime">--:--</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-label">Day</div>
+        <div class="stat-value" id="statDay">---</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-label">Money</div>
+        <div class="stat-value money" id="statMoney">$0</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-label">Energy</div>
+        <div class="stat-value" id="statEnergy">100</div>
+        <div class="progress-container">
+            <div class="progress-bar high" id="barEnergy" style="width: 100%"></div>
         </div>
     </div>
+    <div class="stat-item">
+        <div class="stat-label">Hunger</div>
+        <div class="stat-value" id="statHunger">100</div>
+        <div class="progress-container">
+            <div class="progress-bar high" id="barHunger" style="width: 100%"></div>
+        </div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-label">Health</div>
+        <div class="stat-value" id="statHealth">100</div>
+        <div class="progress-container">
+            <div class="progress-bar high" id="barHealth" style="width: 100%"></div>
+        </div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-label">Happiness</div>
+        <div class="stat-value" id="statHappiness">100</div>
+        <div class="progress-container">
+            <div class="progress-bar high" id="barHappiness" style="width: 100%"></div>
+        </div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-label">Stress</div>
+        <div class="stat-value" id="statStress">0</div>
+        <div class="progress-container">
+            <div class="progress-bar high" id="barStress" style="width: 0%"></div>
+        </div>
+    </div>
+</div>
+
     
     <!-- Needs Panel (Side) -->
     <div id="needsPanel">
