@@ -32,7 +32,13 @@ function startGame() {
         hunger: 80,
         health: 100,
         happiness: 75,
-        stress: 20
+        stress: 20,
+        hygiene: 100,
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fats: 0,
+        vitamins: 0
     };
     
     GameState.money.cash = 50;
@@ -167,24 +173,45 @@ function resetGame() {
 // Auto-save every 2 minutes
 setInterval(() => {
     if (GameState.player.name) {
-        GameState.save = function() {
-            try {
-                const saveData = this.getSaveData();
-                localStorage.setItem('lifeSkillsGameState', JSON.stringify(saveData));
-                console.log('💾 Auto-saved');
-            } catch (error) {
-                console.error('Auto-save failed:', error);
-            }
-        };
-        GameState.save();
+        try {
+            GameState.save();
+            console.log('💾 Auto-saved');
+        } catch (error) {
+            console.error('Auto-save failed:', error);
+        }
     }
 }, 120000);
 
 // Save before page unload
 window.addEventListener('beforeunload', () => {
-    if (GameState.player.name && GameState.save) {
-        GameState.save();
+    if (GameState.player.name) {
+        try {
+            GameState.save();
+        } catch (error) {
+            console.error('Save on unload failed:', error);
+        }
+    }
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        saveGame();
+    }
+    if (e.key === 'Escape') {
+        if (typeof UI !== 'undefined' && UI.closeModal) {
+            UI.closeModal();
+        }
+    }
+});
+
+// Handle window resize
+window.addEventListener('resize', () => {
+    if (City3D.renderer && City3D.camera) {
+        City3D.onWindowResize();
     }
 });
 
 console.log('✅ init.js loaded');
+console.log('Version: 1.0.0');
