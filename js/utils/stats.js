@@ -1,325 +1,227 @@
-// ==================== PLAYER STATS PANEL ====================
-// Shows detailed stats with improvement tips
-
+// ==================== STATS PANEL ====================
 const StatsPanel = {
     show() {
-        const overlay = document.createElement('div');
-        overlay.className = 'minigame-overlay active';
-        overlay.id = 'statsPanel';
-        
-        // FIXED: Use GameState directly
         const needs = GameState.needs;
-        const totalMoney = GameState.money.cash + GameState.money.bank;
+        const skills = GameState.skills;
+        const money = GameState.money;
+        const stats = GameState.stats;
         
-        let html = `
-            <div class="minigame-container" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
-                <div class="minigame-header">
-                    <div class="minigame-title">📊 ${GameState.player.name}'s Stats</div>
-                    <div class="minigame-subtitle">Click any stat to see improvement tips!</div>
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.onclick = (e) => {
+            if (e.target === modal) this.close();
+        };
+        
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+                <div class="modal-header">
+                    <h2>📊 Player Statistics</h2>
+                    <button class="btn-close" onclick="StatsPanel.close()">×</button>
                 </div>
                 
-                <div style="padding: 20px;">
-                    <!-- Personal Info -->
-                    <div style="text-align: center; margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 15px; color: white;">
-                        <div style="font-size: 60px; margin-bottom: 10px;">👤</div>
-                        <div style="font-size: 28px; font-weight: bold; margin-bottom: 5px;">${GameState.player.name}</div>
-                        <div style="font-size: 18px; opacity: 0.9;">Age: ${GameState.player.age} | Grade: ${GameState.player.grade}</div>
-                        <div style="font-size: 22px; margin-top: 10px;">💰 Money: $${totalMoney.toFixed(2)}</div>
-                    </div>
+                <div class="modal-body">
+                    <!-- Player Info -->
+                    <section class="stats-section">
+                        <h3>👤 Player Information</h3>
+                        <div class="stats-grid">
+                            ${this.createStatCard('name', '👤', 'Name', GameState.player.name, 'info', 'Your character name')}
+                            ${this.createStatCard('age', '🎂', 'Age', GameState.player.age, 'info', 'Current age')}
+                            ${this.createStatCard('grade', '📚', 'Grade', GameState.player.grade, 'info', 'Current grade level')}
+                            ${this.createStatCard('gpa', '📊', 'GPA', GameState.school.gpa.toFixed(1), 'info', 'Grade point average')}
+                        </div>
+                    </section>
                     
-                    <!-- Needs Section -->
-                    <div style="margin-bottom: 25px;">
-                        <h2 style="color: #2c3e50; margin-bottom: 15px; border-bottom: 3px solid #3498db; padding-bottom: 10px;">
-                            🎯 Basic Needs
-                        </h2>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <!-- Needs -->
+                    <section class="stats-section">
+                        <h3>💪 Basic Needs</h3>
+                        <div class="stats-grid">
                             ${this.createStatCard('hunger', '🍔', 'Hunger', needs.hunger, 
                                 needs.hunger < 30 ? 'critical' : needs.hunger < 70 ? 'warning' : 'good',
-                                'Eat meals or snacks to restore hunger. Cook nutritious meals at home or buy snacks from the store.'
+                                'Eat food regularly to maintain hunger. Low hunger affects health and happiness.'
                             )}
                             ${this.createStatCard('energy', '⚡', 'Energy', needs.energy,
                                 needs.energy < 30 ? 'critical' : needs.energy < 70 ? 'warning' : 'good',
-                                'Sleep 7-9 hours per night. Eat nutritious meals. Avoid overworking. Take breaks between activities.'
+                                'Sleep restores energy. Low energy makes you less productive and affects mood.'
                             )}
                             ${this.createStatCard('hygiene', '🚿', 'Hygiene', needs.hygiene,
                                 needs.hygiene < 30 ? 'critical' : needs.hygiene < 70 ? 'warning' : 'good',
-                                'Take showers daily. Do chores to maintain cleanliness. Keep your living space tidy.'
+                                'Shower daily to maintain hygiene. Low hygiene affects social interactions.'
                             )}
                             ${this.createStatCard('happiness', '😊', 'Happiness', needs.happiness,
                                 needs.happiness < 30 ? 'critical' : needs.happiness < 70 ? 'warning' : 'good',
-                                'Complete chores and tasks. Socialize with friends. Cook tasty meals. Achieve goals and unlock achievements.'
+                                'Do activities you enjoy! Low happiness affects overall well-being.'
                             )}
                             ${this.createStatCard('health', '❤️', 'Health', needs.health,
                                 needs.health < 30 ? 'critical' : needs.health < 70 ? 'warning' : 'good',
-                                'Eat balanced meals with protein, vitamins, and healthy fats. Exercise regularly. Get enough sleep. Maintain all other needs above 50.'
+                                'Maintain health through good nutrition, sleep, and hygiene. Low health is dangerous.'
+                            )}
+                            ${this.createStatCard('stress', '😰', 'Stress', needs.stress,
+                                needs.stress > 70 ? 'critical' : needs.stress > 40 ? 'warning' : 'good',
+                                'Lower stress by sleeping, reducing commitments, and taking breaks. High stress damages health and grades. Balance is key!',
+                                true
                             )}
                         </div>
-                    </div>
+                    </section>
                     
-                    <!-- Nutrition Section -->
-                    <div style="margin-bottom: 25px;">
-                        <h2 style="color: #2c3e50; margin-bottom: 15px; border-bottom: 3px solid #27ae60; padding-bottom: 10px;">
-                            🥗 Daily Nutrition (Recommended Daily Values)
-                        </h2>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
-                            ${this.createNutritionCard('calories', '🔥', 'Calories', needs.calories, 2000, 'kcal',
-                                'Target: 2000 kcal/day. Eat regular meals. Each meal provides calories for energy throughout the day.'
-                            )}
-                            ${this.createNutritionCard('protein', '🥩', 'Protein', needs.protein, 50, 'g',
-                                'Target: 50g/day. Eat eggs, meat, fish, beans, and dairy. Protein builds and repairs muscles.'
-                            )}
-                            ${this.createNutritionCard('carbs', '🍞', 'Carbs', needs.carbs, 250, 'g',
-                                'Target: 250g/day. Eat bread, pasta, rice, and grains. Carbs provide quick energy.'
-                            )}
-                            ${this.createNutritionCard('fats', '🥑', 'Fats', needs.fats, 70, 'g',
-                                'Target: 70g/day. Eat nuts, avocado, oils, and fish. Healthy fats support brain function.'
-                            )}
-                            ${this.createNutritionCard('vitamins', '🍊', 'Vitamins', needs.vitamins, 100, '%',
-                                'Target: 100%/day. Eat fruits, vegetables, and fortified foods. Vitamins boost immunity and health.'
-                            )}
+                    <!-- Nutrition -->
+                    <section class="stats-section">
+                        <h3>🍽️ Daily Nutrition</h3>
+                        <div class="stats-grid">
+                            ${this.createStatCard('calories', '🔥', 'Calories', needs.calories + ' cal', 'info', 'Target: 2000-2500 calories per day')}
+                            ${this.createStatCard('protein', '🥩', 'Protein', needs.protein + 'g', 'info', 'Target: 50-60g per day')}
+                            ${this.createStatCard('carbs', '🍞', 'Carbs', needs.carbs + 'g', 'info', 'Target: 200-300g per day')}
+                            ${this.createStatCard('fats', '🥑', 'Fats', needs.fats + 'g', 'info', 'Target: 50-70g per day')}
+                            ${this.createStatCard('vitamins', '🍊', 'Vitamins', needs.vitamins + '%', 'info', 'Target: 100% daily value')}
                         </div>
-                    </div>
+                    </section>
                     
-                    <!-- Academic Section -->
-                    <div style="margin-bottom: 25px;">
-                        <h2 style="color: #2c3e50; margin-bottom: 15px; border-bottom: 3px solid #e74c3c; padding-bottom: 10px;">
-                            📚 Academic Performance
-                        </h2>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                            ${this.createStatCard('gpa', '🎓', 'GPA', GameState.school.gpa,
-                                GameState.school.gpa < 2.0 ? 'critical' : 
-                                GameState.school.gpa < 3.0 ? 'warning' : 'good',
-                                'Attend school regularly. Complete homework assignments. Study for tests. Higher GPA unlocks better opportunities.',
-                                true, 4.0
-                            )}
-                            ${this.createStatCard('homework', '📝', 'Homework Done', 
-                                GameState.stats.homeworkCompleted || 0,
-                                'good',
-                                'Complete homework assignments on time. Each completed assignment improves your grades and skills.',
-                                false
-                            )}
+                    <!-- Skills -->
+                    <section class="stats-section">
+                        <h3>📈 Life Skills</h3>
+                        <div class="stats-grid">
+                            ${this.createSkillCard('cooking', '🍳', 'Cooking', skills.cooking)}
+                            ${this.createSkillCard('cleaning', '🧹', 'Cleaning', skills.cleaning)}
+                            ${this.createSkillCard('budgeting', '💰', 'Budgeting', skills.budgeting)}
+                            ${this.createSkillCard('timeManagement', '⏰', 'Time Management', skills.timeManagement)}
+                            ${this.createSkillCard('communication', '💬', 'Communication', skills.communication)}
+                            ${this.createSkillCard('organization', '📋', 'Organization', skills.organization)}
+                            ${this.createSkillCard('responsibility', '✅', 'Responsibility', skills.responsibility)}
+                            ${this.createSkillCard('laundry', '🧺', 'Laundry', skills.laundry)}
                         </div>
-                    </div>
+                    </section>
                     
-                    <!-- Skills Section -->
-                    <div style="margin-bottom: 25px;">
-                        <h2 style="color: #2c3e50; margin-bottom: 15px; border-bottom: 3px solid #f39c12; padding-bottom: 10px;">
-                            🎯 Life Skills
-                        </h2>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                            ${this.createSkillCard('cooking', '👨‍🍳', 'Cooking', GameState.skills.cooking || 0,
-                                'Cook meals at home to improve. Higher cooking skill unlocks complex recipes and better meals.'
+                    <!-- Finances -->
+                    <section class="stats-section">
+                        <h3>💰 Finances</h3>
+                        <div class="stats-grid">
+                            ${this.createStatCard('cash', '💵', 'Cash', '$' + money.cash.toFixed(2), 'info', 'Money you have on hand')}
+                            ${this.createStatCard('bank', '🏦', 'Bank', '$' + money.bank.toFixed(2), 'info', 'Money in savings account')}
+                            ${this.createStatCard('debt', '💳', 'Debt', '$' + money.debt.toFixed(2), 
+                                money.debt > 1000 ? 'critical' : money.debt > 0 ? 'warning' : 'good',
+                                'Total debt owed'
                             )}
-                            ${this.createSkillCard('cleaning', '🧹', 'Cleaning', GameState.skills.cleaning || 0,
-                                'Complete chores to improve. Higher cleaning skill makes chores faster and more rewarding.'
-                            )}
-                            ${this.createSkillCard('budgeting', '💰', 'Budgeting', GameState.skills.budgeting || 0,
-                                'Manage your money wisely. Higher budgeting skill helps you save money and make better financial decisions.'
-                            )}
-                            ${this.createSkillCard('timeManagement', '⏰', 'Time Management', GameState.skills.timeManagement || 0,
-                                'Complete tasks efficiently. Higher time management unlocks better scheduling and productivity.'
-                            )}
-                            ${this.createSkillCard('communication', '💬', 'Communication', GameState.skills.communication || 0,
-                                'Interact with others effectively. Higher communication skill helps in jobs and relationships.'
-                            )}
-                            ${this.createSkillCard('organization', '📋', 'Organization', GameState.skills.organization || 0,
-                                'Keep things tidy and planned. Higher organization skill improves efficiency in all activities.'
-                            )}
+                            ${this.createStatCard('earned', '📈', 'Total Earned', '$' + stats.moneyEarned.toFixed(2), 'info', 'Lifetime earnings')}
+                            ${this.createStatCard('spent', '📉', 'Total Spent', '$' + stats.moneySpent.toFixed(2), 'info', 'Lifetime spending')}
                         </div>
-                    </div>
+                    </section>
                     
-                    <!-- Statistics Section -->
-                    <div style="margin-bottom: 25px;">
-                        <h2 style="color: #2c3e50; margin-bottom: 15px; border-bottom: 3px solid #9b59b6; padding-bottom: 10px;">
-                            📈 Lifetime Statistics
-                        </h2>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
-                            <div style="background: white; padding: 15px; border-radius: 10px; border: 2px solid #ddd; text-align: center;">
-                                <div style="font-size: 30px; margin-bottom: 5px;">💵</div>
-                                <div style="font-size: 20px; font-weight: bold; color: #27ae60;">$${(GameState.stats.moneyEarned || 0).toFixed(2)}</div>
-                                <div style="font-size: 14px; color: #7f8c8d;">Total Earned</div>
-                            </div>
-                            <div style="background: white; padding: 15px; border-radius: 10px; border: 2px solid #ddd; text-align: center;">
-                                <div style="font-size: 30px; margin-bottom: 5px;">💸</div>
-                                <div style="font-size: 20px; font-weight: bold; color: #e74c3c;">$${(GameState.stats.moneySpent || 0).toFixed(2)}</div>
-                                <div style="font-size: 14px; color: #7f8c8d;">Total Spent</div>
-                            </div>
-                            <div style="background: white; padding: 15px; border-radius: 10px; border: 2px solid #ddd; text-align: center;">
-                                <div style="font-size: 30px; margin-bottom: 5px;">🍳</div>
-                                <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${GameState.stats.mealsCooked || 0}</div>
-                                <div style="font-size: 14px; color: #7f8c8d;">Meals Cooked</div>
-                            </div>
-                            <div style="background: white; padding: 15px; border-radius: 10px; border: 2px solid #ddd; text-align: center;">
-                                <div style="font-size: 30px; margin-bottom: 5px;">🧹</div>
-                                <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${GameState.stats.choresCompleted || 0}</div>
-                                <div style="font-size: 14px; color: #7f8c8d;">Chores Done</div>
-                            </div>
-                            <div style="background: white; padding: 15px; border-radius: 10px; border: 2px solid #ddd; text-align: center;">
-                                <div style="font-size: 30px; margin-bottom: 5px;">📚</div>
-                                <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${GameState.stats.homeworkCompleted || 0}</div>
-                                <div style="font-size: 14px; color: #7f8c8d;">Homework Done</div>
-                            </div>
-                            <div style="background: white; padding: 15px; border-radius: 10px; border: 2px solid #ddd; text-align: center;">
-                                <div style="font-size: 30px; margin-bottom: 5px;">⏱️</div>
-                                <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${GameState.stats.hoursWorked || 0}</div>
-                                <div style="font-size: 14px; color: #7f8c8d;">Hours Worked</div>
-                            </div>
-                            <div style="background: white; padding: 15px; border-radius: 10px; border: 2px solid #ddd; text-align: center;">
-                                <div style="font-size: 30px; margin-bottom: 5px;">🏆</div>
-                                <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${GameState.achievements.length || 0}</div>
-                                <div style="font-size: 14px; color: #7f8c8d;">Achievements</div>
-                            </div>
-                            <div style="background: white; padding: 15px; border-radius: 10px; border: 2px solid #ddd; text-align: center;">
-                                <div style="font-size: 30px; margin-bottom: 5px;">📅</div>
-                                <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${GameState.stats.daysPlayed || 0}</div>
-                                <div style="font-size: 14px; color: #7f8c8d;">Days Played</div>
-                            </div>
+                    <!-- Game Stats -->
+                    <section class="stats-section">
+                        <h3>🎮 Game Statistics</h3>
+                        <div class="stats-grid">
+                            ${this.createStatCard('days', '📅', 'Days Played', stats.daysPlayed, 'info', 'Total days in game')}
+                            ${this.createStatCard('hours', '⏱️', 'Hours Worked', stats.hoursWorked, 'info', 'Total hours worked at jobs')}
+                            ${this.createStatCard('homework', '📝', 'Homework Done', stats.homeworkCompleted, 'info', 'Homework assignments completed')}
+                            ${this.createStatCard('chores', '🧹', 'Chores Done', stats.choresCompleted, 'info', 'Chores completed')}
+                            ${this.createStatCard('meals', '🍳', 'Meals Cooked', stats.mealsCooked, 'info', 'Total meals cooked')}
+                            ${this.createStatCard('fridge', '🧊', 'Meals in Fridge', GameState.fridge.length, 'info', 'Stored meals available')}
                         </div>
-                    </div>
+                    </section>
                     
-                    <!-- Money Breakdown -->
-                    <div style="margin-bottom: 25px;">
-                        <h2 style="color: #2c3e50; margin-bottom: 15px; border-bottom: 3px solid #27ae60; padding-bottom: 10px;">
-                            💰 Financial Overview
-                        </h2>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                            <div style="background: white; padding: 20px; border-radius: 10px; border: 2px solid #27ae60;">
-                                <div style="font-size: 14px; color: #7f8c8d; margin-bottom: 5px;">💵 Cash on Hand</div>
-                                <div style="font-size: 28px; font-weight: bold; color: #27ae60;">$${GameState.money.cash.toFixed(2)}</div>
+                    <!-- Achievements -->
+                    ${GameState.achievements.length > 0 ? `
+                        <section class="stats-section">
+                            <h3>🏆 Achievements (${GameState.achievements.length})</h3>
+                            <div class="achievements-list">
+                                ${GameState.achievements.map(ach => `
+                                    <div class="achievement-item">
+                                        <div class="achievement-icon">${ach.icon}</div>
+                                        <div class="achievement-info">
+                                            <div class="achievement-name">${ach.name}</div>
+                                            <div class="achievement-desc">${ach.description}</div>
+                                        </div>
+                                    </div>
+                                `).join('')}
                             </div>
-                            <div style="background: white; padding: 20px; border-radius: 10px; border: 2px solid #3498db;">
-                                <div style="font-size: 14px; color: #7f8c8d; margin-bottom: 5px;">🏦 Bank Account</div>
-                                <div style="font-size: 28px; font-weight: bold; color: #3498db;">$${GameState.money.bank.toFixed(2)}</div>
-                            </div>
-                            <div style="background: white; padding: 20px; border-radius: 10px; border: 2px solid #e74c3c;">
-                                <div style="font-size: 14px; color: #7f8c8d; margin-bottom: 5px;">💳 Debt</div>
-                                <div style="font-size: 28px; font-weight: bold; color: #e74c3c;">$${GameState.money.debt.toFixed(2)}</div>
-                            </div>
-                            <div style="background: white; padding: 20px; border-radius: 10px; border: 2px solid #9b59b6;">
-                                <div style="font-size: 14px; color: #7f8c8d; margin-bottom: 5px;">💎 Net Worth</div>
-                                <div style="font-size: 28px; font-weight: bold; color: #9b59b6;">$${(totalMoney - GameState.money.debt).toFixed(2)}</div>
-                            </div>
-                        </div>
-                    </div>
+                        </section>
+                    ` : ''}
                 </div>
                 
-                <div class="minigame-actions">
-                    <button class="btn btn-primary btn-large" onclick="StatsPanel.close()">Close</button>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" onclick="StatsPanel.close()">Close</button>
                 </div>
             </div>
         `;
         
-        overlay.innerHTML = html;
-        document.body.appendChild(overlay);
+        document.body.appendChild(modal);
     },
     
-    // Create stat card with clickable tooltip
-    createStatCard(id, emoji, label, value, status, tip, isDecimal = false, maxValue = 100) {
-        const percentage = Math.min(100, (value / maxValue) * 100);
-        const displayValue = isDecimal ? value.toFixed(1) : Math.round(value);
+    createStatCard(id, icon, label, value, status = 'info', description = '', inverted = false, max = 100) {
+        let color = '#3498db';
         
-        const colors = {
-            critical: '#e74c3c',
-            warning: '#f39c12',
-            good: '#27ae60'
-        };
+        if (status === 'critical') color = '#e74c3c';
+        else if (status === 'warning') color = '#f39c12';
+        else if (status === 'good') color = '#27ae60';
         
-        const color = colors[status] || colors.good;
-        
-        return `
-            <div class="stat-card" 
-                 style="background: white; padding: 15px; border-radius: 10px; border: 3px solid ${color}; cursor: pointer; transition: transform 0.2s;"
-                 onclick="StatsPanel.showTip('${label}', '${tip}')"
-                 onmouseover="this.style.transform='scale(1.05)'"
-                 onmouseout="this.style.transform='scale(1)'">
-                <div style="text-align: center; margin-bottom: 10px;">
-                    <div style="font-size: 40px;">${emoji}</div>
-                    <div style="font-size: 16px; font-weight: bold; color: #2c3e50; margin-top: 5px;">${label}</div>
-                </div>
-                <div style="background: #ecf0f1; border-radius: 10px; height: 20px; overflow: hidden; margin-bottom: 10px;">
-                    <div style="background: ${color}; height: 100%; width: ${percentage}%; transition: width 0.3s;"></div>
-                </div>
-                <div style="text-align: center;">
-                    <span style="font-size: 24px; font-weight: bold; color: ${color};">${displayValue}</span>
-                    <span style="font-size: 16px; color: #7f8c8d;">/${maxValue}</span>
-                </div>
-            </div>
-        `;
-    },
-    
-    // Create nutrition card
-    createNutritionCard(id, emoji, label, current, target, unit, tip) {
-        const percentage = Math.min(100, (current / target) * 100);
-        const color = percentage < 50 ? '#e74c3c' : percentage < 80 ? '#f39c12' : '#27ae60';
-        
-        return `
-            <div class="nutrition-card" 
-                 style="background: white; padding: 15px; border-radius: 10px; border: 2px solid #ddd; cursor: pointer;"
-                 onclick="StatsPanel.showTip('${label}', '${tip}')"
-                 onmouseover="this.style.borderColor='${color}'"
-                 onmouseout="this.style.borderColor='#ddd'">
-                <div style="text-align: center;">
-                    <div style="font-size: 30px; margin-bottom: 5px;">${emoji}</div>
-                    <div style="font-size: 14px; font-weight: bold; color: #2c3e50;">${label}</div>
-                    <div style="font-size: 20px; font-weight: bold; color: ${color}; margin: 10px 0;">
-                        ${Math.round(current)} <span style="font-size: 14px; color: #7f8c8d;">/ ${target}</span>
-                    </div>
-                    <div style="background: #ecf0f1; border-radius: 10px; height: 8px; overflow: hidden;">
-                        <div style="background: ${color}; height: 100%; width: ${percentage}%;"></div>
-                    </div>
-                    <div style="font-size: 12px; color: #7f8c8d; margin-top: 5px;">${Math.round(percentage)}%</div>
-                </div>
-            </div>
-        `;
-    },
-    
-    // Create skill card
-    createSkillCard(id, emoji, label, value, tip) {
-        const level = Math.floor(value / 20);
-        const levelNames = ['Novice', 'Beginner', 'Intermediate', 'Advanced', 'Expert', 'Master'];
-        const levelName = levelNames[level] || 'Novice';
-        const percentage = Math.min(100, value);
-        
-        const color = value < 20 ? '#e74c3c' : 
-                      value < 40 ? '#f39c12' : 
-                      value < 60 ? '#f1c40f' : 
-                      value < 80 ? '#3498db' : '#27ae60';
-        
-        return `
-            <div class="skill-card" 
-                 style="background: white; padding: 15px; border-radius: 10px; border: 2px solid ${color}; cursor: pointer;"
-                 onclick="StatsPanel.showTip('${label}', '${tip}')"
-                 onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 5px 15px rgba(0,0,0,0.2)'"
-                 onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'"
-                 style="transition: all 0.2s;">
-                <div style="text-align: center;">
-                    <div style="font-size: 40px; margin-bottom: 5px;">${emoji}</div>
-                    <div style="font-size: 16px; font-weight: bold; color: #2c3e50; margin-bottom: 5px;">${label}</div>
-                    <div style="font-size: 14px; color: ${color}; font-weight: bold; margin-bottom: 10px;">${levelName}</div>
-                    <div style="background: #ecf0f1; border-radius: 10px; height: 12px; overflow: hidden; margin-bottom: 5px;">
-                        <div style="background: ${color}; height: 100%; width: ${percentage}%; transition: width 0.3s;"></div>
-                    </div>
-                    <div style="font-size: 18px; font-weight: bold; color: ${color};">${Math.round(value)}/100</div>
-                </div>
-            </div>
-        `;
-    },
-    
-    // Show improvement tip
-    showTip(title, message) {
-        UI.showModal(
-            `💡 ${title} Tips`,
-            `<div style="font-size: 16px; line-height: 1.6; color: #2c3e50;">${message}</div>`,
-            [{ text: 'Got it!', class: 'btn-primary' }]
-        );
-    },
-    
-    // Close panel
-    close() {
-        const panel = document.getElementById('statsPanel');
-        if (panel) {
-            panel.remove();
+        // For inverted stats (like stress), reverse the color logic
+        if (inverted && typeof value === 'number') {
+            if (value > 70) color = '#e74c3c';
+            else if (value > 40) color = '#f39c12';
+            else color = '#27ae60';
         }
+        
+        const showBar = typeof value === 'number' && value <= max;
+        const percentage = showBar ? (value / max) * 100 : 0;
+        
+        return `
+            <div class="stat-card-detailed">
+                <div class="stat-card-header">
+                    <span class="stat-card-icon">${icon}</span>
+                    <span class="stat-card-label">${label}</span>
+                </div>
+                <div class="stat-card-value" style="color: ${color};">
+                    ${typeof value === 'number' ? Math.round(value) : value}
+                </div>
+                ${showBar ? `
+                    <div class="stat-card-bar">
+                        <div class="stat-card-bar-fill" style="width: ${percentage}%; background: ${color};"></div>
+                    </div>
+                ` : ''}
+                <div class="stat-card-desc">${description}</div>
+            </div>
+        `;
+    },
+    
+    createSkillCard(id, icon, label, value) {
+        const percentage = (value / GameState.MAX_SKILL) * 100;
+        let color = '#3498db';
+        
+        if (value >= 75) color = '#27ae60';
+        else if (value >= 50) color = '#2ecc71';
+        else if (value >= 25) color = '#f39c12';
+        
+        let rank = 'Beginner';
+        if (value >= 75) rank = 'Expert';
+        else if (value >= 50) rank = 'Proficient';
+        else if (value >= 25) rank = 'Intermediate';
+        
+        return `
+            <div class="stat-card-detailed">
+                <div class="stat-card-header">
+                    <span class="stat-card-icon">${icon}</span>
+                    <span class="stat-card-label">${label}</span>
+                </div>
+                <div class="stat-card-value" style="color: ${color};">
+                    ${Math.round(value)} / ${GameState.MAX_SKILL}
+                </div>
+                <div class="stat-card-bar">
+                    <div class="stat-card-bar-fill" style="width: ${percentage}%; background: ${color};"></div>
+                </div>
+                <div class="stat-card-desc">${rank}</div>
+            </div>
+        `;
+    },
+    
+    close() {
+        const modal = document.querySelector('.modal-overlay');
+        if (modal) {
+            modal.remove();
+        }
+    },
+    
+    updateStats() {
+        // This is called when stats need to be refreshed
+        // Currently handled by TimeManager.updateUI()
     }
 };
 
